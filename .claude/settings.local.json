@@ -8,7 +8,8 @@
       "Bash(git config:*)",
       "Bash(printf:*)",
       "Bash(git credential-manager:*)",
-      "Bash(ssh-keygen:*)"
+      "Bash(ssh-keygen:*)",
+      "Bash(git remote set-url:*)"
     ]
   }
 }
