@@ -7,7 +7,8 @@
       "Bash(gh repo view:*)",
       "Bash(git config:*)",
       "Bash(printf:*)",
-      "Bash(git credential-manager:*)"
+      "Bash(git credential-manager:*)",
+      "Bash(ssh-keygen:*)"
     ]
   }
 }
