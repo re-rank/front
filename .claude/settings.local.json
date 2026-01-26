@@ -12,7 +12,9 @@
       "Bash(git remote set-url:*)",
       "Bash(git push:*)",
       "Bash(ssh-add:*)",
-      "Bash(ssh:*)"
+      "Bash(ssh:*)",
+      "Bash(npx tailwindcss:*)",
+      "Bash(tasklist:*)"
     ]
   }
 }
