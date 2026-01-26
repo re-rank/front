@@ -14,7 +14,11 @@
       "Bash(ssh-add:*)",
       "Bash(ssh:*)",
       "Bash(npx tailwindcss:*)",
-      "Bash(tasklist:*)"
+      "Bash(tasklist:*)",
+      "WebFetch(domain:supabase.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebSearch",
+      "WebFetch(domain:glama.ai)"
     ]
   }
 }
