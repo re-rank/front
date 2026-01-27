@@ -32,8 +32,9 @@ function AppContent() {
           .single()
           .then(({ data }) => {
             setProfile(data);
-            setLoading(false);
-          });
+          })
+          .catch(() => {})
+          .finally(() => setLoading(false));
       } else {
         setLoading(false);
       }

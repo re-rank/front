@@ -7,20 +7,18 @@ export function Header() {
   const { user, profile, logout, getRole } = useAuthStore();
   const role = getRole();
 
-  const handleLogout = async () => {
-    try {
-      await supabase.auth.signOut({ scope: 'local' });
-    } catch {
-      // 네트워크 오류 무시, 로컬만 정리
-    }
+  const handleLogout = () => {
+    // 1) zustand persist & Supabase 로컬 토큰 즉시 제거
     logout();
-    // Supabase & zustand persist 토큰 모두 제거
     Object.keys(localStorage).forEach((key) => {
       if (key.startsWith('sb-') || key === 'auth-storage') {
         localStorage.removeItem(key);
       }
     });
-    window.location.href = '/';
+    // 2) Supabase signOut (비동기, 실패해도 무관)
+    supabase.auth.signOut({ scope: 'local' }).catch(() => {});
+    // 3) 전체 페이지 리로드로 상태 초기화
+    window.location.replace('/');
   };
 
   return (

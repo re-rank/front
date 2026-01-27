@@ -63,7 +63,8 @@ export function ImageUpload({
         .upload(fileName, file, { upsert: true });
 
       if (uploadErr) {
-        setUploadError('업로드에 실패했습니다. 다시 시도해주세요.');
+        console.error('Image upload error:', uploadErr);
+        setUploadError(`업로드 실패: ${uploadErr.message}`);
         setUploading(false);
         return;
       }
