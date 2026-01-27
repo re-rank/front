@@ -80,7 +80,7 @@ const companyRegisterSchema = z.object({
   }),
   description: z
     .string()
-    .min(1000, '최소 1,000자 이상 입력하세요')
+    .min(100, '최소 100자 이상 입력하세요')
     .max(10000, '최대 10,000자까지 입력 가능합니다'),
   category: z.enum(['AI/ML', 'Fintech', 'Edtech', 'CleanTech', 'HealthTech', 'E-commerce', 'SaaS', 'Other'], {
     message: '카테고리를 선택하세요',
