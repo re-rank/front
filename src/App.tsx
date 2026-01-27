@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/stores/authStore';
 import { Layout, ProtectedRoute } from '@/components/layout';
-import { Home, Login, Register, CompanyRegister } from '@/pages';
+import { Home, Login, Register, CompanyRegister, CompanyList, CompanyDetail } from '@/pages';
 import { Button } from '@/components/ui';
 
 const queryClient = new QueryClient({
@@ -72,8 +72,8 @@ function AppContent() {
 
           {/* Investor routes */}
           <Route element={<ProtectedRoute allowedRoles={['investor', 'admin']} />}>
-            <Route path="/companies" element={<div className="p-8">회사 리스트 (준비 중)</div>} />
-            <Route path="/companies/:id" element={<div className="p-8">회사 상세 (준비 중)</div>} />
+            <Route path="/companies" element={<CompanyList />} />
+            <Route path="/companies/:id" element={<CompanyDetail />} />
           </Route>
 
           {/* Startup routes */}

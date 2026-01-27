@@ -50,18 +50,10 @@ export function Login() {
         .eq('id', authData.user.id)
         .single();
 
-      if (profileData) {
-        const profile = profileData as unknown as Profile;
-        setProfile(profile);
+      const profile = profileData as Profile | null;
+      setProfile(profile);
 
-        if (profile.role === 'investor') {
-          navigate('/companies');
-        } else if (profile.role === 'startup') {
-          navigate('/dashboard');
-        } else {
-          navigate('/');
-        }
-      }
+      navigate('/');
     }
   };
 

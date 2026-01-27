@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -21,11 +21,11 @@ type RegisterForm = z.infer<typeof registerSchema>;
 
 export function Register() {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const defaultRole = (searchParams.get('role') as UserRole) || 'investor';
 
   const [role, setRole] = useState<UserRole>(defaultRole);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
 
   const {
     register,
@@ -55,32 +55,9 @@ export function Register() {
     }
 
     if (authData.user) {
-      setSuccess(true);
+      navigate('/');
     }
   };
-
-  if (success) {
-    return (
-      <div className="min-h-[calc(100vh-64px)] flex items-center justify-center py-12 px-4">
-        <Card className="w-full max-w-md">
-          <CardContent className="py-8 text-center">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-            <h2 className="text-xl font-bold mb-2">가입 완료!</h2>
-            <p className="text-warm-600 mb-6">
-              이메일로 발송된 인증 링크를 확인해주세요.
-            </p>
-            <Link to="/login">
-              <Button>로그인 페이지로</Button>
-            </Link>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-[calc(100vh-64px)] flex items-center justify-center py-12 px-4">
