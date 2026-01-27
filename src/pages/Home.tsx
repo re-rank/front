@@ -3,33 +3,39 @@ import { Button } from '@/components/ui';
 import { useAuthStore } from '@/stores/authStore';
 
 export function Home() {
-  const { user, profile } = useAuthStore();
+  const { user, getRole } = useAuthStore();
+  const role = getRole();
 
   return (
     <div className="min-h-[calc(100vh-64px)] flex flex-col">
       {/* Hero Section */}
-      <section className="flex-1 flex items-center justify-center bg-gradient-to-br from-primary-50 to-white">
+      <section className="flex-1 flex items-center justify-center bg-gradient-to-br from-primary-50 to-warm-50">
         <div className="max-w-4xl mx-auto px-4 py-20 text-center">
-          <h1 className="text-5xl font-bold text-gray-900 mb-6">
+          <h1 className="text-5xl font-bold text-warm-900 mb-6">
             검증된 데이터로<br />
             <span className="text-primary-600">스타트업</span>과 <span className="text-primary-600">투자자</span>를 연결합니다
           </h1>
-          <p className="text-xl text-gray-600 mb-10 max-w-2xl mx-auto">
+          <p className="text-xl text-warm-600 mb-10 max-w-2xl mx-auto">
             Stripe, GA4 연동을 통한 실시간 비즈니스 지표 검증으로
             신뢰할 수 있는 투자 의사결정을 지원합니다.
           </p>
 
           {user ? (
             <div className="flex gap-4 justify-center">
-              {profile?.role === 'investor' && (
+              {role === 'investor' && (
                 <Link to="/companies">
                   <Button size="lg">스타트업 탐색하기</Button>
                 </Link>
               )}
-              {profile?.role === 'startup' && (
-                <Link to="/dashboard">
-                  <Button size="lg">대시보드로 이동</Button>
-                </Link>
+              {role === 'startup' && (
+                <>
+                  <Link to="/company/register">
+                    <Button size="lg">등록하기</Button>
+                  </Link>
+                  <Link to="/dashboard">
+                    <Button size="lg" variant="outline">대시보드로 이동</Button>
+                  </Link>
+                </>
               )}
             </div>
           ) : (
@@ -46,9 +52,9 @@ export function Home() {
       </section>
 
       {/* Features Section */}
-      <section className="py-20 bg-white">
+      <section className="py-20 bg-warm-50">
         <div className="max-w-6xl mx-auto px-4">
-          <h2 className="text-3xl font-bold text-center text-gray-900 mb-12">
+          <h2 className="text-3xl font-bold text-center text-warm-900 mb-12">
             왜 FundBridge인가요?
           </h2>
           <div className="grid md:grid-cols-3 gap-8">
@@ -59,7 +65,7 @@ export function Home() {
                 </svg>
               </div>
               <h3 className="text-xl font-semibold mb-2">검증된 데이터</h3>
-              <p className="text-gray-600">
+              <p className="text-warm-600">
                 Stripe, GA4 API 연동으로 자동 수집된 실시간 비즈니스 지표
               </p>
             </div>
@@ -71,7 +77,7 @@ export function Home() {
                 </svg>
               </div>
               <h3 className="text-xl font-semibold mb-2">열람 권한 제어</h3>
-              <p className="text-gray-600">
+              <p className="text-warm-600">
                 민감한 기업 정보는 인증된 투자자에게만 공개
               </p>
             </div>
@@ -82,7 +88,7 @@ export function Home() {
                 </svg>
               </div>
               <h3 className="text-xl font-semibold mb-2">월간 업데이트</h3>
-              <p className="text-gray-600">
+              <p className="text-warm-600">
                 정기적인 데이터 제출로 최신 상태 유지
               </p>
             </div>

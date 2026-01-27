@@ -100,7 +100,7 @@ export function Login() {
             </Button>
           </form>
 
-          <p className="mt-6 text-center text-sm text-gray-600">
+          <p className="mt-6 text-center text-sm text-warm-600">
             계정이 없으신가요?{' '}
             <Link to="/register" className="text-primary-600 hover:underline font-medium">
               회원가입

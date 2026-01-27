@@ -1,10 +1,11 @@
 import { useEffect } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/stores/authStore';
 import { Layout, ProtectedRoute } from '@/components/layout';
-import { Home, Login, Register } from '@/pages';
+import { Home, Login, Register, CompanyRegister } from '@/pages';
+import { Button } from '@/components/ui';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -76,7 +77,17 @@ function AppContent() {
 
           {/* Startup routes */}
           <Route element={<ProtectedRoute allowedRoles={['startup', 'admin']} />}>
-            <Route path="/dashboard" element={<div className="p-8">대시보드 (준비 중)</div>} />
+            <Route
+              path="/dashboard"
+              element={
+                <div className="min-h-[calc(100vh-64px)] flex items-center justify-center">
+                  <Link to="/company/register">
+                    <Button size="lg">등록하기</Button>
+                  </Link>
+                </div>
+              }
+            />
+            <Route path="/company/register" element={<CompanyRegister />} />
             <Route path="/company/edit" element={<div className="p-8">회사 정보 수정 (준비 중)</div>} />
           </Route>
         </Route>

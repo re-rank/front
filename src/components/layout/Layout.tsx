@@ -3,7 +3,7 @@ import { Header } from './Header';
 
 export function Layout() {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-warm-100">
       <Header />
       <main>
         <Outlet />

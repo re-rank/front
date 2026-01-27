@@ -70,7 +70,7 @@ export function Register() {
               </svg>
             </div>
             <h2 className="text-xl font-bold mb-2">가입 완료!</h2>
-            <p className="text-gray-600 mb-6">
+            <p className="text-warm-600 mb-6">
               이메일로 발송된 인증 링크를 확인해주세요.
             </p>
             <Link to="/login">
@@ -97,11 +97,11 @@ export function Register() {
               className={`flex-1 py-3 px-4 rounded-lg border-2 transition-colors ${
                 role === 'investor'
                   ? 'border-primary-600 bg-primary-50 text-primary-700'
-                  : 'border-gray-200 hover:border-gray-300'
+                  : 'border-warm-200 hover:border-warm-300'
               }`}
             >
               <div className="font-medium">투자자</div>
-              <div className="text-sm text-gray-500">스타트업 탐색</div>
+              <div className="text-sm text-warm-500">스타트업 탐색</div>
             </button>
             <button
               type="button"
@@ -109,11 +109,11 @@ export function Register() {
               className={`flex-1 py-3 px-4 rounded-lg border-2 transition-colors ${
                 role === 'startup'
                   ? 'border-primary-600 bg-primary-50 text-primary-700'
-                  : 'border-gray-200 hover:border-gray-300'
+                  : 'border-warm-200 hover:border-warm-300'
               }`}
             >
               <div className="font-medium">스타트업</div>
-              <div className="text-sm text-gray-500">회사 등록</div>
+              <div className="text-sm text-warm-500">회사 등록</div>
             </button>
           </div>
 
@@ -160,7 +160,7 @@ export function Register() {
             </Button>
           </form>
 
-          <p className="mt-6 text-center text-sm text-gray-600">
+          <p className="mt-6 text-center text-sm text-warm-600">
             이미 계정이 있으신가요?{' '}
             <Link to="/login" className="text-primary-600 hover:underline font-medium">
               로그인
