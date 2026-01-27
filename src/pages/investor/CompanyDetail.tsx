@@ -50,6 +50,8 @@ export function CompanyDetail() {
 
   useEffect(() => {
     if (!id) return;
+    let cancelled = false;
+
     Promise.all([
       supabase.from('companies').select('*').eq('id', id).single(),
       supabase.from('executives').select('*').eq('company_id', id).order('created_at'),
@@ -57,13 +59,18 @@ export function CompanyDetail() {
       supabase.from('company_metrics').select('*').eq('company_id', id).order('month'),
       supabase.from('company_qna').select('*').eq('company_id', id).order('created_at'),
     ]).then(([companyRes, execRes, videoRes, metricRes, qnaRes]) => {
+      if (cancelled) return;
       setCompany(companyRes.data);
       setExecutives(execRes.data ?? []);
       setVideos(videoRes.data ?? []);
       setMetrics(metricRes.data ?? []);
       setQna(qnaRes.data ?? []);
       setLoading(false);
+    }).catch(() => {
+      if (!cancelled) setLoading(false);
     });
+
+    return () => { cancelled = true; };
   }, [id]);
 
   if (loading) {

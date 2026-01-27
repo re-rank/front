@@ -54,30 +54,33 @@ export function CompanyList() {
   const [employeeCount, setEmployeeCount] = useState('');
 
   useEffect(() => {
-    fetchCompanies();
-  }, [category, stage, employeeCount]);
+    let cancelled = false;
 
-  async function fetchCompanies() {
-    setLoading(true);
-    try {
-      let query = supabase
-        .from('companies')
-        .select('*')
-        .eq('is_visible', true)
-        .order('created_at', { ascending: false });
+    async function fetchCompanies() {
+      setLoading(true);
+      try {
+        let query = supabase
+          .from('companies')
+          .select('*')
+          .eq('is_visible', true)
+          .order('created_at', { ascending: false });
 
-      if (category) query = query.eq('category', category as CompanyCategory);
-      if (stage) query = query.eq('stage', stage as CompanyStage);
-      if (employeeCount) query = query.eq('employee_count', employeeCount as EmployeeCount);
+        if (category) query = query.eq('category', category as CompanyCategory);
+        if (stage) query = query.eq('stage', stage as CompanyStage);
+        if (employeeCount) query = query.eq('employee_count', employeeCount as EmployeeCount);
 
-      const { data } = await query;
-      setCompanies(data ?? []);
-    } catch {
-      setCompanies([]);
-    } finally {
-      setLoading(false);
+        const { data } = await query;
+        if (!cancelled) setCompanies(data ?? []);
+      } catch {
+        if (!cancelled) setCompanies([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     }
-  }
+
+    fetchCompanies();
+    return () => { cancelled = true; };
+  }, [category, stage, employeeCount]);
 
   async function handleView(companyId: string) {
     if (user) {
