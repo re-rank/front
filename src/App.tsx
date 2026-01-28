@@ -21,26 +21,25 @@ function AppContent() {
 
   useEffect(() => {
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
+    (async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        setUser(session?.user ?? null);
 
-      if (session?.user) {
-        supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single()
-          .then(({ data }) => {
-            setProfile(data);
-          })
-          .catch(() => {})
-          .finally(() => setLoading(false));
-      } else {
+        if (session?.user) {
+          const { data } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
+          setProfile(data);
+        }
+      } catch {
+        // session/profile fetch failed
+      } finally {
         setLoading(false);
       }
-    }).catch(() => {
-      setLoading(false);
-    });
+    })();
 
     // Listen for auth changes
     const {

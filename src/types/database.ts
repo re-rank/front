@@ -44,6 +44,7 @@ export interface Database {
         };
         Insert: Omit<Database['public']['Tables']['profiles']['Row'], 'created_at' | 'updated_at'>;
         Update: Partial<Database['public']['Tables']['profiles']['Insert']>;
+        Relationships: [];
       };
       companies: {
         Row: {
@@ -70,8 +71,9 @@ export interface Database {
           created_at: string;
           updated_at: string;
         };
-        Insert: Omit<Database['public']['Tables']['companies']['Row'], 'id' | 'created_at' | 'updated_at' | 'is_visible' | 'stripe_connected' | 'ga4_connected'>;
+        Insert: Omit<Database['public']['Tables']['companies']['Row'], 'id' | 'created_at' | 'updated_at' | 'is_visible' | 'stripe_connected' | 'ga4_connected' | 'last_data_update'>;
         Update: Partial<Database['public']['Tables']['companies']['Insert']>;
+        Relationships: [];
       };
       executives: {
         Row: {
@@ -88,6 +90,7 @@ export interface Database {
         };
         Insert: Omit<Database['public']['Tables']['executives']['Row'], 'id' | 'created_at'>;
         Update: Partial<Database['public']['Tables']['executives']['Insert']>;
+        Relationships: [];
       };
       company_qna: {
         Row: {
@@ -101,6 +104,7 @@ export interface Database {
         };
         Insert: Omit<Database['public']['Tables']['company_qna']['Row'], 'id' | 'created_at' | 'updated_at'>;
         Update: Partial<Database['public']['Tables']['company_qna']['Insert']>;
+        Relationships: [];
       };
       company_news: {
         Row: {
@@ -115,6 +119,7 @@ export interface Database {
         };
         Insert: Omit<Database['public']['Tables']['company_news']['Row'], 'id' | 'created_at'>;
         Update: Partial<Database['public']['Tables']['company_news']['Insert']>;
+        Relationships: [];
       };
       company_videos: {
         Row: {
@@ -127,6 +132,7 @@ export interface Database {
         };
         Insert: Omit<Database['public']['Tables']['company_videos']['Row'], 'id' | 'created_at'>;
         Update: Partial<Database['public']['Tables']['company_videos']['Insert']>;
+        Relationships: [];
       };
       company_metrics: {
         Row: {
@@ -141,6 +147,7 @@ export interface Database {
         };
         Insert: Omit<Database['public']['Tables']['company_metrics']['Row'], 'id' | 'created_at'>;
         Update: Partial<Database['public']['Tables']['company_metrics']['Insert']>;
+        Relationships: [];
       };
       view_logs: {
         Row: {
@@ -151,6 +158,7 @@ export interface Database {
         };
         Insert: Omit<Database['public']['Tables']['view_logs']['Row'], 'id' | 'viewed_at'>;
         Update: Partial<Database['public']['Tables']['view_logs']['Insert']>;
+        Relationships: [];
       };
       monthly_submissions: {
         Row: {
@@ -164,6 +172,7 @@ export interface Database {
         };
         Insert: Omit<Database['public']['Tables']['monthly_submissions']['Row'], 'id' | 'submitted_at'>;
         Update: Partial<Database['public']['Tables']['monthly_submissions']['Insert']>;
+        Relationships: [];
       };
       audit_logs: {
         Row: {
@@ -177,7 +186,20 @@ export interface Database {
         };
         Insert: Omit<Database['public']['Tables']['audit_logs']['Row'], 'id' | 'created_at'>;
         Update: Partial<Database['public']['Tables']['audit_logs']['Insert']>;
+        Relationships: [];
       };
+    };
+    Views: {
+      [_ in never]: never;
+    };
+    Functions: {
+      [_ in never]: never;
+    };
+    Enums: {
+      [_ in never]: never;
+    };
+    CompositeTypes: {
+      [_ in never]: never;
     };
   };
 }

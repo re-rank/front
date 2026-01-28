@@ -305,7 +305,7 @@ function MetricChart({
             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
             <XAxis dataKey="month" tick={{ fontSize: 11 }} />
             <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => format(v)} />
-            <Tooltip formatter={(v: number) => format(v)} />
+            <Tooltip formatter={(v) => format(v as number)} />
             <Line type="monotone" dataKey={dataKey} stroke={color} strokeWidth={2} dot={false} />
           </LineChart>
         </ResponsiveContainer>

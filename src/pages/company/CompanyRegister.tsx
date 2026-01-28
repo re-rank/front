@@ -120,7 +120,6 @@ export function CompanyRegister() {
     register,
     control,
     handleSubmit,
-    watch,
     trigger,
     formState: { errors, isSubmitting },
   } = useForm<CompanyRegisterForm>({
@@ -148,8 +147,6 @@ export function CompanyRegister() {
     control,
     name: 'executives',
   });
-
-  const descriptionValue = watch('description') || '';
 
   const handleNext = async () => {
     const step1Fields = [

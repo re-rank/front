@@ -16,8 +16,8 @@ interface AuthState {
 }
 
 export const useAuthStore = create<AuthState>()(
-  persist(
-    (set) => ({
+  persist<AuthState>(
+    (set, get) => ({
       user: null,
       profile: null,
       isLoading: true,
@@ -25,8 +25,8 @@ export const useAuthStore = create<AuthState>()(
       setProfile: (profile) => set({ profile }),
       setLoading: (isLoading) => set({ isLoading }),
       logout: () => set({ user: null, profile: null }),
-      getRole: () => {
-        const state = useAuthStore.getState();
+      getRole: (): UserRole | null => {
+        const state = get();
         return (
           state.profile?.role ??
           (state.user?.user_metadata?.role as UserRole) ??
@@ -36,7 +36,7 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'auth-storage',
-      partialize: (state) => ({ user: state.user, profile: state.profile }),
+      partialize: (state: AuthState) => ({ user: state.user, profile: state.profile }) as unknown as AuthState,
     }
   )
 );
