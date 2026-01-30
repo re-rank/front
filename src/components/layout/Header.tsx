@@ -26,10 +26,7 @@ export function Header() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <Link to="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">FB</span>
-            </div>
-            <span className="font-bold text-xl text-warm-900">FundBridge</span>
+            <img src="/logo.png" alt="IV" className="h-8 w-auto" />
           </Link>
 
           <nav className="flex items-center gap-4">
