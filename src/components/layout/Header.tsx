@@ -70,7 +70,12 @@ export function Header() {
           </Link>
 
           <nav className="flex items-center gap-4">
-            {role === 'investor' && (
+            {role === 'admin' && (
+              <Link to="/admin" className="text-warm-600 hover:text-warm-900">
+                Admin
+              </Link>
+            )}
+            {(role === 'investor' || role === 'admin') && (
               <Link to="/companies" className="text-warm-600 hover:text-warm-900">
                 스타트업 탐색
               </Link>

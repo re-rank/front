@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/stores/authStore';
 import { Layout, ProtectedRoute } from '@/components/layout';
-import { Home, Login, Register, CompanyRegister, CompanyList, CompanyDetail } from '@/pages';
+import { Home, Login, Register, RegisterForm, CompanyRegister, CompanyList, CompanyDetail, AdminDashboard } from '@/pages';
 import { Button } from '@/components/ui';
 
 const queryClient = new QueryClient({
@@ -75,11 +75,18 @@ function AppContent() {
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/register/company" element={<RegisterForm role="startup" />} />
+          <Route path="/register/member" element={<RegisterForm role="investor" />} />
 
           {/* Investor routes */}
           <Route element={<ProtectedRoute allowedRoles={['investor', 'admin']} />}>
             <Route path="/companies" element={<CompanyList />} />
             <Route path="/companies/:id" element={<CompanyDetail />} />
+          </Route>
+
+          {/* Admin routes */}
+          <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
+            <Route path="/admin" element={<AdminDashboard />} />
           </Route>
 
           {/* Startup routes */}

@@ -72,7 +72,7 @@ export interface Database {
           updated_at: string;
         };
         Insert: Omit<Database['public']['Tables']['companies']['Row'], 'id' | 'created_at' | 'updated_at' | 'is_visible' | 'stripe_connected' | 'ga4_connected' | 'last_data_update'>;
-        Update: Partial<Database['public']['Tables']['companies']['Insert']>;
+        Update: Partial<Database['public']['Tables']['companies']['Insert']> & { is_visible?: boolean; stripe_connected?: boolean; ga4_connected?: boolean };
         Relationships: [];
       };
       executives: {
