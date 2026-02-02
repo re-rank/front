@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui';
 import { useAuthStore } from '@/stores/authStore';
@@ -6,6 +7,10 @@ import {
   GraduationCap, BookOpen, Linkedin, Twitter, ExternalLink,
   Newspaper, CheckCircle, ArrowRight, Instagram,
 } from 'lucide-react';
+import {
+  AreaChart, Area, BarChart as RechartsBarChart, Bar,
+  XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip,
+} from 'recharts';
 
 // --- Mock data for demo sections ---
 const teamMembers = [
@@ -64,117 +69,107 @@ const keyQuestions = [
   'What made you decide to start a company?',
 ];
 
-const revenueData = [28, 22, 45, 38, 42, 50, 48, 55, 52, 68, 72, 85];
-const usersData = [320, 380, 450, 520, 580, 700, 850, 950, 1050, 1200, 1350, 1550];
-const sessionsData = [2800, 3100, 3400, 3200, 3600, 3900, 4100, 3800, 4300, 4600, 4900, 5400];
-const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const chartMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-function LineChart({
-  data,
-  yLabels,
-  color,
-}: {
-  data: number[];
-  yLabels: string[];
-  color: string;
-}) {
-  const max = Math.max(...data);
-  const min = 0;
-  const range = max - min || 1;
-  const W = 400;
-  const H = 150;
-  const padL = 0;
-  const points = data.map((val, i) => ({
-    x: padL + (i / (data.length - 1)) * (W - padL),
-    y: H - ((val - min) / range) * H,
+function generateData(offset: number) {
+  return chartMonths.map((month, i) => ({
+    month,
+    revenue: Math.floor(20 + Math.random() * 80 + i * 5 + offset),
+    users: Math.floor(300 + Math.random() * 500 + i * 100 + offset * 3),
+    sessions: Math.floor(2500 + Math.random() * 2000 + i * 200 + offset * 5),
   }));
-  const pathD = points.map((p, i) => {
-    if (i === 0) return `M ${p.x} ${p.y}`;
-    const prev = points[i - 1];
-    const cpx1 = prev.x + (p.x - prev.x) / 3;
-    const cpx2 = prev.x + (2 * (p.x - prev.x)) / 3;
-    return `C ${cpx1} ${prev.y}, ${cpx2} ${p.y}, ${p.x} ${p.y}`;
-  }).join(' ');
-  const areaD = `${pathD} L ${points[points.length - 1].x} ${H} L ${points[0].x} ${H} Z`;
-
-  return (
-    <div className="mt-3">
-      <div className="flex">
-        <div className="flex flex-col justify-between text-[10px] text-neutral-500 pr-2 w-12 shrink-0" style={{ height: H }}>
-          {yLabels.map((l) => (
-            <span key={l} className="text-right leading-none">{l}</span>
-          ))}
-        </div>
-        <div className="flex-1 relative">
-          {/* Grid lines */}
-          <svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="absolute inset-0">
-            {[0, 0.25, 0.5, 0.75, 1].map((f) => (
-              <line key={f} x1={0} y1={f * H} x2={W} y2={f * H} stroke="#262626" strokeWidth={1} />
-            ))}
-          </svg>
-          <svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="relative z-10">
-            <defs>
-              <linearGradient id={`grad-${color}`} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={color} stopOpacity="0.3" />
-                <stop offset="100%" stopColor={color} stopOpacity="0" />
-              </linearGradient>
-            </defs>
-            <path d={areaD} fill={`url(#grad-${color})`} />
-            <path d={pathD} fill="none" stroke={color} strokeWidth={2} vectorEffect="non-scaling-stroke" />
-          </svg>
-        </div>
-      </div>
-      <div className="flex ml-12 mt-1">
-        {months.map((m) => (
-          <span key={m} className="flex-1 text-center text-[10px] text-neutral-500">{m}</span>
-        ))}
-      </div>
-    </div>
-  );
 }
 
-function BarChart({
-  data,
-  yLabels,
-  color,
-}: {
-  data: number[];
-  yLabels: string[];
-  color: string;
-}) {
-  const max = Math.max(...data);
+function AnimatedChart() {
+  const [data, setData] = useState(() => generateData(0));
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setData(generateData(Math.random() * 20));
+    }, 3000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const chartStyle = {
+    fontSize: 10,
+    fill: '#737373',
+  };
+
   return (
-    <div className="mt-3">
-      <div className="flex">
-        <div className="flex flex-col justify-between text-[10px] text-neutral-500 pr-2 w-12 shrink-0" style={{ height: 150 }}>
-          {yLabels.map((l) => (
-            <span key={l} className="text-right leading-none">{l}</span>
-          ))}
-        </div>
-        <div className="flex-1 relative">
-          {/* Grid lines */}
-          <div className="absolute inset-0 flex flex-col justify-between" style={{ height: 150 }}>
-            {yLabels.map((l) => (
-              <div key={l} className="border-t border-neutral-800 w-full" />
-            ))}
+    <>
+      {/* Charts - 2 col + 1 full width */}
+      <div className="grid md:grid-cols-2 gap-6 mb-6">
+        <div className="bg-neutral-800/40 border border-neutral-700/50 rounded-xl p-5">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold">Revenue (Stripe)</h3>
+            <span className="text-xs text-neutral-500">Last 12 months</span>
           </div>
-          <div className="flex items-end gap-1.5 relative z-10" style={{ height: 150 }}>
-            {data.map((val, i) => (
-              <div
-                key={i}
-                className={`flex-1 rounded-sm ${color} min-h-[4px]`}
-                style={{ height: `${(val / max) * 100}%` }}
+          <ResponsiveContainer width="100%" height={180}>
+            <AreaChart data={data}>
+              <defs>
+                <linearGradient id="gradRevenue" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#10b981" stopOpacity={0.3} />
+                  <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#262626" />
+              <XAxis dataKey="month" tick={chartStyle} axisLine={false} tickLine={false} />
+              <YAxis tick={chartStyle} axisLine={false} tickLine={false} width={40} tickFormatter={(v) => `$${v}K`} />
+              <Tooltip
+                contentStyle={{ backgroundColor: '#171717', border: '1px solid #404040', borderRadius: 8, fontSize: 12 }}
+                labelStyle={{ color: '#a3a3a3' }}
+                itemStyle={{ color: '#10b981' }}
               />
-            ))}
+              <Area type="monotone" dataKey="revenue" stroke="#10b981" fill="url(#gradRevenue)" strokeWidth={2} animationDuration={1500} />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+        <div className="bg-neutral-800/40 border border-neutral-700/50 rounded-xl p-5">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold">Active Users (GA4)</h3>
+            <span className="text-xs text-neutral-500">Last 12 months</span>
           </div>
+          <ResponsiveContainer width="100%" height={180}>
+            <AreaChart data={data}>
+              <defs>
+                <linearGradient id="gradUsers" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.3} />
+                  <stop offset="100%" stopColor="#3b82f6" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#262626" />
+              <XAxis dataKey="month" tick={chartStyle} axisLine={false} tickLine={false} />
+              <YAxis tick={chartStyle} axisLine={false} tickLine={false} width={40} />
+              <Tooltip
+                contentStyle={{ backgroundColor: '#171717', border: '1px solid #404040', borderRadius: 8, fontSize: 12 }}
+                labelStyle={{ color: '#a3a3a3' }}
+                itemStyle={{ color: '#3b82f6' }}
+              />
+              <Area type="monotone" dataKey="users" stroke="#3b82f6" fill="url(#gradUsers)" strokeWidth={2} animationDuration={1500} />
+            </AreaChart>
+          </ResponsiveContainer>
         </div>
       </div>
-      <div className="flex ml-12 mt-1">
-        {months.map((m) => (
-          <span key={m} className="flex-1 text-center text-[10px] text-neutral-500">{m}</span>
-        ))}
+      <div className="bg-neutral-800/40 border border-neutral-700/50 rounded-xl p-5">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold">Sessions Overview</h3>
+          <span className="text-xs text-neutral-500">Last 12 months</span>
+        </div>
+        <ResponsiveContainer width="100%" height={180}>
+          <RechartsBarChart data={data}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#262626" />
+            <XAxis dataKey="month" tick={chartStyle} axisLine={false} tickLine={false} />
+            <YAxis tick={chartStyle} axisLine={false} tickLine={false} width={40} />
+            <Tooltip
+              contentStyle={{ backgroundColor: '#171717', border: '1px solid #404040', borderRadius: 8, fontSize: 12 }}
+              labelStyle={{ color: '#a3a3a3' }}
+              itemStyle={{ color: '#f87171' }}
+            />
+            <Bar dataKey="sessions" fill="#f87171" radius={[4, 4, 0, 0]} animationDuration={1500} />
+          </RechartsBarChart>
+        </ResponsiveContainer>
       </div>
-    </div>
+    </>
   );
 }
 
@@ -435,42 +430,7 @@ export function Home() {
               ))}
             </div>
 
-            {/* Charts - 2 col + 1 full width */}
-            <div className="grid md:grid-cols-2 gap-6 mb-6">
-              <div className="bg-neutral-800/40 border border-neutral-700/50 rounded-xl p-5">
-                <div className="flex items-center justify-between mb-1">
-                  <h3 className="text-sm font-semibold">Revenue (Stripe)</h3>
-                  <span className="text-xs text-neutral-500">Last 12 months</span>
-                </div>
-                <LineChart
-                  data={revenueData}
-                  yLabels={['$120K', '$90K', '$60K', '$30K', '$0K']}
-                  color="#10b981"
-                />
-              </div>
-              <div className="bg-neutral-800/40 border border-neutral-700/50 rounded-xl p-5">
-                <div className="flex items-center justify-between mb-1">
-                  <h3 className="text-sm font-semibold">Active Users (GA4)</h3>
-                  <span className="text-xs text-neutral-500">Last 12 months</span>
-                </div>
-                <LineChart
-                  data={usersData}
-                  yLabels={['2000', '1500', '1000', '500', '0']}
-                  color="#3b82f6"
-                />
-              </div>
-            </div>
-            <div className="bg-neutral-800/40 border border-neutral-700/50 rounded-xl p-5">
-              <div className="flex items-center justify-between mb-1">
-                <h3 className="text-sm font-semibold">Sessions Overview</h3>
-                <span className="text-xs text-neutral-500">Last 12 months</span>
-              </div>
-              <BarChart
-                data={sessionsData}
-                yLabels={['6000', '4500', '3000', '1500', '0']}
-                color="bg-red-400"
-              />
-            </div>
+            <AnimatedChart />
           </div>
         </div>
       </section>
