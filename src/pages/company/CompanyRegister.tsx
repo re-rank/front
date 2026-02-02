@@ -713,7 +713,7 @@ export function CompanyRegister() {
                     </div>
                     <button
                       type="button"
-                      className="text-red-500 hover:text-red-700 flex-shrink-0"
+                      className="text-red-500 hover:text-red-700 shrink-0"
                       onClick={() => removeNewsItem(item.id)}
                     >
                       <Trash2 className="w-4 h-4" />

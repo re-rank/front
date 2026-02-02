@@ -64,23 +64,116 @@ const keyQuestions = [
   'What made you decide to start a company?',
 ];
 
-const revenueData = [12, 18, 15, 25, 22, 30, 35, 42, 38, 50, 55, 65];
-const usersData = [200, 350, 400, 500, 600, 750, 900, 1050, 1100, 1300, 1450, 1641];
-const sessionsData = [800, 1200, 1500, 2000, 2400, 3000, 3500, 4200, 4800, 5200, 5800, 6329];
+const revenueData = [28, 22, 45, 38, 42, 50, 48, 55, 52, 68, 72, 85];
+const usersData = [320, 380, 450, 520, 580, 700, 850, 950, 1050, 1200, 1350, 1550];
+const sessionsData = [2800, 3100, 3400, 3200, 3600, 3900, 4100, 3800, 4300, 4600, 4900, 5400];
 const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-function MiniBarChart({ data, max, color }: { data: number[]; max: number; color: string }) {
+function LineChart({
+  data,
+  yLabels,
+  color,
+}: {
+  data: number[];
+  yLabels: string[];
+  color: string;
+}) {
+  const max = Math.max(...data);
+  const min = 0;
+  const range = max - min || 1;
+  const W = 400;
+  const H = 150;
+  const padL = 0;
+  const points = data.map((val, i) => ({
+    x: padL + (i / (data.length - 1)) * (W - padL),
+    y: H - ((val - min) / range) * H,
+  }));
+  const pathD = points.map((p, i) => {
+    if (i === 0) return `M ${p.x} ${p.y}`;
+    const prev = points[i - 1];
+    const cpx1 = prev.x + (p.x - prev.x) / 3;
+    const cpx2 = prev.x + (2 * (p.x - prev.x)) / 3;
+    return `C ${cpx1} ${prev.y}, ${cpx2} ${p.y}, ${p.x} ${p.y}`;
+  }).join(' ');
+  const areaD = `${pathD} L ${points[points.length - 1].x} ${H} L ${points[0].x} ${H} Z`;
+
   return (
-    <div className="flex items-end gap-1 h-32 mt-4">
-      {data.map((val, i) => (
-        <div key={i} className="flex-1 flex flex-col items-center gap-1">
-          <div
-            className={`w-full rounded-sm ${color}`}
-            style={{ height: `${(val / max) * 100}%` }}
-          />
-          <span className="text-[10px] text-neutral-500">{months[i]}</span>
+    <div className="mt-3">
+      <div className="flex">
+        <div className="flex flex-col justify-between text-[10px] text-neutral-500 pr-2 w-12 shrink-0" style={{ height: H }}>
+          {yLabels.map((l) => (
+            <span key={l} className="text-right leading-none">{l}</span>
+          ))}
         </div>
-      ))}
+        <div className="flex-1 relative">
+          {/* Grid lines */}
+          <svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="absolute inset-0">
+            {[0, 0.25, 0.5, 0.75, 1].map((f) => (
+              <line key={f} x1={0} y1={f * H} x2={W} y2={f * H} stroke="#262626" strokeWidth={1} />
+            ))}
+          </svg>
+          <svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="relative z-10">
+            <defs>
+              <linearGradient id={`grad-${color}`} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={color} stopOpacity="0.3" />
+                <stop offset="100%" stopColor={color} stopOpacity="0" />
+              </linearGradient>
+            </defs>
+            <path d={areaD} fill={`url(#grad-${color})`} />
+            <path d={pathD} fill="none" stroke={color} strokeWidth={2} vectorEffect="non-scaling-stroke" />
+          </svg>
+        </div>
+      </div>
+      <div className="flex ml-12 mt-1">
+        {months.map((m) => (
+          <span key={m} className="flex-1 text-center text-[10px] text-neutral-500">{m}</span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function BarChart({
+  data,
+  yLabels,
+  color,
+}: {
+  data: number[];
+  yLabels: string[];
+  color: string;
+}) {
+  const max = Math.max(...data);
+  return (
+    <div className="mt-3">
+      <div className="flex">
+        <div className="flex flex-col justify-between text-[10px] text-neutral-500 pr-2 w-12 shrink-0" style={{ height: 150 }}>
+          {yLabels.map((l) => (
+            <span key={l} className="text-right leading-none">{l}</span>
+          ))}
+        </div>
+        <div className="flex-1 relative">
+          {/* Grid lines */}
+          <div className="absolute inset-0 flex flex-col justify-between" style={{ height: 150 }}>
+            {yLabels.map((l) => (
+              <div key={l} className="border-t border-neutral-800 w-full" />
+            ))}
+          </div>
+          <div className="flex items-end gap-1.5 relative z-10" style={{ height: 150 }}>
+            {data.map((val, i) => (
+              <div
+                key={i}
+                className={`flex-1 rounded-sm ${color} min-h-[4px]`}
+                style={{ height: `${(val / max) * 100}%` }}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+      <div className="flex ml-12 mt-1">
+        {months.map((m) => (
+          <span key={m} className="flex-1 text-center text-[10px] text-neutral-500">{m}</span>
+        ))}
+      </div>
     </div>
   );
 }
@@ -322,46 +415,61 @@ export function Home() {
             </p>
           </div>
 
-          {/* Metric summary cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-            {[
-              { label: 'Monthly Revenue', value: '$64.6K', change: '+23%' },
-              { label: 'Active Users', value: '1,641', change: '+18%' },
-              { label: 'Sessions', value: '6,329', change: '+31%' },
-              { label: 'Conversion', value: '4.2%', change: '+0.8%' },
-            ].map(({ label, value, change }) => (
-              <div key={label} className="bg-neutral-900 border border-neutral-800 rounded-xl p-4">
-                <p className="text-xs text-neutral-500 mb-1">{label}</p>
-                <div className="flex items-baseline gap-2">
-                  <p className="text-xl font-bold">{value}</p>
-                  <span className="text-xs text-green-500">{change}</span>
+          {/* Outer card wrapping metrics + charts */}
+          <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6">
+            {/* Metric summary cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+              {[
+                { label: 'Monthly Revenue', value: '$70.8K', change: '+23%' },
+                { label: 'Active Users', value: '1,914', change: '+18%' },
+                { label: 'Sessions', value: '4,932', change: '+31%' },
+                { label: 'Conversion', value: '4.2%', change: '+0.8%' },
+              ].map(({ label, value, change }) => (
+                <div key={label} className="bg-neutral-800/50 border border-neutral-700/50 rounded-xl p-4">
+                  <p className="text-xs text-neutral-500 mb-1">{label}</p>
+                  <div className="flex items-baseline justify-between">
+                    <p className="text-xl font-bold">{value}</p>
+                    <span className="text-xs text-green-500">{change}</span>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
 
-          {/* Charts */}
-          <div className="grid md:grid-cols-3 gap-6">
-            <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-5">
-              <div className="flex items-center justify-between mb-1">
-                <h3 className="text-sm font-semibold">Revenue (Stripe)</h3>
-                <span className="text-xs text-neutral-500">Last 12 months</span>
+            {/* Charts - 2 col + 1 full width */}
+            <div className="grid md:grid-cols-2 gap-6 mb-6">
+              <div className="bg-neutral-800/40 border border-neutral-700/50 rounded-xl p-5">
+                <div className="flex items-center justify-between mb-1">
+                  <h3 className="text-sm font-semibold">Revenue (Stripe)</h3>
+                  <span className="text-xs text-neutral-500">Last 12 months</span>
+                </div>
+                <LineChart
+                  data={revenueData}
+                  yLabels={['$120K', '$90K', '$60K', '$30K', '$0K']}
+                  color="#10b981"
+                />
               </div>
-              <MiniBarChart data={revenueData} max={80} color="bg-blue-500" />
-            </div>
-            <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-5">
-              <div className="flex items-center justify-between mb-1">
-                <h3 className="text-sm font-semibold">Active Users (GA4)</h3>
-                <span className="text-xs text-neutral-500">Last 12 months</span>
+              <div className="bg-neutral-800/40 border border-neutral-700/50 rounded-xl p-5">
+                <div className="flex items-center justify-between mb-1">
+                  <h3 className="text-sm font-semibold">Active Users (GA4)</h3>
+                  <span className="text-xs text-neutral-500">Last 12 months</span>
+                </div>
+                <LineChart
+                  data={usersData}
+                  yLabels={['2000', '1500', '1000', '500', '0']}
+                  color="#3b82f6"
+                />
               </div>
-              <MiniBarChart data={usersData} max={2000} color="bg-emerald-500" />
             </div>
-            <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-5">
+            <div className="bg-neutral-800/40 border border-neutral-700/50 rounded-xl p-5">
               <div className="flex items-center justify-between mb-1">
                 <h3 className="text-sm font-semibold">Sessions Overview</h3>
                 <span className="text-xs text-neutral-500">Last 12 months</span>
               </div>
-              <MiniBarChart data={sessionsData} max={8000} color="bg-purple-500" />
+              <BarChart
+                data={sessionsData}
+                yLabels={['6000', '4500', '3000', '1500', '0']}
+                color="bg-red-400"
+              />
             </div>
           </div>
         </div>
