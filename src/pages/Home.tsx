@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui';
 import { useAuthStore } from '@/stores/authStore';
 import {
-  Zap, BarChart3, MessageSquare, ChevronRight, Play,
+  Zap, BarChart3, MessageSquare, Play,
   GraduationCap, BookOpen, Linkedin, Twitter, ExternalLink,
   Newspaper, CheckCircle, ArrowRight, Instagram,
 } from 'lucide-react';
