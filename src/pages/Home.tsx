@@ -506,7 +506,7 @@ export function Home() {
         <div className="max-w-6xl mx-auto px-4">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-4">
-              <span className="text-xl font-bold">IV</span>
+              <img src="/logo.png" alt="IV" className="h-8 w-auto" />
               <p className="text-xs text-neutral-500">
                 IV is not an investment platform and does not provide investment advice.
               </p>
