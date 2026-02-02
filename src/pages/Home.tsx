@@ -1,23 +1,112 @@
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui';
 import { useAuthStore } from '@/stores/authStore';
+import {
+  Zap, BarChart3, MessageSquare, ChevronRight, Play,
+  GraduationCap, BookOpen, Linkedin, Twitter, ExternalLink,
+  Newspaper, CheckCircle, ArrowRight, Instagram,
+} from 'lucide-react';
+
+// --- Mock data for demo sections ---
+const teamMembers = [
+  {
+    name: 'Sarah Chen',
+    role: 'CEO',
+    photo: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&h=200&fit=crop&crop=face',
+    school: 'Stanford University',
+    major: 'Computer Science',
+    bio: 'Former Product Lead at Google, 8 years in AI/ML',
+  },
+  {
+    name: 'Michael Park',
+    role: 'CTO',
+    photo: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop&crop=face',
+    school: 'MIT',
+    major: 'Electrical Engineering',
+    bio: 'Ex-Amazon Principal Engineer, distributed systems expert',
+  },
+  {
+    name: 'Emily Johnson',
+    role: 'CFO',
+    photo: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200&h=200&fit=crop&crop=face',
+    school: 'Wharton School',
+    major: 'Finance & Economics',
+    bio: 'Former VP at Goldman Sachs, 12 years in fintech',
+  },
+];
+
+const newsItems = [
+  {
+    title: 'TechFlow AI Raises $25M Series A to Revolutionize Workflow Automation',
+    source: 'TechCrunch',
+    date: 'Jan 15, 2024',
+    image: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=400&h=250&fit=crop',
+  },
+  {
+    title: 'How GreenBattery is Making EVs More Sustainable with Solid-State Tech',
+    source: 'Forbes',
+    date: 'Jan 10, 2024',
+    image: 'https://images.unsplash.com/photo-1497435334941-8c899ee9e8e9?w=400&h=250&fit=crop',
+  },
+  {
+    title: 'HealthAI Partners with Mayo Clinic for Remote Diagnostics Trial',
+    source: 'Reuters',
+    date: 'Jan 5, 2024',
+    image: 'https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=400&h=250&fit=crop',
+  },
+];
+
+const keyQuestions = [
+  'How did your team meet, and how will you overcome difficult situations?',
+  'What is your unique moat - patents, data, or network effects?',
+  'What is the biggest gap in your capabilities for running this business?',
+  'If a large company offered $10M to acquire you tomorrow, would you sell?',
+  'What made you decide to start a company?',
+];
+
+const revenueData = [12, 18, 15, 25, 22, 30, 35, 42, 38, 50, 55, 65];
+const usersData = [200, 350, 400, 500, 600, 750, 900, 1050, 1100, 1300, 1450, 1641];
+const sessionsData = [800, 1200, 1500, 2000, 2400, 3000, 3500, 4200, 4800, 5200, 5800, 6329];
+const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+function MiniBarChart({ data, max, color }: { data: number[]; max: number; color: string }) {
+  return (
+    <div className="flex items-end gap-1 h-32 mt-4">
+      {data.map((val, i) => (
+        <div key={i} className="flex-1 flex flex-col items-center gap-1">
+          <div
+            className={`w-full rounded-sm ${color}`}
+            style={{ height: `${(val / max) * 100}%` }}
+          />
+          <span className="text-[10px] text-neutral-500">{months[i]}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export function Home() {
   const { user, getRole } = useAuthStore();
   const role = getRole();
 
   return (
-    <div className="min-h-[calc(100vh-64px)] flex flex-col">
+    <div className="bg-neutral-950 text-white">
       {/* Hero Section */}
-      <section className="flex-1 flex items-center justify-center bg-gradient-to-br from-primary-50 to-warm-50">
-        <div className="max-w-4xl mx-auto px-4 py-20 text-center">
-          <h1 className="text-5xl font-bold text-warm-900 mb-6">
-            검증된 데이터로<br />
-            <span className="text-primary-600">스타트업</span>과 <span className="text-primary-600">투자자</span>를 연결합니다
+      <section id="hero" className="relative py-24 sm:py-32">
+        <div className="max-w-4xl mx-auto px-4 text-center">
+          <div className="inline-flex items-center gap-2 bg-neutral-800/60 border border-neutral-700 rounded-full px-4 py-1.5 mb-8">
+            <span className="w-2 h-2 rounded-full bg-green-500" />
+            <span className="text-sm text-neutral-300">Full transparency into our projects</span>
+          </div>
+
+          <h1 className="text-4xl sm:text-6xl font-bold tracking-tight mb-6">
+            Access all project insights{' '}
+            <span className="text-neutral-500">in one view.</span>
           </h1>
-          <p className="text-xl text-warm-600 mb-10 max-w-2xl mx-auto">
-            Stripe, GA4 연동을 통한 실시간 비즈니스 지표 검증으로
-            신뢰할 수 있는 투자 의사결정을 지원합니다.
+
+          <p className="text-lg text-neutral-400 max-w-2xl mx-auto mb-10">
+            Full transparency into our projects, accessible to everyone, anywhere.
+            Discover startups with real-time metrics and standardized analysis.
           </p>
 
           {user ? (
@@ -39,12 +128,16 @@ export function Home() {
               )}
             </div>
           ) : (
-            <div className="flex gap-4 justify-center">
+            <div className="flex gap-4 justify-center flex-wrap">
               <Link to="/register?role=startup">
-                <Button size="lg">스타트업으로 시작</Button>
+                <button className="inline-flex items-center gap-2 bg-white text-black font-medium px-6 py-3 rounded-lg hover:bg-neutral-200 transition-colors">
+                  Join as Company <ArrowRight className="w-4 h-4" />
+                </button>
               </Link>
               <Link to="/register?role=investor">
-                <Button size="lg" variant="outline">투자자로 시작</Button>
+                <button className="inline-flex items-center gap-2 bg-transparent text-white font-medium px-6 py-3 rounded-lg border border-neutral-600 hover:bg-neutral-800 transition-colors">
+                  Join as Member
+                </button>
               </Link>
             </div>
           )}
@@ -52,49 +145,319 @@ export function Home() {
       </section>
 
       {/* Features Section */}
-      <section className="py-20 bg-warm-50">
+      <section id="features" className="py-20 border-t border-neutral-800">
         <div className="max-w-6xl mx-auto px-4">
-          <h2 className="text-3xl font-bold text-center text-warm-900 mb-12">
-            왜 FundBridge인가요?
-          </h2>
-          <div className="grid md:grid-cols-3 gap-8">
-            <div className="text-center p-6">
-              <div className="w-16 h-16 bg-primary-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+          <div className="grid md:grid-cols-3 gap-6">
+            {[
+              {
+                icon: Zap,
+                title: 'Real-time Data Sync',
+                desc: 'Seamlessly integrated with Stripe and GA4, reflecting every business heartbeat in live graphs.',
+              },
+              {
+                icon: BarChart3,
+                title: 'Live Analytics',
+                desc: 'Track MRR, user growth, and key metrics with beautiful, animated visualizations.',
+              },
+              {
+                icon: MessageSquare,
+                title: 'Standardized Q&A',
+                desc: 'All startups answer 6 key questions investors care about most.',
+              },
+            ].map(({ icon: Icon, title, desc }) => (
+              <div key={title} className="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
+                <div className="w-10 h-10 bg-neutral-800 rounded-lg flex items-center justify-center mb-4">
+                  <Icon className="w-5 h-5 text-neutral-300" />
+                </div>
+                <h3 className="text-lg font-semibold mb-2">{title}</h3>
+                <p className="text-sm text-neutral-400">{desc}</p>
               </div>
-              <h3 className="text-xl font-semibold mb-2">검증된 데이터</h3>
-              <p className="text-warm-600">
-                Stripe, GA4 API 연동으로 자동 수집된 실시간 비즈니스 지표
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Videos Section */}
+      <section id="videos" className="py-20 border-t border-neutral-800">
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="grid md:grid-cols-2 gap-12 items-center">
+            <div>
+              <div className="w-10 h-10 bg-neutral-800 rounded-lg flex items-center justify-center mb-4">
+                <Play className="w-5 h-5 text-neutral-300" />
+              </div>
+              <h2 className="text-3xl sm:text-4xl font-bold mb-4">
+                5-Minute Company{' '}
+                <span className="text-neutral-500">Introduction Videos</span>
+              </h2>
+              <p className="text-neutral-400">
+                Every company shares a 5-minute introduction video. Get to know the founders,
+                understand the product, and feel the company culture before diving into the data.
               </p>
             </div>
-            <div className="text-center p-6">
-              <div className="w-16 h-16 bg-primary-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                </svg>
+            <div className="space-y-4">
+              <div className="relative aspect-video bg-neutral-800 rounded-xl overflow-hidden group cursor-pointer">
+                <img
+                  src="https://images.unsplash.com/photo-1553877522-43269d4ea984?w=600&h=340&fit=crop"
+                  alt="Video thumbnail"
+                  className="w-full h-full object-cover opacity-70 group-hover:opacity-90 transition-opacity"
+                />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-14 h-14 bg-white/20 backdrop-blur rounded-full flex items-center justify-center">
+                    <Play className="w-6 h-6 text-white fill-white" />
+                  </div>
+                </div>
+                <p className="absolute bottom-3 left-3 text-sm text-white/80">TechFlow AI - Company Introduction</p>
               </div>
-              <h3 className="text-xl font-semibold mb-2">열람 권한 제어</h3>
-              <p className="text-warm-600">
-                민감한 기업 정보는 인증된 투자자에게만 공개
-              </p>
+              <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-5">
+                <h3 className="font-semibold mb-1">Watch founder stories & product demos</h3>
+                <p className="text-sm text-neutral-400">
+                  Every company uploads a 5-min video explaining their vision, product, and team.
+                </p>
+              </div>
             </div>
-            <div className="text-center p-6">
-              <div className="w-16 h-16 bg-primary-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
+          </div>
+        </div>
+      </section>
+
+      {/* Team Section */}
+      <section id="team" className="py-20 border-t border-neutral-800">
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="text-center mb-12">
+            <div className="w-10 h-10 bg-neutral-800 rounded-lg flex items-center justify-center mx-auto mb-4">
+              <GraduationCap className="w-5 h-5 text-neutral-300" />
+            </div>
+            <h2 className="text-3xl sm:text-4xl font-bold mb-3">Meet the Leadership Team</h2>
+            <p className="text-neutral-400 max-w-2xl mx-auto">
+              Access detailed C-level profiles including education background, career history, and direct links to their professional networks.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-6">
+            {teamMembers.map((member) => (
+              <div key={member.name} className="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
+                <div className="flex items-center gap-4 mb-4">
+                  <img
+                    src={member.photo}
+                    alt={member.name}
+                    className="w-14 h-14 rounded-full object-cover"
+                  />
+                  <div>
+                    <span className="text-xs text-neutral-500 uppercase tracking-wider">{member.role}</span>
+                    <h3 className="font-semibold">{member.name}</h3>
+                  </div>
+                </div>
+                <div className="space-y-1.5 mb-3">
+                  <p className="text-sm text-neutral-400 flex items-center gap-2">
+                    <GraduationCap className="w-3.5 h-3.5" /> {member.school}
+                  </p>
+                  <p className="text-sm text-neutral-400 flex items-center gap-2">
+                    <BookOpen className="w-3.5 h-3.5" /> {member.major}
+                  </p>
+                </div>
+                <p className="text-sm text-neutral-500 mb-4">{member.bio}</p>
+                <div className="flex gap-3">
+                  <Linkedin className="w-4 h-4 text-neutral-500 hover:text-white cursor-pointer transition-colors" />
+                  <Twitter className="w-4 h-4 text-neutral-500 hover:text-white cursor-pointer transition-colors" />
+                </div>
               </div>
-              <h3 className="text-xl font-semibold mb-2">월간 업데이트</h3>
-              <p className="text-warm-600">
-                정기적인 데이터 제출로 최신 상태 유지
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* News Section */}
+      <section id="news" className="py-20 border-t border-neutral-800">
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="grid md:grid-cols-2 gap-12">
+            {/* News cards */}
+            <div className="space-y-4">
+              {newsItems.map((item) => (
+                <div
+                  key={item.title}
+                  className="bg-neutral-900 border border-neutral-800 rounded-xl p-4 flex gap-4 items-start hover:border-neutral-700 transition-colors cursor-pointer group"
+                >
+                  <img
+                    src={item.image}
+                    alt=""
+                    className="w-20 h-20 rounded-lg object-cover flex-shrink-0"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <h3 className="font-medium text-sm mb-2 line-clamp-2 group-hover:text-white transition-colors">{item.title}</h3>
+                    <div className="flex items-center gap-2 text-xs text-neutral-500">
+                      <span>{item.source}</span>
+                      <span>•</span>
+                      <span>{item.date}</span>
+                    </div>
+                  </div>
+                  <ExternalLink className="w-4 h-4 text-neutral-600 flex-shrink-0 mt-1" />
+                </div>
+              ))}
+            </div>
+
+            {/* News description */}
+            <div className="flex flex-col justify-center">
+              <div className="w-10 h-10 bg-neutral-800 rounded-lg flex items-center justify-center mb-4">
+                <Newspaper className="w-5 h-5 text-neutral-300" />
+              </div>
+              <h2 className="text-3xl sm:text-4xl font-bold mb-3">
+                Stay Updated with{' '}
+                <span className="text-neutral-500">Company News</span>
+              </h2>
+              <p className="text-neutral-400">
+                Companies share their latest press coverage, funding announcements, and milestones.
+                Track the journey of startups you're interested in.
               </p>
             </div>
           </div>
         </div>
       </section>
+
+      {/* Analytics Section */}
+      <section id="analytics" className="py-20 border-t border-neutral-800">
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="text-center mb-6">
+            <h2 className="text-3xl sm:text-4xl font-bold mb-3">Real-time Data Sync</h2>
+            <p className="text-neutral-400 max-w-2xl mx-auto">
+              Seamlessly integrated with Stripe and GA4, reflecting every business heartbeat in live graphs.
+            </p>
+          </div>
+
+          {/* Metric summary cards */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            {[
+              { label: 'Monthly Revenue', value: '$64.6K', change: '+23%' },
+              { label: 'Active Users', value: '1,641', change: '+18%' },
+              { label: 'Sessions', value: '6,329', change: '+31%' },
+              { label: 'Conversion', value: '4.2%', change: '+0.8%' },
+            ].map(({ label, value, change }) => (
+              <div key={label} className="bg-neutral-900 border border-neutral-800 rounded-xl p-4">
+                <p className="text-xs text-neutral-500 mb-1">{label}</p>
+                <div className="flex items-baseline gap-2">
+                  <p className="text-xl font-bold">{value}</p>
+                  <span className="text-xs text-green-500">{change}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Charts */}
+          <div className="grid md:grid-cols-3 gap-6">
+            <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-5">
+              <div className="flex items-center justify-between mb-1">
+                <h3 className="text-sm font-semibold">Revenue (Stripe)</h3>
+                <span className="text-xs text-neutral-500">Last 12 months</span>
+              </div>
+              <MiniBarChart data={revenueData} max={80} color="bg-blue-500" />
+            </div>
+            <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-5">
+              <div className="flex items-center justify-between mb-1">
+                <h3 className="text-sm font-semibold">Active Users (GA4)</h3>
+                <span className="text-xs text-neutral-500">Last 12 months</span>
+              </div>
+              <MiniBarChart data={usersData} max={2000} color="bg-emerald-500" />
+            </div>
+            <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-5">
+              <div className="flex items-center justify-between mb-1">
+                <h3 className="text-sm font-semibold">Sessions Overview</h3>
+                <span className="text-xs text-neutral-500">Last 12 months</span>
+              </div>
+              <MiniBarChart data={sessionsData} max={8000} color="bg-purple-500" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Questions Section */}
+      <section id="questions" className="py-20 border-t border-neutral-800">
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="grid md:grid-cols-2 gap-12 items-start">
+            <div>
+              <h2 className="text-3xl sm:text-4xl font-bold mb-4">
+                Analyze Investment Value{' '}
+                <span className="text-neutral-500">with Key Questions</span>
+              </h2>
+              <p className="text-neutral-400 mb-6">
+                Each startup selects and answers 5 out of 10 curated questions that investors care about most.
+                Standardized Q&A enables fast and accurate comparative analysis across companies.
+              </p>
+              <div className="flex items-center gap-2 text-sm text-neutral-400 mb-6">
+                <CheckCircle className="w-4 h-4 text-green-500" />
+                <span>10 questions available, 5 selected per company</span>
+              </div>
+              <Link to="/register?role=investor">
+                <button className="inline-flex items-center gap-2 bg-white text-black font-medium px-5 py-2.5 rounded-lg hover:bg-neutral-200 transition-colors text-sm">
+                  Start Exploring <ArrowRight className="w-4 h-4" />
+                </button>
+              </Link>
+            </div>
+
+            <div className="space-y-3">
+              {keyQuestions.map((q, i) => (
+                <div
+                  key={i}
+                  className="bg-neutral-900 border border-neutral-800 rounded-xl px-5 py-4 flex items-start gap-4"
+                >
+                  <span className="flex-shrink-0 w-7 h-7 bg-neutral-800 rounded-full flex items-center justify-center text-xs font-bold text-neutral-300">
+                    {i + 1}
+                  </span>
+                  <p className="text-sm text-neutral-300">{q}</p>
+                </div>
+              ))}
+              <p className="text-sm text-neutral-500 pl-11">
+                + 5 more questions available for companies to choose from
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-20 border-t border-neutral-800">
+        <div className="max-w-3xl mx-auto px-4 text-center">
+          <h2 className="text-3xl sm:text-4xl font-bold mb-4">Ready to get started?</h2>
+          <p className="text-neutral-400 mb-8">
+            Join IV today and discover the future of startup transparency.
+          </p>
+          <div className="flex gap-4 justify-center flex-wrap">
+            <Link to="/register?role=startup">
+              <button className="inline-flex items-center gap-2 bg-white text-black font-medium px-6 py-3 rounded-lg hover:bg-neutral-200 transition-colors">
+                Join as Company <ArrowRight className="w-4 h-4" />
+              </button>
+            </Link>
+            <Link to="/register?role=investor">
+              <button className="inline-flex items-center gap-2 bg-transparent text-white font-medium px-6 py-3 rounded-lg border border-neutral-600 hover:bg-neutral-800 transition-colors">
+                Join as Member
+              </button>
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="border-t border-neutral-800 py-8">
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <span className="text-xl font-bold">IV</span>
+              <p className="text-xs text-neutral-500">
+                IV is not an investment platform and does not provide investment advice.
+              </p>
+            </div>
+            <div className="flex items-center gap-4 text-xs text-neutral-500">
+              <button className="hover:text-white transition-colors">Terms</button>
+              <button className="hover:text-white transition-colors">Privacy</button>
+              <button className="hover:text-white transition-colors">Policies</button>
+              <button className="hover:text-white transition-colors">Contact</button>
+              <a href="https://instagram.com/IVinsights" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">
+                <Instagram className="w-4 h-4" />
+              </a>
+              <a href="https://www.linkedin.com/company/ivholdings/about/" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">
+                <Linkedin className="w-4 h-4" />
+              </a>
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
