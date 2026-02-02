@@ -88,7 +88,7 @@ export function Login() {
         <div className="bg-neutral-900 border border-neutral-800 rounded-xl shadow-lg">
           <div className="px-6 pt-8 pb-4 text-center space-y-4">
             <div className="mx-auto">
-              <img src="/logo.png" alt="IV Logo" className="w-[60px] h-[60px] mx-auto invert" />
+              <img src="/logo-dark.jpg" alt="IV Logo" className="w-[60px] h-[60px] mx-auto rounded-lg" />
             </div>
             <div className="space-y-2">
               <h1 className="text-2xl font-serif font-semibold text-white">Welcome Back</h1>
