@@ -3,7 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Plus, Trash2, ChevronLeft, ChevronRight, Building2, Users } from 'lucide-react';
+import {
+  Plus, Trash2, ChevronLeft, ChevronRight, Building2, Users,
+  Video, Newspaper, BarChart3, HelpCircle, Settings, Check,
+} from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/stores/authStore';
 import {
@@ -54,6 +57,28 @@ const executiveRoleOptions: SelectOption[] = [
   { value: 'CPO', label: 'CPO' },
 ];
 
+const investorQuestionOptions = [
+  '현재 매출 규모는 어느 정도인가요?',
+  '주요 경쟁사 대비 차별점은 무엇인가요?',
+  '향후 12개월 자금 운용 계획은?',
+  '핵심 기술의 진입 장벽은 무엇인가요?',
+  '주요 고객 또는 파트너사가 있나요?',
+  '팀의 핵심 역량은 무엇인가요?',
+  '현재 가장 큰 도전 과제는?',
+  'Exit 전략이 있나요?',
+];
+
+// --- Steps Config ---
+const steps = [
+  { num: 1, icon: Building2, label: 'Profile' },
+  { num: 2, icon: Users, label: 'Team' },
+  { num: 3, icon: Video, label: 'Media' },
+  { num: 4, icon: Newspaper, label: 'News' },
+  { num: 5, icon: BarChart3, label: 'Metrics' },
+  { num: 6, icon: HelpCircle, label: 'Questions' },
+  { num: 7, icon: Settings, label: 'Settings' },
+];
+
 // --- Schema ---
 const executiveSchema = z.object({
   name: z.string().min(1, '이름을 입력하세요'),
@@ -66,7 +91,7 @@ const executiveSchema = z.object({
 });
 
 const companyRegisterSchema = z.object({
-  // Step 1: Company info
+  // Step 1: Profile
   logo_url: z.string().min(1, '회사 로고를 업로드하세요'),
   name: z.string().min(1, '회사 이름을 입력하세요'),
   short_description: z
@@ -88,17 +113,31 @@ const companyRegisterSchema = z.object({
   stage: z.enum(['Pre-seed', 'Seed', 'Series A', 'Series B', 'Series C+'], {
     message: '성숙도를 선택하세요',
   }),
-  // Optional links
   website_url: z.string().url('유효한 URL을 입력하세요').or(z.literal('')).optional(),
   github_url: z.string().url('유효한 URL을 입력하세요').or(z.literal('')).optional(),
   linkedin_url: z.string().url('유효한 URL을 입력하세요').or(z.literal('')).optional(),
   twitter_url: z.string().url('유효한 URL을 입력하세요').or(z.literal('')).optional(),
   youtube_url: z.string().url('유효한 URL을 입력하세요').or(z.literal('')).optional(),
-  // Step 2: Executives
+  // Step 2: Team
   executives: z.array(executiveSchema).min(1, '최소 1명의 경영진을 등록하세요'),
+  // Step 3: Media
+  intro_video_url: z.string().url('유효한 URL을 입력하세요').or(z.literal('')).optional(),
+  additional_videos: z.array(z.string()).optional(),
+  // Step 6: Questions
+  selected_questions: z.array(z.string()).optional(),
+  question_answers: z.record(z.string(), z.string()).optional(),
 });
 
 type CompanyRegisterForm = z.infer<typeof companyRegisterSchema>;
+
+// --- News item type (local state) ---
+interface NewsItem {
+  id: string;
+  title: string;
+  url: string;
+  source: string;
+  date: string;
+}
 
 const defaultExecutive = (role: string = 'CEO') => ({
   name: '',
@@ -116,11 +155,24 @@ export function CompanyRegister() {
   const [step, setStep] = useState(1);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
+  // Step 3: Media - additional videos
+  const [newVideoUrl, setNewVideoUrl] = useState('');
+
+  // Step 4: News - local state
+  const [newsItems, setNewsItems] = useState<NewsItem[]>([]);
+  const [newsForm, setNewsForm] = useState({ title: '', url: '', source: '', date: '' });
+
+  // Step 6: Questions
+  const [selectedQuestions, setSelectedQuestions] = useState<string[]>([]);
+  const [questionAnswers, setQuestionAnswers] = useState<Record<string, string>>({});
+
   const {
     register,
     control,
     handleSubmit,
     trigger,
+    getValues,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<CompanyRegisterForm>({
     resolver: zodResolver(companyRegisterSchema),
@@ -140,6 +192,10 @@ export function CompanyRegister() {
       twitter_url: '',
       youtube_url: '',
       executives: [defaultExecutive('CEO')],
+      intro_video_url: '',
+      additional_videos: [],
+      selected_questions: [],
+      question_answers: {},
     },
   });
 
@@ -148,21 +204,67 @@ export function CompanyRegister() {
     name: 'executives',
   });
 
+  // --- Step validation ---
+  const step1Fields = [
+    'logo_url', 'name', 'short_description', 'founded_at', 'location',
+    'employee_count', 'description', 'category', 'stage',
+    'website_url', 'github_url', 'linkedin_url', 'twitter_url', 'youtube_url',
+  ] as const;
+
   const handleNext = async () => {
-    const step1Fields = [
-      'logo_url', 'name', 'short_description', 'founded_at', 'location',
-      'employee_count', 'description', 'category', 'stage',
-      'website_url', 'github_url', 'linkedin_url', 'twitter_url', 'youtube_url',
-    ] as const;
-    const valid = await trigger(step1Fields as unknown as (keyof CompanyRegisterForm)[]);
-    if (valid) setStep(2);
+    if (step === 1) {
+      const valid = await trigger(step1Fields as unknown as (keyof CompanyRegisterForm)[]);
+      if (!valid) return;
+    }
+    if (step === 2) {
+      const valid = await trigger('executives');
+      if (!valid) return;
+    }
+    // Steps 3~7 have no required validation
+    setStep((s) => Math.min(s + 1, 7));
   };
 
+  const handlePrev = () => setStep((s) => Math.max(s - 1, 1));
+
+  // --- News helpers ---
+  const addNewsItem = () => {
+    if (!newsForm.title || !newsForm.url) return;
+    setNewsItems((prev) => [
+      ...prev,
+      { ...newsForm, id: crypto.randomUUID() },
+    ]);
+    setNewsForm({ title: '', url: '', source: '', date: '' });
+  };
+
+  const removeNewsItem = (id: string) => {
+    setNewsItems((prev) => prev.filter((n) => n.id !== id));
+  };
+
+  // --- Questions helpers ---
+  const toggleQuestion = (q: string) => {
+    setSelectedQuestions((prev) =>
+      prev.includes(q) ? prev.filter((x) => x !== q) : [...prev, q]
+    );
+  };
+
+  // --- Additional video helpers ---
+  const addVideo = () => {
+    if (!newVideoUrl) return;
+    const current = getValues('additional_videos') || [];
+    setValue('additional_videos', [...current, newVideoUrl]);
+    setNewVideoUrl('');
+  };
+
+  const removeVideo = (index: number) => {
+    const current = getValues('additional_videos') || [];
+    setValue('additional_videos', current.filter((_, i) => i !== index));
+  };
+
+  // --- Submit (Step 1~2 data only) ---
   const onSubmit = async (data: CompanyRegisterForm) => {
     if (!user) return;
     setSubmitError(null);
 
-    // 1. Insert company
     const { data: company, error: companyError } = await supabase
       .from('companies')
       .insert({
@@ -190,7 +292,6 @@ export function CompanyRegister() {
       return;
     }
 
-    // 2. Insert executives
     const executives = data.executives.map((exec) => ({
       company_id: company.id,
       name: exec.name,
@@ -212,37 +313,85 @@ export function CompanyRegister() {
     navigate('/dashboard');
   };
 
+  // --- Step Indicator ---
+  const renderStepIndicator = () => (
+    <div className="flex items-center justify-between mb-8 overflow-x-auto pb-2">
+      {steps.map(({ num, icon: Icon, label }, idx) => (
+        <div key={num} className="flex items-center">
+          <button
+            type="button"
+            onClick={() => {
+              // Only allow navigating to completed or current step
+              if (num <= step) setStep(num);
+            }}
+            className="flex flex-col items-center gap-1 min-w-[64px] cursor-pointer"
+          >
+            <div
+              className={`flex items-center justify-center w-9 h-9 rounded-full text-sm font-semibold transition-colors ${
+                step > num
+                  ? 'bg-primary-600 text-white'
+                  : step === num
+                    ? 'bg-primary-600 text-white ring-2 ring-primary-300'
+                    : 'bg-warm-200 text-warm-500'
+              }`}
+            >
+              {step > num ? <Check className="w-4 h-4" /> : <Icon className="w-4 h-4" />}
+            </div>
+            <span
+              className={`text-xs font-medium whitespace-nowrap ${
+                step >= num ? 'text-primary-700' : 'text-warm-400'
+              }`}
+            >
+              {label}
+            </span>
+          </button>
+          {idx < steps.length - 1 && (
+            <div
+              className={`w-8 sm:w-12 h-0.5 mx-1 ${
+                step > num ? 'bg-primary-500' : 'bg-warm-200'
+              }`}
+            />
+          )}
+        </div>
+      ))}
+    </div>
+  );
+
+  // --- Navigation Buttons ---
+  const renderNavButtons = (showSubmit = false) => (
+    <div className="flex justify-between pt-4">
+      {step > 1 ? (
+        <Button type="button" variant="outline" onClick={handlePrev}>
+          <ChevronLeft className="w-4 h-4 mr-1" /> 이전
+        </Button>
+      ) : (
+        <div />
+      )}
+      {showSubmit ? (
+        <Button type="submit" isLoading={isSubmitting}>
+          회사 등록
+        </Button>
+      ) : step < 7 ? (
+        <Button type="button" onClick={handleNext}>
+          다음 <ChevronRight className="w-4 h-4 ml-1" />
+        </Button>
+      ) : (
+        <Button type="submit" isLoading={isSubmitting}>
+          회사 등록
+        </Button>
+      )}
+    </div>
+  );
+
   return (
     <div className="max-w-3xl mx-auto py-8 px-4">
       <h1 className="text-2xl font-bold text-warm-900 mb-2">회사 등록</h1>
       <p className="text-warm-600 mb-6">회사 정보를 입력하여 투자자에게 공개하세요.</p>
 
-      {/* Step indicator */}
-      <div className="flex items-center gap-3 mb-8">
-        {[
-          { num: 1, icon: Building2, label: '회사 정보' },
-          { num: 2, icon: Users, label: '경영진' },
-        ].map(({ num, icon: Icon, label }) => (
-          <div key={num} className="flex items-center gap-2">
-            <div
-              className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-semibold ${
-                step >= num
-                  ? 'bg-primary-600 text-white'
-                  : 'bg-warm-200 text-warm-500'
-              }`}
-            >
-              <Icon className="w-4 h-4" />
-            </div>
-            <span className={`text-sm font-medium ${step >= num ? 'text-primary-700' : 'text-warm-400'}`}>
-              {label}
-            </span>
-            {num < 2 && <div className={`w-12 h-0.5 ${step > num ? 'bg-primary-500' : 'bg-warm-200'}`} />}
-          </div>
-        ))}
-      </div>
+      {renderStepIndicator()}
 
       <form onSubmit={handleSubmit(onSubmit)}>
-        {/* Step 1: Company Info */}
+        {/* Step 1: Profile */}
         {step === 1 && (
           <Card>
             <CardHeader>
@@ -250,7 +399,6 @@ export function CompanyRegister() {
             </CardHeader>
             <CardContent>
               <div className="space-y-5">
-                {/* Logo */}
                 <Controller
                   control={control}
                   name="logo_url"
@@ -336,7 +484,7 @@ export function CompanyRegister() {
                     <Textarea
                       label="회사 소개"
                       required
-                      placeholder="회사에 대해 자세히 소개해주세요 (1,000~10,000자)"
+                      placeholder="회사에 대해 자세히 소개해주세요 (100~10,000자)"
                       showCount
                       maxLength={10000}
                       value={field.value}
@@ -348,7 +496,6 @@ export function CompanyRegister() {
                   )}
                 />
 
-                {/* Optional links */}
                 <div>
                   <p className="text-sm font-medium text-warm-700 mb-3">회사 링크 (선택)</p>
                   <div className="space-y-3">
@@ -360,17 +507,13 @@ export function CompanyRegister() {
                   </div>
                 </div>
 
-                <div className="flex justify-end pt-2">
-                  <Button type="button" onClick={handleNext}>
-                    다음: 경영진 <ChevronRight className="w-4 h-4 ml-1" />
-                  </Button>
-                </div>
+                {renderNavButtons()}
               </div>
             </CardContent>
           </Card>
         )}
 
-        {/* Step 2: Executives */}
+        {/* Step 2: Team */}
         {step === 2 && (
           <Card>
             <CardHeader>
@@ -487,14 +630,256 @@ export function CompanyRegister() {
                   </div>
                 )}
 
-                <div className="flex justify-between pt-2">
-                  <Button type="button" variant="outline" onClick={() => setStep(1)}>
-                    <ChevronLeft className="w-4 h-4 mr-1" /> 이전
-                  </Button>
-                  <Button type="submit" isLoading={isSubmitting}>
-                    회사 등록
+                {renderNavButtons()}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Step 3: Media */}
+        {step === 3 && (
+          <Card>
+            <CardHeader>
+              <h2 className="text-lg font-semibold text-warm-900">미디어</h2>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-5">
+                <Input
+                  label="소개 영상 URL"
+                  placeholder="https://youtube.com/watch?v=..."
+                  error={errors.intro_video_url?.message}
+                  {...register('intro_video_url')}
+                />
+
+                <div>
+                  <p className="text-sm font-medium text-warm-700 mb-3">추가 영상</p>
+                  <div className="space-y-3">
+                    {(getValues('additional_videos') || []).map((url, idx) => (
+                      <div key={idx} className="flex items-center gap-2">
+                        <div className="flex-1 text-sm text-warm-700 bg-warm-50 border border-warm-200 rounded-lg px-3 py-2 truncate">
+                          {url}
+                        </div>
+                        <button
+                          type="button"
+                          className="text-red-500 hover:text-red-700"
+                          onClick={() => removeVideo(idx)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="영상 URL을 입력하세요"
+                        value={newVideoUrl}
+                        onChange={(e) => setNewVideoUrl(e.target.value)}
+                      />
+                      <Button type="button" variant="outline" onClick={addVideo}>
+                        <Plus className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+
+                {renderNavButtons()}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Step 4: News */}
+        {step === 4 && (
+          <Card>
+            <CardHeader>
+              <h2 className="text-lg font-semibold text-warm-900">뉴스</h2>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-5">
+                <p className="text-sm text-warm-600">
+                  회사 관련 뉴스 기사를 추가하세요.
+                </p>
+
+                {newsItems.map((item) => (
+                  <div
+                    key={item.id}
+                    className="border border-warm-200 rounded-lg p-4 flex items-start justify-between gap-3"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-warm-900 truncate">{item.title}</p>
+                      <p className="text-xs text-warm-500 truncate">{item.url}</p>
+                      <p className="text-xs text-warm-400 mt-1">
+                        {item.source} {item.date && `| ${item.date}`}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      className="text-red-500 hover:text-red-700 flex-shrink-0"
+                      onClick={() => removeNewsItem(item.id)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+
+                <div className="border border-warm-200 rounded-lg p-4 space-y-3">
+                  <p className="text-sm font-medium text-warm-700">새 뉴스 추가</p>
+                  <Input
+                    label="제목"
+                    required
+                    placeholder="기사 제목"
+                    value={newsForm.title}
+                    onChange={(e) => setNewsForm((f) => ({ ...f, title: e.target.value }))}
+                  />
+                  <Input
+                    label="URL"
+                    required
+                    placeholder="https://..."
+                    value={newsForm.url}
+                    onChange={(e) => setNewsForm((f) => ({ ...f, url: e.target.value }))}
+                  />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <Input
+                      label="출처"
+                      placeholder="예: TechCrunch"
+                      value={newsForm.source}
+                      onChange={(e) => setNewsForm((f) => ({ ...f, source: e.target.value }))}
+                    />
+                    <Input
+                      label="날짜"
+                      type="date"
+                      value={newsForm.date}
+                      onChange={(e) => setNewsForm((f) => ({ ...f, date: e.target.value }))}
+                    />
+                  </div>
+                  <div className="flex justify-end">
+                    <Button type="button" variant="outline" size="sm" onClick={addNewsItem}>
+                      <Plus className="w-4 h-4 mr-1" /> 추가
+                    </Button>
+                  </div>
+                </div>
+
+                {renderNavButtons()}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Step 5: Metrics */}
+        {step === 5 && (
+          <Card>
+            <CardHeader>
+              <h2 className="text-lg font-semibold text-warm-900">Metrics</h2>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-5">
+                <div className="bg-warm-50 border border-warm-200 rounded-lg p-6 text-center">
+                  <BarChart3 className="w-12 h-12 text-warm-400 mx-auto mb-3" />
+                  <p className="text-sm font-medium text-warm-700 mb-1">Stripe / GA4 연동</p>
+                  <p className="text-xs text-warm-500">
+                    매출, 트래픽 등 핵심 지표를 자동으로 가져오는 기능이 곧 제공됩니다.
+                  </p>
+                </div>
+
+                {renderNavButtons()}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Step 6: Questions */}
+        {step === 6 && (
+          <Card>
+            <CardHeader>
+              <h2 className="text-lg font-semibold text-warm-900">투자자 질문</h2>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-5">
+                <p className="text-sm text-warm-600">
+                  투자자가 자주 묻는 질문을 선택하고 답변을 미리 작성하세요.
+                </p>
+
+                <div className="space-y-2">
+                  {investorQuestionOptions.map((q) => {
+                    const isSelected = selectedQuestions.includes(q);
+                    return (
+                      <div key={q}>
+                        <button
+                          type="button"
+                          onClick={() => toggleQuestion(q)}
+                          className={`w-full text-left px-4 py-3 rounded-lg border text-sm transition-colors ${
+                            isSelected
+                              ? 'border-primary-400 bg-primary-50 text-primary-800'
+                              : 'border-warm-200 bg-white text-warm-700 hover:bg-warm-50'
+                          }`}
+                        >
+                          {q}
+                        </button>
+                        {isSelected && (
+                          <div className="mt-2 ml-4">
+                            <textarea
+                              className="w-full border border-warm-200 rounded-lg px-3 py-2 text-sm text-warm-800 focus:outline-none focus:ring-2 focus:ring-primary-400 min-h-[80px]"
+                              placeholder="답변을 작성하세요..."
+                              value={questionAnswers[q] || ''}
+                              onChange={(e) =>
+                                setQuestionAnswers((prev) => ({
+                                  ...prev,
+                                  [q]: e.target.value,
+                                }))
+                              }
+                            />
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {renderNavButtons()}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Step 7: Settings */}
+        {step === 7 && (
+          <Card>
+            <CardHeader>
+              <h2 className="text-lg font-semibold text-warm-900">설정</h2>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-5">
+                <div className="border border-warm-200 rounded-lg p-4 space-y-3">
+                  <h3 className="text-sm font-semibold text-warm-800">구독 관리</h3>
+                  <p className="text-xs text-warm-500">현재 플랜: Free</p>
+                  <Button type="button" variant="outline" size="sm" disabled>
+                    플랜 업그레이드 (준비 중)
                   </Button>
                 </div>
+
+                <div className="border border-warm-200 rounded-lg p-4 space-y-3">
+                  <h3 className="text-sm font-semibold text-warm-800">계정 관리</h3>
+                  <p className="text-xs text-warm-500">
+                    회사 등록 후 대시보드에서 정보를 수정할 수 있습니다.
+                  </p>
+                </div>
+
+                <div className="border border-red-200 rounded-lg p-4 space-y-3">
+                  <h3 className="text-sm font-semibold text-red-700">회사 삭제</h3>
+                  <p className="text-xs text-warm-500">
+                    등록 후 회사 페이지에서 삭제할 수 있습니다.
+                  </p>
+                  <Button type="button" variant="danger" size="sm" disabled>
+                    회사 삭제 (등록 후 가능)
+                  </Button>
+                </div>
+
+                {submitError && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
+                    {submitError}
+                  </div>
+                )}
+
+                {renderNavButtons(true)}
               </div>
             </CardContent>
           </Card>
