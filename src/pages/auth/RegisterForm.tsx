@@ -5,6 +5,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { supabase } from '@/lib/supabase';
 import { ArrowLeft, Building2, User, Mail, CheckCircle } from 'lucide-react';
+import { ConsentForm } from '@/components/consent/ConsentForm';
+import { userConsentItems, founderConsentItems } from '@/lib/consent-data';
 import type { UserRole } from '@/types/database';
 
 const registerSchema = z.object({
@@ -19,11 +21,11 @@ const registerSchema = z.object({
 
 type RegisterFormData = z.infer<typeof registerSchema>;
 
-type Step = 'form' | 'otp';
+type Step = 'consent' | 'form' | 'otp';
 
 export function RegisterForm({ role }: { role: UserRole }) {
   const navigate = useNavigate();
-  const [step, setStep] = useState<Step>('form');
+  const [step, setStep] = useState<Step>('consent');
   const [error, setError] = useState<string | null>(null);
   const [otpCode, setOtpCode] = useState(['', '', '', '', '', '']);
   const [otpLoading, setOtpLoading] = useState(false);
@@ -39,6 +41,16 @@ export function RegisterForm({ role }: { role: UserRole }) {
   } = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
   });
+
+  // Handle consent completion
+  const handleConsentComplete = () => {
+    setStep('form');
+  };
+
+  // Handle back from consent
+  const handleConsentBack = () => {
+    navigate('/');
+  };
 
   // Step 1: Send OTP via email + create account
   const onSubmit = async (data: RegisterFormData) => {
@@ -151,6 +163,18 @@ export function RegisterForm({ role }: { role: UserRole }) {
 
   const inputClass = 'w-full h-12 px-3 bg-neutral-800 border border-neutral-700 rounded-lg text-white placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-white/20 focus:border-transparent';
 
+  // Show consent form first
+  if (step === 'consent') {
+    return (
+      <ConsentForm
+        type={isCompany ? 'founder' : 'user'}
+        items={isCompany ? founderConsentItems : userConsentItems}
+        onBack={handleConsentBack}
+        onComplete={handleConsentComplete}
+      />
+    );
+  }
+
   return (
     <div className="min-h-[calc(100vh-64px)] flex items-center justify-center p-4">
       <div className="w-full max-w-md">
@@ -166,7 +190,7 @@ export function RegisterForm({ role }: { role: UserRole }) {
         <div className="bg-neutral-900 border border-neutral-800 rounded-xl shadow-lg">
           <div className="px-6 pt-8 pb-4 text-center space-y-4">
             <div className="mx-auto">
-              <img src="/logo.png" alt="IV Logo" className="w-[60px] h-[60px] mx-auto invert" />
+              <img src="/logo-dark.jpg" alt="IV Logo" className="w-[60px] h-[60px] mx-auto rounded-lg" />
             </div>
             <div className="space-y-2">
               <h1 className="text-2xl font-serif font-semibold text-white">

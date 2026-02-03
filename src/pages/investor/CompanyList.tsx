@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/stores/authStore';
-import { Card, CardContent, Badge, Button, Select } from '@/components/ui';
+import { Badge, Button, Select } from '@/components/ui';
 import type { Company, CompanyCategory, CompanyStage, EmployeeCount } from '@/types/database';
 
 const categoryOptions = [

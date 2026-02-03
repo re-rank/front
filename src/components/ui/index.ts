@@ -5,3 +5,5 @@ export * from './Card';
 export * from './Badge';
 export * from './Textarea';
 export * from './ImageUpload';
+export * from './Checkbox';
+export * from './Dialog';

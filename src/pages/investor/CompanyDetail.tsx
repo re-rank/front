@@ -13,10 +13,6 @@ import {
   Linkedin,
   Youtube,
   GraduationCap,
-  BookOpen,
-  Newspaper,
-  ExternalLink,
-  FileText,
 } from 'lucide-react';
 import {
   LineChart,
@@ -32,7 +28,7 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { supabase } from '@/lib/supabase';
-import { Card, CardContent, Badge, Button } from '@/components/ui';
+import { Card, CardContent, Badge } from '@/components/ui';
 import type {
   Company,
   Executive,
@@ -236,21 +232,11 @@ export function CompanyDetail() {
                         {exec.role}
                       </Badge>
                       <h3 className="font-semibold text-lg">{exec.name}</h3>
-                      {(exec.school || exec.major) && (
-                        <div className="mt-2 space-y-1">
-                          {exec.school && (
-                            <p className="text-sm text-muted-foreground flex items-center gap-2">
-                              <GraduationCap className="w-4 h-4 flex-shrink-0" />
-                              <span>{exec.school}</span>
-                            </p>
-                          )}
-                          {exec.major && (
-                            <p className="text-sm text-muted-foreground flex items-center gap-2">
-                              <BookOpen className="w-4 h-4 flex-shrink-0" />
-                              <span>{exec.major}</span>
-                            </p>
-                          )}
-                        </div>
+                      {exec.education && (
+                        <p className="text-sm text-muted-foreground flex items-center gap-2 mt-2">
+                          <GraduationCap className="w-4 h-4 flex-shrink-0" />
+                          <span>{exec.education}</span>
+                        </p>
                       )}
                       {exec.bio && (
                         <p className="text-sm text-muted-foreground mt-3 leading-relaxed">
