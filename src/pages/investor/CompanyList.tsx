@@ -113,7 +113,7 @@ export function CompanyList() {
         </p>
 
         {/* Search and Filters */}
-        <div className="flex flex-col md:flex-row gap-4">
+        <div className="flex items-center gap-3">
           <div className="relative flex-1">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <input
@@ -124,32 +124,30 @@ export function CompanyList() {
               className="w-full h-11 pl-11 pr-4 bg-secondary/50 border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring focus:border-ring transition-colors"
             />
           </div>
-          <div className="flex gap-3 flex-wrap">
-            <Button
-              variant={showSavedOnly ? 'primary' : 'outline'}
-              size="sm"
-              onClick={() => setShowSavedOnly(!showSavedOnly)}
-              className="h-11 gap-2"
-            >
-              <BookmarkCheck className="w-4 h-4" />
-              Saved ({savedCompanies.size})
-            </Button>
-            <div className="flex items-center gap-2 h-11 px-3 rounded-lg border bg-secondary/50 border-border">
-              <Filter className="w-4 h-4 text-muted-foreground" />
-              <Select
-                options={categoryOptions}
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className="border-0 bg-transparent h-9 min-w-[130px] shadow-none focus:ring-0"
-              />
-            </div>
+          <Button
+            variant={showSavedOnly ? 'primary' : 'outline'}
+            size="sm"
+            onClick={() => setShowSavedOnly(!showSavedOnly)}
+            className="h-11 gap-2 flex-shrink-0"
+          >
+            <BookmarkCheck className="w-4 h-4" />
+            Saved ({savedCompanies.size})
+          </Button>
+          <div className="flex items-center gap-2 h-11 px-3 rounded-lg border bg-secondary/50 border-border flex-shrink-0">
+            <Filter className="w-4 h-4 text-muted-foreground" />
             <Select
-              options={stageOptions}
-              value={stage}
-              onChange={(e) => setStage(e.target.value)}
-              className="h-11 w-[150px] bg-secondary/50 border-border rounded-lg"
+              options={categoryOptions}
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              className="border-0 bg-transparent h-9 min-w-[130px] shadow-none focus:ring-0"
             />
           </div>
+          <Select
+            options={stageOptions}
+            value={stage}
+            onChange={(e) => setStage(e.target.value)}
+            className="h-11 w-[150px] bg-secondary/50 border-border rounded-lg flex-shrink-0"
+          />
         </div>
 
         <p className="text-sm text-muted-foreground">
