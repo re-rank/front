@@ -166,8 +166,12 @@ export function Login() {
 
             <p className="text-sm text-center text-neutral-400">
               Don&apos;t have an account?{' '}
-              <Link to="/register" className="text-white hover:underline font-medium">
-                Sign Up
+              <Link to="/register/company" className="text-white hover:underline font-medium">
+                Join as Company
+              </Link>
+              {' or '}
+              <Link to="/register/member" className="text-white hover:underline font-medium">
+                Member
               </Link>
             </p>
           </div>

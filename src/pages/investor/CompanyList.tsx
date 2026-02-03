@@ -1,6 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Eye, Calendar, Users, Search } from 'lucide-react';
+import {
+  Building2,
+  Calendar,
+  Users,
+  Search,
+  MapPin,
+  Bookmark,
+  BookmarkCheck,
+  Filter,
+} from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/stores/authStore';
 import { Card, CardContent, Badge, Button, Select } from '@/components/ui';
@@ -36,22 +45,17 @@ const employeeOptions = [
   { value: '10000+', label: '10,000+' },
 ];
 
-const stageVariant: Record<string, 'default' | 'primary' | 'success' | 'warning' | 'danger'> = {
-  'Pre-seed': 'default',
-  'Seed': 'warning',
-  'Series A': 'primary',
-  'Series B': 'success',
-  'Series C+': 'danger',
-};
-
 export function CompanyList() {
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
   const [category, setCategory] = useState('');
   const [stage, setStage] = useState('');
   const [employeeCount, setEmployeeCount] = useState('');
+  const [savedCompanies, setSavedCompanies] = useState<Set<string>>(new Set());
+  const [showSavedOnly, setShowSavedOnly] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -82,6 +86,27 @@ export function CompanyList() {
     return () => { cancelled = true; };
   }, [category, stage, employeeCount]);
 
+  const toggleSaveCompany = (companyId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSavedCompanies((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(companyId)) {
+        newSet.delete(companyId);
+      } else {
+        newSet.add(companyId);
+      }
+      return newSet;
+    });
+  };
+
+  const filteredCompanies = companies.filter((company) => {
+    const matchesSearch =
+      company.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (company.short_description?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false);
+    const matchesSaved = !showSavedOnly || savedCompanies.has(company.id);
+    return matchesSearch && matchesSaved;
+  });
+
   async function handleView(companyId: string) {
     if (user) {
       await supabase.from('view_logs').insert({
@@ -93,112 +118,155 @@ export function CompanyList() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold text-foreground mb-6">Explore Startups</h1>
+    <div className="max-w-7xl mx-auto px-4 md:px-6 py-8">
+      {/* Header */}
+      <div className="mb-8 space-y-4">
+        <h1 className="text-3xl font-serif">Discover Startups</h1>
+        <p className="text-muted-foreground text-sm">
+          Browse companies with real-time Stripe & GA4 metrics
+        </p>
 
-      <div className="flex flex-col lg:flex-row gap-6">
-        {/* Filter Panel */}
-        <aside className="w-full lg:w-64 shrink-0 space-y-4">
-          <Card>
-            <CardContent className="space-y-4">
-              <h2 className="font-semibold text-foreground">Filters</h2>
+        {/* Search and Filters */}
+        <div className="flex flex-col md:flex-row gap-4">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder="Search companies..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full h-10 pl-10 pr-4 bg-secondary border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+            />
+          </div>
+          <div className="flex gap-3 flex-wrap">
+            <Button
+              variant={showSavedOnly ? 'primary' : 'outline'}
+              size="sm"
+              onClick={() => setShowSavedOnly(!showSavedOnly)}
+              className="gap-2"
+            >
+              <BookmarkCheck className="w-4 h-4" />
+              Saved ({savedCompanies.size})
+            </Button>
+            <div className="flex items-center gap-2">
+              <Filter className="w-4 h-4 text-muted-foreground" />
               <Select
-                label="Category"
                 options={categoryOptions}
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
+                className="w-[160px]"
               />
-              <Select
-                label="Stage"
-                options={stageOptions}
-                value={stage}
-                onChange={(e) => setStage(e.target.value)}
-              />
-              <Select
-                label="Employees"
-                options={employeeOptions}
-                value={employeeCount}
-                onChange={(e) => setEmployeeCount(e.target.value)}
-              />
-            </CardContent>
-          </Card>
-        </aside>
-
-        {/* Company Grid */}
-        <section className="flex-1">
-          <p className="text-sm text-muted-foreground mb-4">
-            <span className="font-semibold text-foreground">{companies.length}</span> startups
-          </p>
-
-          {loading ? (
-            <div className="flex justify-center py-20">
-              <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
             </div>
-          ) : companies.length === 0 ? (
-            <div className="text-center py-20 text-muted-foreground">
-              <Search className="mx-auto mb-3 h-10 w-10" />
-              <p>No startups match your criteria.</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {companies.map((c) => (
-                <Card key={c.id} className="flex flex-col hover:shadow-md transition-shadow">
-                  <CardContent className="flex-1 flex flex-col gap-3">
-                    {/* Logo + Name */}
-                    <div className="flex items-center gap-3">
-                      {c.logo_url ? (
-                        <img
-                          src={c.logo_url}
-                          alt={c.name}
-                          className="h-10 w-10 rounded-lg object-cover"
-                        />
-                      ) : (
-                        <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center text-muted-foreground font-bold">
-                          {c.name[0]}
-                        </div>
-                      )}
-                      <h3 className="font-semibold text-foreground truncate">{c.name}</h3>
-                    </div>
+            <Select
+              options={stageOptions}
+              value={stage}
+              onChange={(e) => setStage(e.target.value)}
+              className="w-[140px]"
+            />
+            <Select
+              options={employeeOptions}
+              value={employeeCount}
+              onChange={(e) => setEmployeeCount(e.target.value)}
+              className="w-[140px]"
+            />
+          </div>
+        </div>
 
-                    <p className="text-sm text-muted-foreground line-clamp-2">{c.short_description}</p>
-
-                    {/* Meta */}
-                    <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                      <span className="inline-flex items-center gap-1">
-                        <Calendar className="h-3 w-3" />
-                        {c.founded_at}
-                      </span>
-                      <span className="inline-flex items-center gap-1">
-                        <Users className="h-3 w-3" />
-                        {c.employee_count}
-                      </span>
-                    </div>
-
-                    {/* Badges */}
-                    <div className="flex flex-wrap gap-1.5">
-                      <Badge variant="primary">{c.category}</Badge>
-                      <Badge variant={stageVariant[c.stage] ?? 'default'}>{c.stage}</Badge>
-                    </div>
-
-                    {/* Button */}
-                    <div className="mt-auto pt-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full"
-                        onClick={() => handleView(c.id)}
-                      >
-                        <Eye className="h-4 w-4 mr-1.5" />
-                        View
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </section>
+        <p className="text-sm text-muted-foreground">
+          {filteredCompanies.length} companies found
+        </p>
       </div>
+
+      {/* Company List */}
+      {loading ? (
+        <div className="flex justify-center py-20">
+          <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
+        </div>
+      ) : filteredCompanies.length === 0 ? (
+        <div className="text-center py-16">
+          <Building2 className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+          <h3 className="font-medium mb-2">No companies found</h3>
+          <p className="text-sm text-muted-foreground">Try adjusting your search or filters</p>
+        </div>
+      ) : (
+        <div className="flex flex-col divide-y divide-border border border-border rounded-xl bg-card overflow-hidden">
+          {filteredCompanies.map((company) => (
+            <div
+              key={company.id}
+              className="flex items-start gap-5 p-5 hover:bg-secondary/50 transition-colors cursor-pointer group border-l-4 border-l-transparent hover:border-l-primary"
+              onClick={() => handleView(company.id)}
+            >
+              {/* Company Logo */}
+              <div className="w-16 h-16 rounded-full bg-secondary flex items-center justify-center overflow-hidden flex-shrink-0">
+                {company.logo_url ? (
+                  <img
+                    src={company.logo_url}
+                    alt={company.name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <Building2 className="w-8 h-8 text-muted-foreground" />
+                )}
+              </div>
+
+              {/* Company Info */}
+              <div className="flex-1 min-w-0">
+                {/* Name & Location */}
+                <div className="flex items-center gap-3 flex-wrap">
+                  <h3 className="font-semibold text-lg group-hover:text-primary transition-colors">
+                    {company.name}
+                  </h3>
+                  {company.location && (
+                    <span className="text-muted-foreground text-sm flex items-center gap-1">
+                      <MapPin className="w-3 h-3" />
+                      {company.location}
+                    </span>
+                  )}
+                </div>
+
+                {/* Tagline / Description */}
+                <p className="text-foreground mt-1 line-clamp-2">{company.short_description}</p>
+
+                {/* Tags */}
+                <div className="flex flex-wrap items-center gap-2 mt-3">
+                  {company.founded_at && (
+                    <Badge variant="secondary" className="text-xs font-medium gap-1">
+                      <Calendar className="w-3 h-3" />
+                      {company.founded_at}
+                    </Badge>
+                  )}
+                  {company.employee_count && (
+                    <Badge variant="secondary" className="text-xs font-medium gap-1">
+                      <Users className="w-3 h-3" />
+                      {company.employee_count}
+                    </Badge>
+                  )}
+                  <Badge variant="outline" className="text-xs font-medium uppercase">
+                    {company.category}
+                  </Badge>
+                  <Badge variant="outline" className="text-xs font-medium uppercase">
+                    {company.stage}
+                  </Badge>
+                </div>
+              </div>
+
+              {/* Save Button */}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity p-2"
+                onClick={(e) => toggleSaveCompany(company.id, e)}
+              >
+                {savedCompanies.has(company.id) ? (
+                  <BookmarkCheck className="w-5 h-5 text-primary" />
+                ) : (
+                  <Bookmark className="w-5 h-5" />
+                )}
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

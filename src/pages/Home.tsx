@@ -212,12 +212,12 @@ export function Home() {
             </div>
           ) : (
             <div className="flex gap-4 justify-center flex-wrap">
-              <Link to="/register?role=startup">
+              <Link to="/register/company">
                 <button className="inline-flex items-center gap-2 bg-white text-black font-medium px-6 py-3 rounded-lg hover:bg-neutral-200 transition-colors">
                   Join as Company <ArrowRight className="w-4 h-4" />
                 </button>
               </Link>
-              <Link to="/register?role=investor">
+              <Link to="/register/member">
                 <button className="inline-flex items-center gap-2 bg-transparent text-white font-medium px-6 py-3 rounded-lg border border-neutral-600 hover:bg-neutral-800 transition-colors">
                   Join as Member
                 </button>
@@ -447,7 +447,7 @@ export function Home() {
                 <CheckCircle className="w-4 h-4 text-green-500" />
                 <span>10 questions available, 5 selected per company</span>
               </div>
-              <Link to="/register?role=investor">
+              <Link to="/register/member">
                 <button className="inline-flex items-center gap-2 bg-white text-black font-medium px-5 py-2.5 rounded-lg hover:bg-neutral-200 transition-colors text-sm">
                   Start Exploring <ArrowRight className="w-4 h-4" />
                 </button>
@@ -482,12 +482,12 @@ export function Home() {
             Join IV today and discover the future of startup transparency.
           </p>
           <div className="flex gap-4 justify-center flex-wrap">
-            <Link to="/register?role=startup">
+            <Link to="/register/company">
               <button className="inline-flex items-center gap-2 bg-white text-black font-medium px-6 py-3 rounded-lg hover:bg-neutral-200 transition-colors">
                 Join as Company <ArrowRight className="w-4 h-4" />
               </button>
             </Link>
-            <Link to="/register?role=investor">
+            <Link to="/register/member">
               <button className="inline-flex items-center gap-2 bg-transparent text-white font-medium px-6 py-3 rounded-lg border border-neutral-600 hover:bg-neutral-800 transition-colors">
                 Join as Member
               </button>

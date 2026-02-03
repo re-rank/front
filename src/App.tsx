@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/stores/authStore';
 import { Layout, ProtectedRoute } from '@/components/layout';
-import { Home, Login, Register, RegisterForm, SelectRole, CompanyRegister, CompanyList, CompanyDetail, AdminDashboard } from '@/pages';
+import { Home, Login, RegisterForm, SelectRole, CompanyRegister, CompanyList, CompanyDetail, AdminDashboard } from '@/pages';
 import { Button } from '@/components/ui';
 import { Building2 } from 'lucide-react';
 
@@ -92,7 +92,6 @@ function AppContent() {
             {/* Public routes */}
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
             <Route path="/register/company" element={<RegisterForm role="startup" />} />
             <Route path="/register/member" element={<RegisterForm role="investor" />} />
             <Route path="/select-role" element={<SelectRole />} />

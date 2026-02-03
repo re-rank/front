@@ -155,7 +155,7 @@ export function RegisterForm({ role }: { role: UserRole }) {
     <div className="min-h-[calc(100vh-64px)] flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <Link
-          to={step === 'otp' ? '#' : '/register'}
+          to={step === 'otp' ? '#' : '/'}
           onClick={step === 'otp' ? (e) => { e.preventDefault(); setStep('form'); setError(null); } : undefined}
           className="inline-flex items-center gap-2 mb-6 text-sm text-neutral-400 hover:text-white transition-colors"
         >

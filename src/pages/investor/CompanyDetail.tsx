@@ -6,14 +6,25 @@ import {
   Users,
   MapPin,
   Globe,
-  ExternalLink,
   Play,
   BarChart3,
   MessageSquare,
+  Github,
+  Linkedin,
+  Youtube,
+  GraduationCap,
+  BookOpen,
+  Newspaper,
+  ExternalLink,
+  FileText,
 } from 'lucide-react';
 import {
   LineChart,
   Line,
+  AreaChart,
+  Area,
+  BarChart,
+  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -21,7 +32,7 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { supabase } from '@/lib/supabase';
-import { Card, CardContent, CardHeader, Badge, Button } from '@/components/ui';
+import { Card, CardContent, Badge, Button } from '@/components/ui';
 import type {
   Company,
   Executive,
@@ -30,14 +41,12 @@ import type {
   CompanyQnA,
 } from '@/types/database';
 
-const qnaCategoryVariant: Record<string, 'default' | 'primary' | 'success' | 'warning' | 'danger'> = {
-  'Team Cohesion': 'primary',
-  'Competitive Advantage': 'success',
-  'Capability Gap': 'danger',
-  'Acquisition Offer': 'warning',
-  'Competitive Landscape': 'default',
-  'Basis of Conviction': 'primary',
-};
+// X (formerly Twitter) icon component
+const XIcon = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+  </svg>
+);
 
 export function CompanyDetail() {
   const { id } = useParams<{ id: string }>();
@@ -94,181 +103,272 @@ export function CompanyDetail() {
 
   const linkButtons = [
     { url: company.website_url, icon: Globe, label: 'Website' },
-    { url: company.github_url, icon: ExternalLink, label: 'GitHub' },
-    { url: company.linkedin_url, icon: ExternalLink, label: 'LinkedIn' },
-    { url: company.twitter_url, icon: ExternalLink, label: 'Twitter' },
-    { url: company.youtube_url, icon: Play, label: 'YouTube' },
+    { url: company.github_url, icon: Github, label: 'GitHub' },
+    { url: company.linkedin_url, icon: Linkedin, label: 'LinkedIn' },
+    { url: company.twitter_url, icon: XIcon, label: 'X' },
+    { url: company.youtube_url, icon: Youtube, label: 'YouTube' },
   ].filter((l) => l.url);
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8 space-y-8">
+    <div className="max-w-6xl mx-auto px-4 md:px-6 py-8 space-y-10">
       {/* Back */}
-      <Link to="/companies" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-secondary-foreground">
+      <Link
+        to="/companies"
+        className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+      >
         <ArrowLeft className="h-4 w-4" />
-        Back to List
+        Back to Companies
       </Link>
 
-      {/* ── Header ── */}
-      <Card>
-        <CardContent className="space-y-4">
-          <div className="flex items-start gap-4">
-            {company.logo_url ? (
-              <img src={company.logo_url} alt={company.name} className="h-16 w-16 rounded-xl object-cover" />
-            ) : (
-              <div className="h-16 w-16 rounded-xl bg-muted flex items-center justify-center text-2xl font-bold text-muted-foreground">
-                {company.name[0]}
-              </div>
-            )}
-            <div className="flex-1 min-w-0">
-              <h1 className="text-2xl font-bold text-foreground">{company.name}</h1>
-              <p className="text-muted-foreground mt-1">{company.short_description}</p>
-              <div className="flex flex-wrap gap-2 mt-2">
-                <Badge variant="primary">{company.category}</Badge>
-                <Badge variant="warning">{company.stage}</Badge>
-              </div>
-            </div>
-          </div>
-
-          {/* Meta Info */}
-          <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-            <span className="inline-flex items-center gap-1">
-              <Calendar className="h-4 w-4" /> {company.founded_at}
-            </span>
-            <span className="inline-flex items-center gap-1">
-              <Users className="h-4 w-4" /> {company.employee_count}
-            </span>
-            <span className="inline-flex items-center gap-1">
-              <MapPin className="h-4 w-4" /> {company.location}
-            </span>
-          </div>
-
-          {/* External Links */}
-          {linkButtons.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {linkButtons.map((l) => (
-                <a key={l.label} href={l.url!} target="_blank" rel="noopener noreferrer">
-                  <Button variant="outline" size="sm">
-                    <l.icon className="h-4 w-4 mr-1" />
-                    {l.label}
-                  </Button>
-                </a>
-              ))}
-            </div>
+      {/* Company Header */}
+      <div className="flex flex-col md:flex-row md:items-start gap-6">
+        <div className="w-28 h-28 rounded-2xl bg-secondary flex items-center justify-center overflow-hidden flex-shrink-0">
+          {company.logo_url ? (
+            <img src={company.logo_url} alt={company.name} className="w-full h-full object-cover" />
+          ) : (
+            <span className="text-4xl font-bold text-muted-foreground">{company.name[0]}</span>
           )}
-        </CardContent>
-      </Card>
-
-      {/* ── Overview ── */}
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="md:col-span-2">
-          <Card>
-            <CardHeader><h2 className="font-semibold text-foreground">About</h2></CardHeader>
-            <CardContent>
-              <p className="text-secondary-foreground whitespace-pre-line leading-relaxed">{company.description}</p>
-            </CardContent>
-          </Card>
         </div>
+        <div className="flex-1">
+          <h1 className="text-4xl font-serif mb-3">{company.name}</h1>
+          <p className="text-xl text-muted-foreground mb-5">{company.short_description}</p>
+          <div className="flex flex-wrap gap-3 mb-4">
+            <Badge variant="secondary" className="text-sm px-3 py-1">
+              {company.category}
+            </Badge>
+            <Badge variant="outline" className="text-sm px-3 py-1">
+              {company.stage}
+            </Badge>
+          </div>
+          <div className="flex flex-wrap items-center gap-6 text-sm text-muted-foreground">
+            {company.location && (
+              <span className="flex items-center gap-2">
+                <MapPin className="w-4 h-4" />
+                {company.location}
+              </span>
+            )}
+            {company.founded_at && (
+              <span className="flex items-center gap-2">
+                <Calendar className="w-4 h-4" />
+                Founded {company.founded_at}
+              </span>
+            )}
+            {company.employee_count && (
+              <span className="flex items-center gap-2">
+                <Users className="w-4 h-4" />
+                {company.employee_count} employees
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
 
-        {executives.length > 0 && (
-          <Card>
-            <CardHeader><h2 className="font-semibold text-foreground">Leadership</h2></CardHeader>
-            <CardContent className="space-y-4">
-              {executives.map((e) => (
-                <div key={e.id} className="flex items-center gap-3">
-                  {e.photo_url ? (
-                    <img src={e.photo_url} alt={e.name} className="h-10 w-10 rounded-full object-cover" />
-                  ) : (
-                    <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center text-sm font-bold text-muted-foreground">
-                      {e.name[0]}
-                    </div>
-                  )}
-                  <div>
-                    <p className="text-sm font-medium text-foreground">{e.name}</p>
-                    <p className="text-xs text-muted-foreground">{e.role}</p>
-                  </div>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        )}
-      </section>
+      {/* Company Links */}
+      {linkButtons.length > 0 && (
+        <div className="flex flex-wrap gap-3">
+          {linkButtons.map((l) => (
+            <a
+              key={l.label}
+              href={l.url!}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-secondary hover:bg-secondary/80 transition-colors text-sm"
+            >
+              <l.icon className="w-4 h-4" />
+              {l.label}
+            </a>
+          ))}
+        </div>
+      )}
 
-      {/* ── Pitch Video ── */}
-      {videos.length > 0 && (
+      {/* Intro Video */}
+      {mainVideo && (
         <section>
-          <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-            <Play className="h-5 w-5" /> Pitch Video
+          <h2 className="text-2xl font-serif mb-6 flex items-center gap-3">
+            <Play className="w-6 h-6" /> Company Introduction
           </h2>
-          {mainVideo && (
-            <Card className="mb-4">
-              <CardContent>
-                <div className="aspect-video rounded-lg overflow-hidden bg-black">
-                  <iframe
-                    src={mainVideo.video_url}
-                    title="Main pitch video"
-                    className="w-full h-full"
-                    allowFullScreen
-                  />
-                </div>
-                {mainVideo.description && (
-                  <p className="mt-3 text-sm text-muted-foreground">{mainVideo.description}</p>
-                )}
-              </CardContent>
-            </Card>
-          )}
-          {extraVideos.length > 0 && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {extraVideos.map((v) => (
-                <Card key={v.id}>
-                  <CardContent>
-                    <div className="aspect-video rounded-lg overflow-hidden bg-black">
-                      <iframe src={v.video_url} title="Video" className="w-full h-full" allowFullScreen />
-                    </div>
-                    {v.description && <p className="mt-2 text-sm text-muted-foreground">{v.description}</p>}
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+          <div className="aspect-video rounded-2xl overflow-hidden bg-secondary max-w-4xl">
+            <iframe
+              src={mainVideo.video_url}
+              title="Company Introduction"
+              className="w-full h-full"
+              allowFullScreen
+            />
+          </div>
+          {mainVideo.description && (
+            <p className="mt-4 text-muted-foreground">{mainVideo.description}</p>
           )}
         </section>
       )}
 
-      {/* ── Business Metrics ── */}
+      {/* About */}
+      <section>
+        <h2 className="text-2xl font-serif mb-6">About</h2>
+        <div className="prose prose-invert prose-lg max-w-none">
+          <p className="text-muted-foreground whitespace-pre-wrap leading-relaxed">
+            {company.description}
+          </p>
+        </div>
+      </section>
+
+      {/* Leadership Team */}
+      {executives.length > 0 && (
+        <section>
+          <h2 className="text-2xl font-serif mb-6">Leadership Team</h2>
+          <div className="grid md:grid-cols-2 gap-6">
+            {executives.map((exec) => (
+              <Card key={exec.id} className="overflow-hidden">
+                <CardContent className="p-6">
+                  <div className="flex items-start gap-5">
+                    <div className="w-20 h-20 rounded-full bg-secondary flex items-center justify-center overflow-hidden flex-shrink-0">
+                      {exec.photo_url ? (
+                        <img
+                          src={exec.photo_url}
+                          alt={exec.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <Users className="w-8 h-8 text-muted-foreground" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <Badge variant="outline" className="text-xs mb-2">
+                        {exec.role}
+                      </Badge>
+                      <h3 className="font-semibold text-lg">{exec.name}</h3>
+                      {(exec.school || exec.major) && (
+                        <div className="mt-2 space-y-1">
+                          {exec.school && (
+                            <p className="text-sm text-muted-foreground flex items-center gap-2">
+                              <GraduationCap className="w-4 h-4 flex-shrink-0" />
+                              <span>{exec.school}</span>
+                            </p>
+                          )}
+                          {exec.major && (
+                            <p className="text-sm text-muted-foreground flex items-center gap-2">
+                              <BookOpen className="w-4 h-4 flex-shrink-0" />
+                              <span>{exec.major}</span>
+                            </p>
+                          )}
+                        </div>
+                      )}
+                      {exec.bio && (
+                        <p className="text-sm text-muted-foreground mt-3 leading-relaxed">
+                          {exec.bio}
+                        </p>
+                      )}
+                      <div className="flex gap-2 mt-4">
+                        {exec.linkedin_url && (
+                          <a
+                            href={exec.linkedin_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary hover:bg-secondary/80 transition-colors text-xs"
+                          >
+                            <Linkedin className="w-3.5 h-3.5" />
+                            LinkedIn
+                          </a>
+                        )}
+                        {exec.twitter_url && (
+                          <a
+                            href={exec.twitter_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary hover:bg-secondary/80 transition-colors text-xs"
+                          >
+                            <XIcon className="w-3.5 h-3.5" />
+                            X
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Extra Videos */}
+      {extraVideos.length > 0 && (
+        <section>
+          <h2 className="text-2xl font-serif mb-6">More Videos</h2>
+          <div className="grid md:grid-cols-2 gap-6">
+            {extraVideos.map((v) => (
+              <Card key={v.id}>
+                <CardContent className="p-6">
+                  <div className="aspect-video rounded-lg overflow-hidden bg-black">
+                    <iframe src={v.video_url} title="Video" className="w-full h-full" allowFullScreen />
+                  </div>
+                  {v.description && (
+                    <p className="mt-3 text-sm text-muted-foreground">{v.description}</p>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Business Metrics */}
       {metrics.length > 0 && (
         <section>
-          <h2 className="text-lg font-semibold text-foreground mb-1 flex items-center gap-2">
-            <BarChart3 className="h-5 w-5" /> Business Metrics
+          <h2 className="text-2xl font-serif mb-2 flex items-center gap-3">
+            <BarChart3 className="w-6 h-6" /> Business Metrics
           </h2>
-          <p className="text-xs text-muted-foreground mb-4">
-            Verified Data &middot;
-            {company.stripe_connected && <Badge variant="success" className="ml-1">Stripe</Badge>}
-            {company.ga4_connected && <Badge variant="success" className="ml-1">GA4</Badge>}
+          <p className="text-sm text-muted-foreground mb-6 flex items-center gap-2">
+            Verified Data
+            {company.stripe_connected && <Badge variant="secondary">Stripe</Badge>}
+            {company.ga4_connected && <Badge variant="secondary">GA4</Badge>}
             {company.last_data_update && (
               <span className="ml-2">Last updated: {company.last_data_update}</span>
             )}
           </p>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <MetricChart title="Monthly Revenue" data={metrics} dataKey="revenue" color="#6366f1" format={(v) => `₩${(v / 1_000_000).toFixed(0)}M`} />
-            <MetricChart title="MAU" data={metrics} dataKey="mau" color="#10b981" format={(v) => v.toLocaleString()} />
-            <MetricChart title="Retention" data={metrics} dataKey="retention" color="#f59e0b" format={(v) => `${v}%`} />
+          <div className="grid md:grid-cols-3 gap-6">
+            <MetricChart
+              title="Monthly Revenue"
+              data={metrics}
+              dataKey="revenue"
+              color="oklch(0.75 0.15 160)"
+              format={(v) => `$${(v / 1000).toFixed(0)}K`}
+              type="area"
+            />
+            <MetricChart
+              title="Active Users"
+              data={metrics}
+              dataKey="mau"
+              color="oklch(0.65 0.2 250)"
+              format={(v) => v.toLocaleString()}
+              type="line"
+            />
+            <MetricChart
+              title="Retention Rate"
+              data={metrics}
+              dataKey="retention"
+              color="oklch(0.7 0.18 30)"
+              format={(v) => `${v}%`}
+              type="bar"
+            />
           </div>
         </section>
       )}
 
-      {/* ── Q&A ── */}
+      {/* Q&A */}
       {qna.length > 0 && (
         <section>
-          <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-            <MessageSquare className="h-5 w-5" /> Q&A
+          <h2 className="text-2xl font-serif mb-6 flex items-center gap-3">
+            <MessageSquare className="w-6 h-6" /> Investor Q&A
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-6">
             {qna.map((q) => (
               <Card key={q.id}>
-                <CardContent className="space-y-2">
-                  <Badge variant={qnaCategoryVariant[q.category] ?? 'default'}>{q.category}</Badge>
-                  <p className="font-medium text-foreground">{q.question}</p>
-                  <p className="text-sm text-muted-foreground whitespace-pre-line">{q.answer}</p>
+                <CardContent className="p-6">
+                  <h3 className="font-semibold text-lg mb-4">{q.question}</h3>
+                  <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">
+                    {q.answer}
+                  </p>
                 </CardContent>
               </Card>
             ))}
@@ -279,36 +379,116 @@ export function CompanyDetail() {
   );
 }
 
-/* ── Chart Component ── */
+/* Chart Component */
 function MetricChart({
   title,
   data,
   dataKey,
   color,
   format,
+  type = 'line',
 }: {
   title: string;
   data: CompanyMetric[];
   dataKey: 'revenue' | 'mau' | 'retention';
   color: string;
   format: (v: number) => string;
+  type?: 'line' | 'area' | 'bar';
 }) {
   const filtered = data.filter((d) => d[dataKey] != null);
   if (filtered.length === 0) return null;
 
+  const latestValue = filtered[filtered.length - 1]?.[dataKey];
+
+  const chartStyle = {
+    grid: 'oklch(0.28 0 0)',
+    text: 'oklch(0.65 0 0)',
+    tooltip: {
+      backgroundColor: 'oklch(0.16 0 0)',
+      border: '1px solid oklch(0.28 0 0)',
+      borderRadius: '8px',
+      color: 'oklch(0.98 0 0)',
+    },
+  };
+
   return (
     <Card>
-      <CardContent>
-        <p className="text-sm font-medium text-secondary-foreground mb-2">{title}</p>
-        <ResponsiveContainer width="100%" height={180}>
-          <LineChart data={filtered}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-            <XAxis dataKey="month" tick={{ fontSize: 11 }} />
-            <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => format(v)} />
-            <Tooltip formatter={(v) => format(v as number)} />
-            <Line type="monotone" dataKey={dataKey} stroke={color} strokeWidth={2} dot={false} />
-          </LineChart>
-        </ResponsiveContainer>
+      <CardContent className="p-6">
+        <h3 className="text-sm text-muted-foreground mb-2">{title}</h3>
+        <p className="text-2xl font-semibold mb-4">
+          {latestValue != null ? format(latestValue) : '-'}
+        </p>
+        <div className="h-40">
+          <ResponsiveContainer width="100%" height="100%">
+            {type === 'area' ? (
+              <AreaChart data={filtered}>
+                <defs>
+                  <linearGradient id={`gradient-${dataKey}`} x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor={color} stopOpacity={0.3} />
+                    <stop offset="95%" stopColor={color} stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke={chartStyle.grid} />
+                <XAxis
+                  dataKey="month"
+                  tick={{ fill: chartStyle.text, fontSize: 10 }}
+                  axisLine={{ stroke: chartStyle.grid }}
+                  tickLine={false}
+                />
+                <YAxis
+                  tick={{ fill: chartStyle.text, fontSize: 10 }}
+                  axisLine={{ stroke: chartStyle.grid }}
+                  tickLine={false}
+                  tickFormatter={(v) => format(v)}
+                />
+                <Tooltip contentStyle={chartStyle.tooltip} formatter={(v) => format(v as number)} />
+                <Area
+                  type="monotone"
+                  dataKey={dataKey}
+                  stroke={color}
+                  fill={`url(#gradient-${dataKey})`}
+                  strokeWidth={2}
+                />
+              </AreaChart>
+            ) : type === 'bar' ? (
+              <BarChart data={filtered}>
+                <CartesianGrid strokeDasharray="3 3" stroke={chartStyle.grid} />
+                <XAxis
+                  dataKey="month"
+                  tick={{ fill: chartStyle.text, fontSize: 10 }}
+                  axisLine={{ stroke: chartStyle.grid }}
+                  tickLine={false}
+                />
+                <YAxis
+                  tick={{ fill: chartStyle.text, fontSize: 10 }}
+                  axisLine={{ stroke: chartStyle.grid }}
+                  tickLine={false}
+                  tickFormatter={(v) => format(v)}
+                />
+                <Tooltip contentStyle={chartStyle.tooltip} formatter={(v) => format(v as number)} />
+                <Bar dataKey={dataKey} fill={color} radius={[4, 4, 0, 0]} />
+              </BarChart>
+            ) : (
+              <LineChart data={filtered}>
+                <CartesianGrid strokeDasharray="3 3" stroke={chartStyle.grid} />
+                <XAxis
+                  dataKey="month"
+                  tick={{ fill: chartStyle.text, fontSize: 10 }}
+                  axisLine={{ stroke: chartStyle.grid }}
+                  tickLine={false}
+                />
+                <YAxis
+                  tick={{ fill: chartStyle.text, fontSize: 10 }}
+                  axisLine={{ stroke: chartStyle.grid }}
+                  tickLine={false}
+                  tickFormatter={(v) => format(v)}
+                />
+                <Tooltip contentStyle={chartStyle.tooltip} formatter={(v) => format(v as number)} />
+                <Line type="monotone" dataKey={dataKey} stroke={color} strokeWidth={2} dot={false} />
+              </LineChart>
+            )}
+          </ResponsiveContainer>
+        </div>
       </CardContent>
     </Card>
   );
