@@ -187,7 +187,7 @@ export function Home() {
             <span className="text-sm text-neutral-300">Full transparency into our projects</span>
           </div>
 
-          <h1 className="text-4xl sm:text-6xl font-bold tracking-tight mb-6">
+          <h1 className="text-4xl sm:text-6xl font-bold tracking-tight mb-6 font-serif italic">
             Access all project insights{' '}
             <span className="text-neutral-500">in one view.</span>
           </h1>
@@ -205,14 +205,9 @@ export function Home() {
                 </Link>
               )}
               {role === 'startup' && (
-                <>
-                  <Link to="/company/register">
-                    <Button size="lg">등록하기</Button>
-                  </Link>
-                  <Link to="/dashboard">
-                    <Button size="lg" variant="outline">대시보드로 이동</Button>
-                  </Link>
-                </>
+                <Link to="/company/register">
+                  <Button size="lg">등록하기</Button>
+                </Link>
               )}
             </div>
           ) : (
