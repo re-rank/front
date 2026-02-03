@@ -7,16 +7,17 @@ interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
 
 export function Badge({ className, variant = 'default', children, ...props }: BadgeProps) {
   const variants = {
-    default: 'border-transparent bg-primary text-primary-foreground',
-    secondary: 'border-transparent bg-secondary text-secondary-foreground',
-    outline: 'text-foreground bg-transparent border-border',
-    destructive: 'border-transparent bg-destructive text-white',
+    default: 'border-transparent bg-primary text-primary-foreground [a&]:hover:bg-primary/90',
+    secondary: 'border-transparent bg-secondary text-secondary-foreground [a&]:hover:bg-secondary/90',
+    outline: 'text-foreground bg-transparent border-border [a&]:hover:bg-accent [a&]:hover:text-accent-foreground',
+    destructive: 'border-transparent bg-destructive text-white [a&]:hover:bg-destructive/90',
   };
 
   return (
     <span
+      data-slot="badge"
       className={cn(
-        'inline-flex items-center justify-center rounded-md border px-2 py-0.5 text-xs font-medium whitespace-nowrap transition-colors',
+        'inline-flex items-center justify-center rounded-md border px-2 py-0.5 text-xs font-medium w-fit whitespace-nowrap shrink-0 [&>svg]:size-3 gap-1 [&>svg]:pointer-events-none transition-[color,box-shadow] overflow-hidden',
         variants[variant],
         className
       )}

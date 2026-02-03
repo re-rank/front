@@ -115,7 +115,7 @@ export function CompanyList() {
 
         {/* Search and Filters */}
         <div className="flex items-center gap-3">
-          <div className="relative flex-1">
+          <div className="relative flex-[2] min-w-[280px]">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <input
               type="text"
@@ -140,14 +140,14 @@ export function CompanyList() {
               options={categoryOptions}
               value={category}
               onChange={(e) => setCategory(e.target.value)}
-              className="border-0 bg-transparent h-9 min-w-[130px] shadow-none focus:ring-0"
+              className="border-0 bg-transparent h-9 min-w-[120px] shadow-none focus:ring-0"
             />
           </div>
           <Select
             options={stageOptions}
             value={stage}
             onChange={(e) => setStage(e.target.value)}
-            className="h-11 w-[150px] bg-secondary/50 border-border rounded-lg flex-shrink-0"
+            className="h-11 w-[130px] bg-secondary/50 border-border rounded-lg flex-shrink-0"
           />
         </div>
 

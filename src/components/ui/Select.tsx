@@ -28,11 +28,10 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
         <select
           ref={ref}
           id={selectId}
+          data-slot="select"
           className={cn(
-            'w-full px-3 py-2 border rounded-lg text-foreground bg-card',
-            'focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent',
-            'disabled:bg-background disabled:cursor-not-allowed',
-            error ? 'border-red-500' : 'border-border',
+            'border-input text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 flex w-full items-center justify-between gap-2 rounded-md border bg-transparent px-3 py-2 text-sm whitespace-nowrap shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 h-9',
+            error && 'ring-destructive/20 border-destructive',
             className
           )}
           {...props}
