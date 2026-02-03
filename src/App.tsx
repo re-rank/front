@@ -1,12 +1,30 @@
-import { useEffect } from 'react';
+import { useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Link, Navigate, useLocation } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/stores/authStore';
 import { Layout, ProtectedRoute } from '@/components/layout';
-import { Home, Login, RegisterForm, SelectRole, CompanyRegister, CompanyList, CompanyDetail, AdminDashboard } from '@/pages';
+import { Home } from '@/pages';
 import { Button } from '@/components/ui';
 import { Building2 } from 'lucide-react';
+
+// Lazy load pages for better initial load performance
+const Login = lazy(() => import('@/pages/auth/Login').then(m => ({ default: m.Login })));
+const RegisterForm = lazy(() => import('@/pages/auth/RegisterForm').then(m => ({ default: m.RegisterForm })));
+const SelectRole = lazy(() => import('@/pages/auth/SelectRole').then(m => ({ default: m.SelectRole })));
+const CompanyRegister = lazy(() => import('@/pages/company/CompanyRegister').then(m => ({ default: m.CompanyRegister })));
+const CompanyList = lazy(() => import('@/pages/investor/CompanyList').then(m => ({ default: m.CompanyList })));
+const CompanyDetail = lazy(() => import('@/pages/investor/CompanyDetail').then(m => ({ default: m.CompanyDetail })));
+const AdminDashboard = lazy(() => import('@/pages/admin/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
+
+// Loading fallback component
+function PageLoader() {
+  return (
+    <div className="min-h-[calc(100vh-64px)] flex items-center justify-center">
+      <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
+    </div>
+  );
+}
 
 /** Redirect logged-in users without a role to /select-role */
 function RequireRole({ children }: { children: React.ReactNode }) {
@@ -14,6 +32,16 @@ function RequireRole({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const role = getRole();
 
+  // Public pages that don't need to wait for auth
+  const publicPaths = ['/', '/login', '/register/company', '/register/member'];
+  const isPublicPage = publicPaths.includes(location.pathname);
+
+  // Show public pages immediately without waiting for auth
+  if (isPublicPage && isLoading) {
+    return <>{children}</>;
+  }
+
+  // For protected routes, wait for auth check
   if (isLoading) return null;
 
   const allowedWithoutRole = ['/select-role', '/login', '/register', '/register/company', '/register/member'];
@@ -96,14 +124,15 @@ function AppContent() {
   return (
     <BrowserRouter>
       <RequireRole>
-        <Routes>
-          <Route element={<Layout />}>
-            {/* Public routes */}
-            <Route path="/" element={<Home />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register/company" element={<RegisterForm role="startup" />} />
-            <Route path="/register/member" element={<RegisterForm role="investor" />} />
-            <Route path="/select-role" element={<SelectRole />} />
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
+            <Route element={<Layout />}>
+              {/* Public routes */}
+              <Route path="/" element={<Home />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/register/company" element={<RegisterForm role="startup" />} />
+              <Route path="/register/member" element={<RegisterForm role="investor" />} />
+              <Route path="/select-role" element={<SelectRole />} />
 
             {/* Investor routes */}
             <Route element={<ProtectedRoute allowedRoles={['investor', 'admin']} />}>
@@ -139,7 +168,8 @@ function AppContent() {
               <Route path="/company/edit" element={<div className="p-8">Edit Company Info (Coming Soon)</div>} />
             </Route>
           </Route>
-        </Routes>
+          </Routes>
+        </Suspense>
       </RequireRole>
     </BrowserRouter>
   );
