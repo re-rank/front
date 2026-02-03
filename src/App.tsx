@@ -58,12 +58,21 @@ function RequireRole({ children }: { children: React.ReactNode }) {
   const isPublicPage = publicPaths.includes(location.pathname);
 
   // Show public pages immediately without waiting for auth
-  if (isPublicPage && isLoading) {
+  if (isPublicPage) {
     return <>{children}</>;
   }
 
-  // For protected routes, show skeleton while loading
-  if (isLoading) {
+  // For protected routes: if no cached user, redirect immediately without waiting
+  // This prevents showing skeleton when we know user isn't logged in
+  const cachedAuth = localStorage.getItem('auth-storage');
+  const hasCachedUser = cachedAuth && JSON.parse(cachedAuth)?.state?.user;
+
+  if (!hasCachedUser && !user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // Show skeleton only if we have cached user and are verifying
+  if (isLoading && hasCachedUser) {
     return <AuthLoadingSkeleton />;
   }
 
