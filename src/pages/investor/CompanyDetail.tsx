@@ -31,12 +31,12 @@ import type {
 } from '@/types/database';
 
 const qnaCategoryVariant: Record<string, 'default' | 'primary' | 'success' | 'warning' | 'danger'> = {
-  '팀 결속력': 'primary',
-  '경쟁 우위': 'success',
-  '역량 결핍': 'danger',
-  '인수 제안': 'warning',
-  '경쟁 상황': 'default',
-  '확신의 근거': 'primary',
+  'Team Cohesion': 'primary',
+  'Competitive Advantage': 'success',
+  'Capability Gap': 'danger',
+  'Acquisition Offer': 'warning',
+  'Competitive Landscape': 'default',
+  'Basis of Conviction': 'primary',
 };
 
 export function CompanyDetail() {
@@ -84,7 +84,7 @@ export function CompanyDetail() {
   if (!company) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-20 text-center text-muted-foreground">
-        회사를 찾을 수 없습니다.
+        Company not found.
       </div>
     );
   }
@@ -93,7 +93,7 @@ export function CompanyDetail() {
   const extraVideos = videos.filter((v) => !v.is_main);
 
   const linkButtons = [
-    { url: company.website_url, icon: Globe, label: '웹사이트' },
+    { url: company.website_url, icon: Globe, label: 'Website' },
     { url: company.github_url, icon: ExternalLink, label: 'GitHub' },
     { url: company.linkedin_url, icon: ExternalLink, label: 'LinkedIn' },
     { url: company.twitter_url, icon: ExternalLink, label: 'Twitter' },
@@ -102,13 +102,13 @@ export function CompanyDetail() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 space-y-8">
-      {/* 뒤로 */}
+      {/* Back */}
       <Link to="/companies" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-secondary-foreground">
         <ArrowLeft className="h-4 w-4" />
-        목록으로
+        Back to List
       </Link>
 
-      {/* ── 헤더 ── */}
+      {/* ── Header ── */}
       <Card>
         <CardContent className="space-y-4">
           <div className="flex items-start gap-4">
@@ -129,7 +129,7 @@ export function CompanyDetail() {
             </div>
           </div>
 
-          {/* 메타 정보 */}
+          {/* Meta Info */}
           <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
             <span className="inline-flex items-center gap-1">
               <Calendar className="h-4 w-4" /> {company.founded_at}
@@ -142,7 +142,7 @@ export function CompanyDetail() {
             </span>
           </div>
 
-          {/* 외부 링크 */}
+          {/* External Links */}
           {linkButtons.length > 0 && (
             <div className="flex flex-wrap gap-2">
               {linkButtons.map((l) => (
@@ -158,11 +158,11 @@ export function CompanyDetail() {
         </CardContent>
       </Card>
 
-      {/* ── 개요 ── */}
+      {/* ── Overview ── */}
       <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="md:col-span-2">
           <Card>
-            <CardHeader><h2 className="font-semibold text-foreground">회사 소개</h2></CardHeader>
+            <CardHeader><h2 className="font-semibold text-foreground">About</h2></CardHeader>
             <CardContent>
               <p className="text-secondary-foreground whitespace-pre-line leading-relaxed">{company.description}</p>
             </CardContent>
@@ -171,7 +171,7 @@ export function CompanyDetail() {
 
         {executives.length > 0 && (
           <Card>
-            <CardHeader><h2 className="font-semibold text-foreground">경영진</h2></CardHeader>
+            <CardHeader><h2 className="font-semibold text-foreground">Leadership</h2></CardHeader>
             <CardContent className="space-y-4">
               {executives.map((e) => (
                 <div key={e.id} className="flex items-center gap-3">
@@ -233,23 +233,23 @@ export function CompanyDetail() {
         </section>
       )}
 
-      {/* ── 비즈니스 지표 ── */}
+      {/* ── Business Metrics ── */}
       {metrics.length > 0 && (
         <section>
           <h2 className="text-lg font-semibold text-foreground mb-1 flex items-center gap-2">
-            <BarChart3 className="h-5 w-5" /> 비즈니스 지표
+            <BarChart3 className="h-5 w-5" /> Business Metrics
           </h2>
           <p className="text-xs text-muted-foreground mb-4">
-            검증된 데이터 &middot;
+            Verified Data &middot;
             {company.stripe_connected && <Badge variant="success" className="ml-1">Stripe</Badge>}
             {company.ga4_connected && <Badge variant="success" className="ml-1">GA4</Badge>}
             {company.last_data_update && (
-              <span className="ml-2">마지막 업데이트: {company.last_data_update}</span>
+              <span className="ml-2">Last updated: {company.last_data_update}</span>
             )}
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <MetricChart title="월별 매출" data={metrics} dataKey="revenue" color="#6366f1" format={(v) => `₩${(v / 1_000_000).toFixed(0)}M`} />
+            <MetricChart title="Monthly Revenue" data={metrics} dataKey="revenue" color="#6366f1" format={(v) => `₩${(v / 1_000_000).toFixed(0)}M`} />
             <MetricChart title="MAU" data={metrics} dataKey="mau" color="#10b981" format={(v) => v.toLocaleString()} />
             <MetricChart title="Retention" data={metrics} dataKey="retention" color="#f59e0b" format={(v) => `${v}%`} />
           </div>
@@ -279,7 +279,7 @@ export function CompanyDetail() {
   );
 }
 
-/* ── 차트 컴포넌트 ── */
+/* ── Chart Component ── */
 function MetricChart({
   title,
   data,

@@ -22,12 +22,12 @@ export type CompanyStage =
 export type ExecutiveRole = 'CEO' | 'CTO' | 'COO' | 'CFO' | 'CPO';
 
 export type QnACategory =
-  | '팀 결속력'
-  | '경쟁 우위'
-  | '역량 결핍'
-  | '인수 제안'
-  | '경쟁 상황'
-  | '확신의 근거';
+  | 'Team Cohesion'
+  | 'Competitive Advantage'
+  | 'Capability Gap'
+  | 'Acquisition Offer'
+  | 'Competitive Landscape'
+  | 'Basis of Conviction';
 
 export interface Database {
   public: {

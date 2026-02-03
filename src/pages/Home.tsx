@@ -201,12 +201,12 @@ export function Home() {
             <div className="flex gap-4 justify-center">
               {role === 'investor' && (
                 <Link to="/companies">
-                  <Button size="lg">스타트업 탐색하기</Button>
+                  <Button size="lg">Explore Startups</Button>
                 </Link>
               )}
               {role === 'startup' && (
                 <Link to="/company/register">
-                  <Button size="lg">등록하기</Button>
+                  <Button size="lg">Register</Button>
                 </Link>
               )}
             </div>

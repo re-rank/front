@@ -7,7 +7,7 @@ import { Card, CardContent, Badge, Button, Select } from '@/components/ui';
 import type { Company, CompanyCategory, CompanyStage, EmployeeCount } from '@/types/database';
 
 const categoryOptions = [
-  { value: '', label: '전체 카테고리' },
+  { value: '', label: 'All Categories' },
   { value: 'AI/ML', label: 'AI/ML' },
   { value: 'Fintech', label: 'Fintech' },
   { value: 'Edtech', label: 'Edtech' },
@@ -19,7 +19,7 @@ const categoryOptions = [
 ];
 
 const stageOptions = [
-  { value: '', label: '전체 단계' },
+  { value: '', label: 'All Stages' },
   { value: 'Pre-seed', label: 'Pre-seed' },
   { value: 'Seed', label: 'Seed' },
   { value: 'Series A', label: 'Series A' },
@@ -28,12 +28,12 @@ const stageOptions = [
 ];
 
 const employeeOptions = [
-  { value: '', label: '전체 규모' },
-  { value: '1~10', label: '1~10명' },
-  { value: '10~100', label: '10~100명' },
-  { value: '100~1000', label: '100~1,000명' },
-  { value: '1000~10000', label: '1,000~10,000명' },
-  { value: '10000+', label: '10,000명+' },
+  { value: '', label: 'All Sizes' },
+  { value: '1~10', label: '1-10' },
+  { value: '10~100', label: '10-100' },
+  { value: '100~1000', label: '100-1,000' },
+  { value: '1000~10000', label: '1,000-10,000' },
+  { value: '10000+', label: '10,000+' },
 ];
 
 const stageVariant: Record<string, 'default' | 'primary' | 'success' | 'warning' | 'danger'> = {
@@ -94,28 +94,28 @@ export function CompanyList() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold text-foreground mb-6">스타트업 탐색</h1>
+      <h1 className="text-2xl font-bold text-foreground mb-6">Explore Startups</h1>
 
       <div className="flex flex-col lg:flex-row gap-6">
-        {/* 필터 패널 */}
+        {/* Filter Panel */}
         <aside className="w-full lg:w-64 shrink-0 space-y-4">
           <Card>
             <CardContent className="space-y-4">
-              <h2 className="font-semibold text-foreground">필터</h2>
+              <h2 className="font-semibold text-foreground">Filters</h2>
               <Select
-                label="카테고리"
+                label="Category"
                 options={categoryOptions}
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
               />
               <Select
-                label="투자 단계"
+                label="Stage"
                 options={stageOptions}
                 value={stage}
                 onChange={(e) => setStage(e.target.value)}
               />
               <Select
-                label="직원 수"
+                label="Employees"
                 options={employeeOptions}
                 value={employeeCount}
                 onChange={(e) => setEmployeeCount(e.target.value)}
@@ -124,10 +124,10 @@ export function CompanyList() {
           </Card>
         </aside>
 
-        {/* 회사 그리드 */}
+        {/* Company Grid */}
         <section className="flex-1">
           <p className="text-sm text-muted-foreground mb-4">
-            총 <span className="font-semibold text-foreground">{companies.length}개</span> 스타트업
+            <span className="font-semibold text-foreground">{companies.length}</span> startups
           </p>
 
           {loading ? (
@@ -137,14 +137,14 @@ export function CompanyList() {
           ) : companies.length === 0 ? (
             <div className="text-center py-20 text-muted-foreground">
               <Search className="mx-auto mb-3 h-10 w-10" />
-              <p>조건에 맞는 스타트업이 없습니다.</p>
+              <p>No startups match your criteria.</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {companies.map((c) => (
                 <Card key={c.id} className="flex flex-col hover:shadow-md transition-shadow">
                   <CardContent className="flex-1 flex flex-col gap-3">
-                    {/* 로고 + 이름 */}
+                    {/* Logo + Name */}
                     <div className="flex items-center gap-3">
                       {c.logo_url ? (
                         <img
@@ -162,7 +162,7 @@ export function CompanyList() {
 
                     <p className="text-sm text-muted-foreground line-clamp-2">{c.short_description}</p>
 
-                    {/* 메타 */}
+                    {/* Meta */}
                     <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                       <span className="inline-flex items-center gap-1">
                         <Calendar className="h-3 w-3" />
@@ -174,13 +174,13 @@ export function CompanyList() {
                       </span>
                     </div>
 
-                    {/* 뱃지 */}
+                    {/* Badges */}
                     <div className="flex flex-wrap gap-1.5">
                       <Badge variant="primary">{c.category}</Badge>
                       <Badge variant={stageVariant[c.stage] ?? 'default'}>{c.stage}</Badge>
                     </div>
 
-                    {/* 버튼 */}
+                    {/* Button */}
                     <div className="mt-auto pt-2">
                       <Button
                         variant="outline"
@@ -189,7 +189,7 @@ export function CompanyList() {
                         onClick={() => handleView(c.id)}
                       >
                         <Eye className="h-4 w-4 mr-1.5" />
-                        열람하기
+                        View
                       </Button>
                     </div>
                   </CardContent>

@@ -23,11 +23,11 @@ import type { SelectOption } from '@/components/ui/Select';
 
 // --- Options ---
 const employeeCountOptions: SelectOption[] = [
-  { value: '1~10', label: '1~10명' },
-  { value: '10~100', label: '10~100명' },
-  { value: '100~1000', label: '100~1,000명' },
-  { value: '1000~10000', label: '1,000~10,000명' },
-  { value: '10000+', label: '10,000명 이상' },
+  { value: '1~10', label: '1-10' },
+  { value: '10~100', label: '10-100' },
+  { value: '100~1000', label: '100-1,000' },
+  { value: '1000~10000', label: '1,000-10,000' },
+  { value: '10000+', label: '10,000+' },
 ];
 
 const categoryOptions: SelectOption[] = [
@@ -38,7 +38,7 @@ const categoryOptions: SelectOption[] = [
   { value: 'HealthTech', label: 'HealthTech' },
   { value: 'E-commerce', label: 'E-commerce' },
   { value: 'SaaS', label: 'SaaS' },
-  { value: 'Other', label: '기타' },
+  { value: 'Other', label: 'Other' },
 ];
 
 const stageOptions: SelectOption[] = [
@@ -58,14 +58,14 @@ const executiveRoleOptions: SelectOption[] = [
 ];
 
 const investorQuestionOptions = [
-  '현재 매출 규모는 어느 정도인가요?',
-  '주요 경쟁사 대비 차별점은 무엇인가요?',
-  '향후 12개월 자금 운용 계획은?',
-  '핵심 기술의 진입 장벽은 무엇인가요?',
-  '주요 고객 또는 파트너사가 있나요?',
-  '팀의 핵심 역량은 무엇인가요?',
-  '현재 가장 큰 도전 과제는?',
-  'Exit 전략이 있나요?',
+  'What is your current revenue scale?',
+  'What differentiates you from competitors?',
+  'What is your funding plan for the next 12 months?',
+  'What are the barriers to entry for your core technology?',
+  'Do you have key customers or partners?',
+  'What are your team\'s core competencies?',
+  'What is your biggest challenge right now?',
+  'Do you have an exit strategy?',
 ];
 
 // --- Steps Config ---
@@ -81,47 +81,47 @@ const steps = [
 
 // --- Schema ---
 const executiveSchema = z.object({
-  name: z.string().min(1, '이름을 입력하세요'),
-  role: z.enum(['CEO', 'CTO', 'COO', 'CFO', 'CPO'], { message: '직책을 선택하세요' }),
+  name: z.string().min(1, 'Please enter a name'),
+  role: z.enum(['CEO', 'CTO', 'COO', 'CFO', 'CPO'], { message: 'Please select a role' }),
   photo_url: z.string().nullable().optional(),
   bio: z.string().optional(),
-  linkedin_url: z.string().url('유효한 URL을 입력하세요').or(z.literal('')).optional(),
-  twitter_url: z.string().url('유효한 URL을 입력하세요').or(z.literal('')).optional(),
+  linkedin_url: z.string().url('Please enter a valid URL').or(z.literal('')).optional(),
+  twitter_url: z.string().url('Please enter a valid URL').or(z.literal('')).optional(),
   education: z.string().optional(),
 });
 
 const companyRegisterSchema = z.object({
   // Step 1: Profile
-  logo_url: z.string().min(1, '회사 로고를 업로드하세요'),
-  name: z.string().min(1, '회사 이름을 입력하세요'),
+  logo_url: z.string().min(1, 'Please upload a company logo'),
+  name: z.string().min(1, 'Please enter a company name'),
   short_description: z
     .string()
-    .min(10, '최소 10자 이상 입력하세요')
-    .max(100, '최대 100자까지 입력 가능합니다'),
-  founded_at: z.string().min(1, '창업 시기를 입력하세요'),
-  location: z.string().min(1, '창업 위치를 입력하세요'),
+    .min(10, 'Minimum 10 characters required')
+    .max(100, 'Maximum 100 characters allowed'),
+  founded_at: z.string().min(1, 'Please enter the founding date'),
+  location: z.string().min(1, 'Please enter the location'),
   employee_count: z.enum(['1~10', '10~100', '100~1000', '1000~10000', '10000+'], {
-    message: '직원 수를 선택하세요',
+    message: 'Please select employee count',
   }),
   description: z
     .string()
-    .min(100, '최소 100자 이상 입력하세요')
-    .max(10000, '최대 10,000자까지 입력 가능합니다'),
+    .min(100, 'Minimum 100 characters required')
+    .max(10000, 'Maximum 10,000 characters allowed'),
   category: z.enum(['AI/ML', 'Fintech', 'Edtech', 'CleanTech', 'HealthTech', 'E-commerce', 'SaaS', 'Other'], {
-    message: '카테고리를 선택하세요',
+    message: 'Please select a category',
   }),
   stage: z.enum(['Pre-seed', 'Seed', 'Series A', 'Series B', 'Series C+'], {
-    message: '성숙도를 선택하세요',
+    message: 'Please select a stage',
   }),
-  website_url: z.string().url('유효한 URL을 입력하세요').or(z.literal('')).optional(),
-  github_url: z.string().url('유효한 URL을 입력하세요').or(z.literal('')).optional(),
-  linkedin_url: z.string().url('유효한 URL을 입력하세요').or(z.literal('')).optional(),
-  twitter_url: z.string().url('유효한 URL을 입력하세요').or(z.literal('')).optional(),
-  youtube_url: z.string().url('유효한 URL을 입력하세요').or(z.literal('')).optional(),
+  website_url: z.string().url('Please enter a valid URL').or(z.literal('')).optional(),
+  github_url: z.string().url('Please enter a valid URL').or(z.literal('')).optional(),
+  linkedin_url: z.string().url('Please enter a valid URL').or(z.literal('')).optional(),
+  twitter_url: z.string().url('Please enter a valid URL').or(z.literal('')).optional(),
+  youtube_url: z.string().url('Please enter a valid URL').or(z.literal('')).optional(),
   // Step 2: Team
-  executives: z.array(executiveSchema).min(1, '최소 1명의 경영진을 등록하세요'),
+  executives: z.array(executiveSchema).min(1, 'At least one executive is required'),
   // Step 3: Media
-  intro_video_url: z.string().url('유효한 URL을 입력하세요').or(z.literal('')).optional(),
+  intro_video_url: z.string().url('Please enter a valid URL').or(z.literal('')).optional(),
   additional_videos: z.array(z.string()).optional(),
   // Step 6: Questions
   selected_questions: z.array(z.string()).optional(),
@@ -288,7 +288,7 @@ export function CompanyRegister() {
       .single();
 
     if (companyError || !company) {
-      setSubmitError(companyError?.message || '회사 등록에 실패했습니다.');
+      setSubmitError(companyError?.message || 'Failed to register company.');
       return;
     }
 
@@ -306,7 +306,7 @@ export function CompanyRegister() {
     const { error: execError } = await supabase.from('executives').insert(executives);
 
     if (execError) {
-      setSubmitError('경영진 등록에 실패했습니다. 회사 페이지에서 다시 추가해주세요.');
+      setSubmitError('Failed to register executives. Please add them again from the company page.');
       return;
     }
 
@@ -315,19 +315,18 @@ export function CompanyRegister() {
 
   // --- Step Indicator ---
   const renderStepIndicator = () => (
-    <div className="flex items-center justify-between mb-8 overflow-x-auto pb-2">
+    <div className="flex items-center justify-between mb-8">
       {steps.map(({ num, icon: Icon, label }, idx) => (
-        <div key={num} className="flex items-center">
+        <div key={num} className="flex items-center flex-1 last:flex-none">
           <button
             type="button"
             onClick={() => {
-              // Only allow navigating to completed or current step
               if (num <= step) setStep(num);
             }}
-            className="flex flex-col items-center gap-1 min-w-[64px] cursor-pointer"
+            className="flex flex-col items-center gap-1 cursor-pointer"
           >
             <div
-              className={`flex items-center justify-center w-9 h-9 rounded-full text-sm font-semibold transition-colors ${
+              className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-semibold transition-colors ${
                 step > num
                   ? 'bg-primary text-primary-foreground'
                   : step === num
@@ -335,10 +334,10 @@ export function CompanyRegister() {
                     : 'bg-muted text-muted-foreground'
               }`}
             >
-              {step > num ? <Check className="w-4 h-4" /> : <Icon className="w-4 h-4" />}
+              {step > num ? <Check className="w-3.5 h-3.5" /> : <Icon className="w-3.5 h-3.5" />}
             </div>
             <span
-              className={`text-xs font-medium whitespace-nowrap ${
+              className={`text-[10px] font-medium whitespace-nowrap ${
                 step >= num ? 'text-foreground' : 'text-muted-foreground'
               }`}
             >
@@ -347,7 +346,7 @@ export function CompanyRegister() {
           </button>
           {idx < steps.length - 1 && (
             <div
-              className={`w-8 sm:w-12 h-0.5 mx-1 ${
+              className={`flex-1 h-0.5 mx-1 ${
                 step > num ? 'bg-primary' : 'bg-muted'
               }`}
             />
@@ -362,22 +361,22 @@ export function CompanyRegister() {
     <div className="flex justify-between pt-4">
       {step > 1 ? (
         <Button type="button" variant="outline" onClick={handlePrev}>
-          <ChevronLeft className="w-4 h-4 mr-1" /> 이전
+          <ChevronLeft className="w-4 h-4 mr-1" /> Previous
         </Button>
       ) : (
         <div />
       )}
       {showSubmit ? (
         <Button type="submit" isLoading={isSubmitting}>
-          회사 등록
+          Register Company
         </Button>
       ) : step < 7 ? (
         <Button type="button" onClick={handleNext}>
-          다음 <ChevronRight className="w-4 h-4 ml-1" />
+          Next <ChevronRight className="w-4 h-4 ml-1" />
         </Button>
       ) : (
         <Button type="submit" isLoading={isSubmitting}>
-          회사 등록
+          Register Company
         </Button>
       )}
     </div>
@@ -385,8 +384,8 @@ export function CompanyRegister() {
 
   return (
     <div className="max-w-3xl mx-auto py-8 px-4">
-      <h1 className="text-2xl font-bold text-foreground mb-2">회사 등록</h1>
-      <p className="text-muted-foreground mb-6">회사 정보를 입력하여 투자자에게 공개하세요.</p>
+      <h1 className="text-2xl font-bold text-foreground mb-2">Register Company</h1>
+      <p className="text-muted-foreground mb-6">Enter your company info to showcase to investors.</p>
 
       {renderStepIndicator()}
 
@@ -395,7 +394,7 @@ export function CompanyRegister() {
         {step === 1 && (
           <Card>
             <CardHeader>
-              <h2 className="text-lg font-semibold text-foreground">회사 정보</h2>
+              <h2 className="text-lg font-semibold text-foreground">Company Info</h2>
             </CardHeader>
             <CardContent>
               <div className="space-y-5">
@@ -404,7 +403,7 @@ export function CompanyRegister() {
                   name="logo_url"
                   render={({ field }) => (
                     <ImageUpload
-                      label="회사 로고"
+                      label="Company Logo"
                       required
                       bucket="company-assets"
                       path="logos"
@@ -418,33 +417,33 @@ export function CompanyRegister() {
                 />
 
                 <Input
-                  label="회사 이름"
+                  label="Company Name"
                   required
-                  placeholder="예: 넥스트챌린저"
+                  placeholder="e.g. NextChallenger"
                   error={errors.name?.message}
                   {...register('name')}
                 />
 
                 <Input
-                  label="한줄 설명"
+                  label="Short Description"
                   required
-                  placeholder="회사를 한 문장으로 소개하세요 (10~100자)"
+                  placeholder="Describe your company in one sentence (10-100 chars)"
                   error={errors.short_description?.message}
                   {...register('short_description')}
                 />
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <Input
-                    label="창업 시기"
+                    label="Founded"
                     type="date"
                     required
                     error={errors.founded_at?.message}
                     {...register('founded_at')}
                   />
                   <Input
-                    label="창업 위치"
+                    label="Location"
                     required
-                    placeholder="예: 서울특별시 강남구"
+                    placeholder="e.g. San Francisco, CA"
                     error={errors.location?.message}
                     {...register('location')}
                   />
@@ -452,26 +451,26 @@ export function CompanyRegister() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <Select
-                    label="직원 수"
+                    label="Employees"
                     required
                     options={employeeCountOptions}
-                    placeholder="선택하세요"
+                    placeholder="Select"
                     error={errors.employee_count?.message}
                     {...register('employee_count')}
                   />
                   <Select
-                    label="카테고리"
+                    label="Category"
                     required
                     options={categoryOptions}
-                    placeholder="선택하세요"
+                    placeholder="Select"
                     error={errors.category?.message}
                     {...register('category')}
                   />
                   <Select
-                    label="성숙도"
+                    label="Stage"
                     required
                     options={stageOptions}
-                    placeholder="선택하세요"
+                    placeholder="Select"
                     error={errors.stage?.message}
                     {...register('stage')}
                   />
@@ -482,9 +481,9 @@ export function CompanyRegister() {
                   name="description"
                   render={({ field }) => (
                     <Textarea
-                      label="회사 소개"
+                      label="About"
                       required
-                      placeholder="회사에 대해 자세히 소개해주세요 (100~10,000자)"
+                      placeholder="Tell us about your company in detail (100-10,000 chars)"
                       showCount
                       maxLength={10000}
                       value={field.value}
@@ -497,7 +496,7 @@ export function CompanyRegister() {
                 />
 
                 <div>
-                  <p className="text-sm font-medium text-secondary-foreground mb-3">회사 링크 (선택)</p>
+                  <p className="text-sm font-medium text-secondary-foreground mb-3">Company Links (Optional)</p>
                   <div className="space-y-3">
                     <Input label="Website" placeholder="https://example.com" error={errors.website_url?.message} {...register('website_url')} />
                     <Input label="GitHub" placeholder="https://github.com/..." error={errors.github_url?.message} {...register('github_url')} />
@@ -518,14 +517,14 @@ export function CompanyRegister() {
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-foreground">경영진 (C-level)</h2>
+                <h2 className="text-lg font-semibold text-foreground">Executives (C-level)</h2>
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
                   onClick={() => append(defaultExecutive('CTO'))}
                 >
-                  <Plus className="w-4 h-4 mr-1" /> 추가
+                  <Plus className="w-4 h-4 mr-1" /> Add
                 </Button>
               </div>
             </CardHeader>
@@ -540,7 +539,7 @@ export function CompanyRegister() {
                     >
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-semibold text-secondary-foreground">
-                          경영진 #{index + 1}
+                          Executive #{index + 1}
                         </span>
                         {!isCEO && (
                           <button
@@ -555,17 +554,17 @@ export function CompanyRegister() {
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <Input
-                          label="이름"
+                          label="Name"
                           required
-                          placeholder="홍길동"
+                          placeholder="John Doe"
                           error={errors.executives?.[index]?.name?.message}
                           {...register(`executives.${index}.name`)}
                         />
                         <Select
-                          label="직책"
+                          label="Role"
                           required
                           options={isCEO ? [{ value: 'CEO', label: 'CEO' }] : executiveRoleOptions}
-                          placeholder="선택하세요"
+                          placeholder="Select"
                           error={errors.executives?.[index]?.role?.message}
                           disabled={isCEO}
                           {...register(`executives.${index}.role`)}
@@ -577,7 +576,7 @@ export function CompanyRegister() {
                         name={`executives.${index}.photo_url`}
                         render={({ field: f }) => (
                           <ImageUpload
-                            label="프로필 사진"
+                            label="Profile Photo"
                             bucket="company-assets"
                             path={`executives`}
                             value={f.value || undefined}
@@ -589,8 +588,8 @@ export function CompanyRegister() {
                       />
 
                       <Input
-                        label="소개"
-                        placeholder="간단한 경력 소개"
+                        label="Bio"
+                        placeholder="Brief career introduction"
                         error={errors.executives?.[index]?.bio?.message}
                         {...register(`executives.${index}.bio`)}
                       />
@@ -611,8 +610,8 @@ export function CompanyRegister() {
                       </div>
 
                       <Input
-                        label="학교 / 전공"
-                        placeholder="예: 서울대학교 컴퓨터공학과"
+                        label="Education"
+                        placeholder="e.g. Stanford University, Computer Science"
                         error={errors.executives?.[index]?.education?.message}
                         {...register(`executives.${index}.education`)}
                       />
@@ -640,19 +639,19 @@ export function CompanyRegister() {
         {step === 3 && (
           <Card>
             <CardHeader>
-              <h2 className="text-lg font-semibold text-foreground">미디어</h2>
+              <h2 className="text-lg font-semibold text-foreground">Media</h2>
             </CardHeader>
             <CardContent>
               <div className="space-y-5">
                 <Input
-                  label="소개 영상 URL"
+                  label="Introduction Video URL"
                   placeholder="https://youtube.com/watch?v=..."
                   error={errors.intro_video_url?.message}
                   {...register('intro_video_url')}
                 />
 
                 <div>
-                  <p className="text-sm font-medium text-secondary-foreground mb-3">추가 영상</p>
+                  <p className="text-sm font-medium text-secondary-foreground mb-3">Additional Videos</p>
                   <div className="space-y-3">
                     {(getValues('additional_videos') || []).map((url, idx) => (
                       <div key={idx} className="flex items-center gap-2">
@@ -670,7 +669,7 @@ export function CompanyRegister() {
                     ))}
                     <div className="flex gap-2">
                       <Input
-                        placeholder="영상 URL을 입력하세요"
+                        placeholder="Enter video URL"
                         value={newVideoUrl}
                         onChange={(e) => setNewVideoUrl(e.target.value)}
                       />
@@ -691,12 +690,12 @@ export function CompanyRegister() {
         {step === 4 && (
           <Card>
             <CardHeader>
-              <h2 className="text-lg font-semibold text-foreground">뉴스</h2>
+              <h2 className="text-lg font-semibold text-foreground">News</h2>
             </CardHeader>
             <CardContent>
               <div className="space-y-5">
                 <p className="text-sm text-muted-foreground">
-                  회사 관련 뉴스 기사를 추가하세요.
+                  Add news articles about your company.
                 </p>
 
                 {newsItems.map((item) => (
@@ -722,11 +721,11 @@ export function CompanyRegister() {
                 ))}
 
                 <div className="border border-border rounded-lg p-4 space-y-3">
-                  <p className="text-sm font-medium text-secondary-foreground">새 뉴스 추가</p>
+                  <p className="text-sm font-medium text-secondary-foreground">Add New Article</p>
                   <Input
-                    label="제목"
+                    label="Title"
                     required
-                    placeholder="기사 제목"
+                    placeholder="Article title"
                     value={newsForm.title}
                     onChange={(e) => setNewsForm((f) => ({ ...f, title: e.target.value }))}
                   />
@@ -739,13 +738,13 @@ export function CompanyRegister() {
                   />
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <Input
-                      label="출처"
-                      placeholder="예: TechCrunch"
+                      label="Source"
+                      placeholder="e.g. TechCrunch"
                       value={newsForm.source}
                       onChange={(e) => setNewsForm((f) => ({ ...f, source: e.target.value }))}
                     />
                     <Input
-                      label="날짜"
+                      label="Date"
                       type="date"
                       value={newsForm.date}
                       onChange={(e) => setNewsForm((f) => ({ ...f, date: e.target.value }))}
@@ -753,7 +752,7 @@ export function CompanyRegister() {
                   </div>
                   <div className="flex justify-end">
                     <Button type="button" variant="outline" size="sm" onClick={addNewsItem}>
-                      <Plus className="w-4 h-4 mr-1" /> 추가
+                      <Plus className="w-4 h-4 mr-1" /> Add
                     </Button>
                   </div>
                 </div>
@@ -774,9 +773,9 @@ export function CompanyRegister() {
               <div className="space-y-5">
                 <div className="bg-background border border-border rounded-lg p-6 text-center">
                   <BarChart3 className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-                  <p className="text-sm font-medium text-secondary-foreground mb-1">Stripe / GA4 연동</p>
+                  <p className="text-sm font-medium text-secondary-foreground mb-1">Stripe / GA4 Integration</p>
                   <p className="text-xs text-muted-foreground">
-                    매출, 트래픽 등 핵심 지표를 자동으로 가져오는 기능이 곧 제공됩니다.
+                    Automatic sync of revenue, traffic, and key metrics coming soon.
                   </p>
                 </div>
 
@@ -790,12 +789,12 @@ export function CompanyRegister() {
         {step === 6 && (
           <Card>
             <CardHeader>
-              <h2 className="text-lg font-semibold text-foreground">투자자 질문</h2>
+              <h2 className="text-lg font-semibold text-foreground">Investor Questions</h2>
             </CardHeader>
             <CardContent>
               <div className="space-y-5">
                 <p className="text-sm text-muted-foreground">
-                  투자자가 자주 묻는 질문을 선택하고 답변을 미리 작성하세요.
+                  Select frequently asked investor questions and prepare your answers.
                 </p>
 
                 <div className="space-y-2">
@@ -818,7 +817,7 @@ export function CompanyRegister() {
                           <div className="mt-2 ml-4">
                             <textarea
                               className="w-full border border-border rounded-lg px-3 py-2 text-sm text-foreground bg-card focus:outline-none focus:ring-2 focus:ring-ring min-h-[80px]"
-                              placeholder="답변을 작성하세요..."
+                              placeholder="Write your answer..."
                               value={questionAnswers[q] || ''}
                               onChange={(e) =>
                                 setQuestionAnswers((prev) => ({
@@ -844,32 +843,32 @@ export function CompanyRegister() {
         {step === 7 && (
           <Card>
             <CardHeader>
-              <h2 className="text-lg font-semibold text-foreground">설정</h2>
+              <h2 className="text-lg font-semibold text-foreground">Settings</h2>
             </CardHeader>
             <CardContent>
               <div className="space-y-5">
                 <div className="border border-border rounded-lg p-4 space-y-3">
-                  <h3 className="text-sm font-semibold text-foreground">구독 관리</h3>
-                  <p className="text-xs text-muted-foreground">현재 플랜: Free</p>
+                  <h3 className="text-sm font-semibold text-foreground">Subscription</h3>
+                  <p className="text-xs text-muted-foreground">Current plan: Free</p>
                   <Button type="button" variant="outline" size="sm" disabled>
-                    플랜 업그레이드 (준비 중)
+                    Upgrade Plan (Coming Soon)
                   </Button>
                 </div>
 
                 <div className="border border-border rounded-lg p-4 space-y-3">
-                  <h3 className="text-sm font-semibold text-foreground">계정 관리</h3>
+                  <h3 className="text-sm font-semibold text-foreground">Account</h3>
                   <p className="text-xs text-muted-foreground">
-                    회사 등록 후 대시보드에서 정보를 수정할 수 있습니다.
+                    You can edit your info from the dashboard after registration.
                   </p>
                 </div>
 
                 <div className="border border-destructive/30 rounded-lg p-4 space-y-3">
-                  <h3 className="text-sm font-semibold text-destructive">회사 삭제</h3>
+                  <h3 className="text-sm font-semibold text-destructive">Delete Company</h3>
                   <p className="text-xs text-muted-foreground">
-                    등록 후 회사 페이지에서 삭제할 수 있습니다.
+                    You can delete your company from the company page after registration.
                   </p>
                   <Button type="button" variant="danger" size="sm" disabled>
-                    회사 삭제 (등록 후 가능)
+                    Delete Company (Available after registration)
                   </Button>
                 </div>
 

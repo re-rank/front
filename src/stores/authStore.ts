@@ -11,7 +11,7 @@ interface AuthState {
   setProfile: (profile: Profile | null) => void;
   setLoading: (loading: boolean) => void;
   logout: () => void;
-  /** profile.role이 없으면 user_metadata.role을 fallback으로 반환 */
+  /** Falls back to user_metadata.role if profile.role is not available */
   getRole: () => UserRole | null;
 }
 

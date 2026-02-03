@@ -44,11 +44,11 @@ export function ImageUpload({
       if (!file) return;
 
       if (!file.type.startsWith('image/')) {
-        setUploadError('이미지 파일만 업로드할 수 있습니다.');
+        setUploadError('Only image files are allowed.');
         return;
       }
       if (file.size > 5 * 1024 * 1024) {
-        setUploadError('파일 크기는 5MB 이하여야 합니다.');
+        setUploadError('File size must be 5MB or less.');
         return;
       }
 
@@ -64,7 +64,7 @@ export function ImageUpload({
 
       if (uploadErr) {
         console.error('Image upload error:', uploadErr);
-        setUploadError(`업로드 실패: ${uploadErr.message}`);
+        setUploadError(`Upload failed: ${uploadErr.message}`);
         setUploading(false);
         return;
       }
@@ -102,7 +102,7 @@ export function ImageUpload({
       >
         {value ? (
           <>
-            <img src={value} alt="업로드 미리보기" className="w-full h-full object-cover" />
+            <img src={value} alt="Upload preview" className="w-full h-full object-cover" />
             <button
               type="button"
               className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-0.5 hover:bg-red-600"
@@ -121,7 +121,7 @@ export function ImageUpload({
             ) : (
               <>
                 <Upload className="w-6 h-6 mb-1" />
-                <span className="text-xs">업로드</span>
+                <span className="text-xs">Upload</span>
               </>
             )}
           </div>

@@ -57,9 +57,9 @@ const tabConfig: { key: TabStatus; label: string; icon: typeof Clock }[] = [
 function getStatus(c: Company): TabStatus {
   if (c.is_visible && c.stripe_connected) return 'paid';
   if (c.is_visible) return 'accepted';
-  // is_visible=false인데 updated_at이 created_at과 다르면 reject된 것으로 간주
-  // 간단히: is_visible=false이고 데이터가 있으면 pending, 아직 판정 안 된 것
-  // 여기서는 단순 로직: is_visible=false → pending (reject 구분을 위해 로컬 상태 사용)
+  // If is_visible=false and updated_at differs from created_at, consider it rejected
+  // Simplified: is_visible=false with data means pending, not yet decided
+  // Simple logic here: is_visible=false → pending (local state used to distinguish reject)
   return 'pending';
 }
 
@@ -72,7 +72,7 @@ export function AdminDashboard() {
   const [selectedCompany, setSelectedCompany] = useState<CompanyWithDetails | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
 
-  // 전체 회사 목록 fetch
+  // Fetch all companies
   useEffect(() => {
     (async () => {
       const { data } = await supabase
@@ -84,7 +84,7 @@ export function AdminDashboard() {
     })();
   }, []);
 
-  // 탭별 필터링
+  // Filter by tab
   const filteredCompanies = useMemo(() => {
     return companies.filter((c) => {
       const status = rejectedIds.has(c.id) ? 'rejected' : getStatus(c);
@@ -101,7 +101,7 @@ export function AdminDashboard() {
     });
   }, [companies, activeTab, searchQuery, rejectedIds]);
 
-  // 탭별 카운트
+  // Count per tab
   const tabCounts = useMemo(() => {
     const counts: Record<TabStatus, number> = { pending: 0, accepted: 0, paid: 0, rejected: 0 };
     companies.forEach((c) => {
@@ -111,7 +111,7 @@ export function AdminDashboard() {
     return counts;
   }, [companies, rejectedIds]);
 
-  // 회사 상세 로드
+  // Load company detail
   const loadDetail = async (company: Company) => {
     setDetailLoading(true);
     setSelectedCompany({ ...company });
@@ -172,11 +172,11 @@ export function AdminDashboard() {
             <Building2 className="h-6 w-6" />
             Admin Dashboard
           </h1>
-          <p className="text-neutral-400 mt-1">회사 제출 관리 및 승인</p>
+          <p className="text-neutral-400 mt-1">Manage and approve company submissions</p>
         </div>
 
         {selectedCompany ? (
-          /* ─── 상세 보기 ─── */
+          /* ─── Detail View ─── */
           <CompanyDetailView
             company={selectedCompany}
             loading={detailLoading}
@@ -186,9 +186,9 @@ export function AdminDashboard() {
             isRejected={rejectedIds.has(selectedCompany.id)}
           />
         ) : (
-          /* ─── 목록 보기 ─── */
+          /* ─── List View ─── */
           <>
-            {/* 탭 */}
+            {/* Tabs */}
             <div className="flex gap-2 mb-6 flex-wrap">
               {tabConfig.map(({ key, label, icon: Icon }) => (
                 <button
@@ -214,12 +214,12 @@ export function AdminDashboard() {
               ))}
             </div>
 
-            {/* 검색 */}
+            {/* Search */}
             <div className="relative mb-6">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-500" />
               <input
                 type="text"
-                placeholder="회사명, 카테고리, 위치 검색..."
+                placeholder="Search by name, category, location..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-4 py-2.5 rounded-lg text-sm outline-none"
@@ -231,10 +231,10 @@ export function AdminDashboard() {
               />
             </div>
 
-            {/* 회사 목록 */}
+            {/* Company List */}
             {filteredCompanies.length === 0 ? (
               <div className="text-center py-20 text-neutral-500">
-                해당 상태의 회사가 없습니다.
+                No companies found with this status.
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -250,7 +250,7 @@ export function AdminDashboard() {
   );
 }
 
-/* ─── 회사 카드 ─── */
+/* ─── Company Card ─── */
 function CompanyCard({ company, onClick }: { company: Company; onClick: () => void }) {
   return (
     <button
@@ -305,7 +305,7 @@ function CompanyCard({ company, onClick }: { company: Company; onClick: () => vo
   );
 }
 
-/* ─── 상세 보기 ─── */
+/* ─── Detail View ─── */
 function CompanyDetailView({
   company,
   loading,
@@ -326,10 +326,10 @@ function CompanyDetailView({
 
   return (
     <div className="space-y-6">
-      {/* 뒤로가기 + 액션 */}
+      {/* Back + Actions */}
       <div className="flex items-center justify-between">
         <button onClick={onBack} className="flex items-center gap-1 text-sm text-neutral-400 hover:text-white transition-colors">
-          <ChevronLeft className="h-4 w-4" /> 목록으로
+          <ChevronLeft className="h-4 w-4" /> Back to List
         </button>
         <div className="flex gap-2">
           {currentStatus !== 'accepted' && currentStatus !== 'paid' && (
@@ -359,7 +359,7 @@ function CompanyDetailView({
         </div>
       ) : (
         <>
-          {/* 회사 헤더 */}
+          {/* Company Header */}
           <div className="rounded-xl p-6" style={{ background: '#262626', border: '1px solid #404040' }}>
             <div className="flex items-start gap-4">
               {company.logo_url ? (
@@ -395,11 +395,11 @@ function CompanyDetailView({
               </div>
             </div>
             <div className="flex flex-wrap gap-4 mt-4 text-sm text-neutral-400">
-              <span className="flex items-center gap-1"><Calendar className="h-4 w-4" /> 설립: {company.founded_at}</span>
-              <span className="flex items-center gap-1"><Users className="h-4 w-4" /> {company.employee_count}명</span>
+              <span className="flex items-center gap-1"><Calendar className="h-4 w-4" /> Founded: {company.founded_at}</span>
+              <span className="flex items-center gap-1"><Users className="h-4 w-4" /> {company.employee_count} employees</span>
               <span className="flex items-center gap-1"><MapPin className="h-4 w-4" /> {company.location}</span>
             </div>
-            {/* 외부 링크 */}
+            {/* External Links */}
             <div className="flex flex-wrap gap-2 mt-4">
               {company.website_url && (
                 <a href={company.website_url} target="_blank" rel="noopener noreferrer" className="text-xs px-3 py-1.5 rounded-lg flex items-center gap-1 hover:opacity-80" style={{ background: '#404040', color: '#e5e5e5' }}>
@@ -419,7 +419,7 @@ function CompanyDetailView({
             </div>
           </div>
 
-          {/* 영상 */}
+          {/* Video */}
           {mainVideo && (
             <div className="rounded-xl p-6" style={{ background: '#262626', border: '1px solid #404040' }}>
               <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
@@ -472,7 +472,7 @@ function CompanyDetailView({
                 <BarChart3 className="h-5 w-5" /> Business Metrics
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <DarkMetricChart title="월별 매출" data={company.metrics} dataKey="revenue" color="#6366f1" format={(v) => `₩${(v / 1_000_000).toFixed(0)}M`} />
+                <DarkMetricChart title="Monthly Revenue" data={company.metrics} dataKey="revenue" color="#6366f1" format={(v) => `₩${(v / 1_000_000).toFixed(0)}M`} />
                 <DarkMetricChart title="MAU" data={company.metrics} dataKey="mau" color="#10b981" format={(v) => v.toLocaleString()} />
                 <DarkMetricChart title="Retention" data={company.metrics} dataKey="retention" color="#f59e0b" format={(v) => `${v}%`} />
               </div>
@@ -532,7 +532,7 @@ function CompanyDetailView({
   );
 }
 
-/* ─── 다크 차트 ─── */
+/* ─── Dark Chart ─── */
 function DarkMetricChart({
   title,
   data,

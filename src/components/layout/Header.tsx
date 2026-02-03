@@ -27,7 +27,7 @@ export function Header() {
     window.location.replace('/');
   };
 
-  // 비로그인 상태: 다크 헤더 + 섹션 네비게이션
+  // Logged out: dark header + section navigation
   if (!user) {
     return (
       <header className="bg-neutral-950 border-b border-neutral-800">
@@ -60,7 +60,7 @@ export function Header() {
     );
   }
 
-  // 로그인 상태: 기존 라이트 헤더
+  // Logged in: light header
   return (
     <header className="bg-background border-b border-border">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -77,18 +77,18 @@ export function Header() {
             )}
             {(role === 'investor' || role === 'admin') && (
               <Link to="/companies" className="text-muted-foreground hover:text-foreground">
-                스타트업 탐색
+                Explore Startups
               </Link>
             )}
             {role === 'startup' && (
               <Link to="/dashboard" className="text-muted-foreground hover:text-foreground">
-                대시보드
+                Dashboard
               </Link>
             )}
             <div className="flex items-center gap-3 ml-4">
               <span className="text-sm text-muted-foreground">{profile?.full_name || user.email}</span>
               <Button variant="ghost" size="sm" onClick={handleLogout}>
-                로그아웃
+                Log Out
               </Button>
             </div>
           </nav>

@@ -8,12 +8,12 @@ import { ArrowLeft, Building2, User, Mail, CheckCircle } from 'lucide-react';
 import type { UserRole } from '@/types/database';
 
 const registerSchema = z.object({
-  email: z.string().email('유효한 이메일을 입력하세요'),
-  password: z.string().min(6, '비밀번호는 6자 이상이어야 합니다'),
+  email: z.string().email('Please enter a valid email'),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
   confirmPassword: z.string(),
-  fullName: z.string().min(2, '이름은 2자 이상이어야 합니다'),
+  fullName: z.string().min(2, 'Name must be at least 2 characters'),
 }).refine((data) => data.password === data.confirmPassword, {
-  message: '비밀번호가 일치하지 않습니다',
+  message: 'Passwords do not match',
   path: ['confirmPassword'],
 });
 
@@ -40,12 +40,12 @@ export function RegisterForm({ role }: { role: UserRole }) {
     resolver: zodResolver(registerSchema),
   });
 
-  // Step 1: 이메일로 OTP 발송 + 계정 생성
+  // Step 1: Send OTP via email + create account
   const onSubmit = async (data: RegisterFormData) => {
     setError(null);
     setSavedFormData(data);
 
-    // signUp으로 계정 생성 (이메일 확인 활성화 시 OTP 메일 발송됨)
+    // Create account via signUp (OTP email sent when email confirmation is enabled)
     const { error: signUpError } = await supabase.auth.signUp({
       email: data.email,
       password: data.password,
@@ -65,7 +65,7 @@ export function RegisterForm({ role }: { role: UserRole }) {
     setStep('otp');
   };
 
-  // OTP 입력 핸들러
+  // OTP input handler
   const handleOtpChange = (index: number, value: string) => {
     if (!/^\d*$/.test(value)) return;
 
@@ -96,12 +96,12 @@ export function RegisterForm({ role }: { role: UserRole }) {
     otpRefs.current[nextIdx]?.focus();
   };
 
-  // Step 2: OTP 검증
+  // Step 2: Verify OTP
   const handleVerifyOtp = async () => {
     if (!savedFormData) return;
     const code = otpCode.join('');
     if (code.length !== 6) {
-      setError('6자리 인증번호를 입력해주세요');
+      setError('Please enter the 6-digit code');
       return;
     }
 
@@ -115,16 +115,16 @@ export function RegisterForm({ role }: { role: UserRole }) {
     });
 
     if (verifyError) {
-      setError('인증번호가 올바르지 않습니다. 다시 확인해주세요.');
+      setError('Invalid verification code. Please try again.');
       setOtpLoading(false);
       return;
     }
 
-    // 인증 성공 → 자동 로그인 됨
+    // Verification successful → auto logged in
     navigate('/');
   };
 
-  // OTP 재발송
+  // Resend OTP
   const handleResendOtp = async () => {
     if (!savedFormData) return;
     setError(null);
@@ -176,7 +176,7 @@ export function RegisterForm({ role }: { role: UserRole }) {
                 <p className="text-sm text-neutral-400">
                   <Mail className="inline w-4 h-4 mr-1" />
                   <span className="text-white">{savedFormData?.email}</span>
-                  <br />으로 전송된 인증번호를 입력하세요
+                  <br />Enter the verification code sent to
                 </p>
               ) : (
                 <p className="flex items-center justify-center gap-2 text-sm text-neutral-400">
@@ -200,7 +200,7 @@ export function RegisterForm({ role }: { role: UserRole }) {
             )}
 
             {step === 'otp' ? (
-              /* ── OTP 입력 ── */
+              /* ── OTP Input ── */
               <div className="space-y-6">
                 <div className="flex justify-center gap-2" onPaste={handleOtpPaste}>
                   {otpCode.map((digit, i) => (
@@ -231,14 +231,14 @@ export function RegisterForm({ role }: { role: UserRole }) {
                 </button>
 
                 <p className="text-sm text-center text-neutral-400">
-                  인증번호를 받지 못하셨나요?{' '}
+                  Didn't receive the code?{' '}
                   <button onClick={handleResendOtp} className="text-white hover:underline font-medium">
-                    재발송
+                    Resend
                   </button>
                 </p>
               </div>
             ) : (
-              /* ── 회원가입 폼 ── */
+              /* ── Registration Form ── */
               <>
                 {/* Google Login Button */}
                 <button

@@ -9,8 +9,8 @@ import { ArrowLeft } from 'lucide-react';
 import type { Profile } from '@/types/database';
 
 const loginSchema = z.object({
-  email: z.string().email('유효한 이메일을 입력하세요'),
-  password: z.string().min(6, '비밀번호는 6자 이상이어야 합니다'),
+  email: z.string().email('Please enter a valid email'),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
 });
 
 type LoginForm = z.infer<typeof loginSchema>;
@@ -37,7 +37,7 @@ export function Login() {
     });
 
     if (authError) {
-      setError('이메일 또는 비밀번호가 올바르지 않습니다');
+      setError('Invalid email or password');
       return;
     }
 
@@ -53,7 +53,7 @@ export function Login() {
       const profile = profileData as Profile | null;
       setProfile(profile);
 
-      // 역할 기반 리다이렉트
+      // Role-based redirect
       const role = profile?.role || authData.user.user_metadata?.role;
       if (role === 'admin') {
         navigate('/admin');
