@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
   Plus, Trash2, Building2, Users, Video, BarChart3, MessageSquare,
-  Check, ArrowLeft, ArrowRight, Upload, Globe, Github, Linkedin, Youtube,
+  Check, ArrowLeft, ArrowRight, Upload, Globe, Github, Linkedin, Youtube, FileText,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/stores/authStore';
@@ -151,6 +151,10 @@ export function CompanyRegister() {
   const [step, setStep] = useState(1);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
+  // Step 1: Company Deck
+  const [companyDeck, setCompanyDeck] = useState<{ name: string; url: string } | null>(null);
+  const [deckUploading, setDeckUploading] = useState(false);
+
   // Step 5: Questions
   const [selectedQuestions, setSelectedQuestions] = useState<string[]>([]);
   const [questionAnswers, setQuestionAnswers] = useState<Record<string, string>>({});
@@ -215,6 +219,47 @@ export function CompanyRegister() {
 
   const handlePrev = () => setStep((s) => Math.max(s - 1, 1));
 
+  // --- Deck upload handler ---
+  const handleDeckUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    const allowedTypes = ['application/pdf', 'application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation'];
+    if (!allowedTypes.includes(file.type)) {
+      alert('Please upload a PDF, PPT, or PPTX file.');
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      alert('File size must be less than 10MB.');
+      return;
+    }
+
+    setDeckUploading(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+      const filePath = `decks/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('company-assets')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('company-assets')
+        .getPublicUrl(filePath);
+
+      setCompanyDeck({ name: file.name, url: publicUrl });
+    } catch (error) {
+      console.error('Deck upload failed:', error);
+      alert('Failed to upload deck. Please try again.');
+    } finally {
+      setDeckUploading(false);
+    }
+  };
+
   // --- Questions helpers ---
   const toggleQuestion = (q: string) => {
     setSelectedQuestions((prev) =>
@@ -245,6 +290,7 @@ export function CompanyRegister() {
         linkedin_url: data.linkedin_url || null,
         twitter_url: data.twitter_url || null,
         youtube_url: data.youtube_url || null,
+        deck_url: companyDeck?.url || null,
       })
       .select('id')
       .single();
@@ -447,6 +493,63 @@ export function CompanyRegister() {
                       {...register('stage')}
                     />
                   </div>
+                </div>
+
+                {/* IR Deck */}
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <FileText className="w-4 h-4" /> IR Deck
+                    <span className="text-xs text-muted-foreground">(Optional)</span>
+                  </Label>
+                  <label className="block">
+                    <div
+                      className={`border-2 border-dashed rounded-xl p-6 cursor-pointer transition-colors ${
+                        companyDeck ? 'border-primary bg-primary/5' : 'border-border hover:border-primary'
+                      }`}
+                    >
+                      {deckUploading ? (
+                        <div className="text-center py-2">
+                          <div className="animate-spin h-6 w-6 border-4 border-primary border-t-transparent rounded-full mx-auto mb-2" />
+                          <p className="text-sm text-muted-foreground">Uploading...</p>
+                        </div>
+                      ) : companyDeck ? (
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <FileText className="w-10 h-10 text-primary flex-shrink-0" />
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium text-foreground truncate">{companyDeck.name}</p>
+                              <p className="text-xs text-muted-foreground">Click to replace</p>
+                            </div>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon-sm"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setCompanyDeck(null);
+                            }}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="text-center py-2">
+                          <Upload className="w-10 h-10 mx-auto text-muted-foreground mb-2" />
+                          <p className="text-sm font-medium text-foreground">Upload your pitch deck</p>
+                          <p className="text-xs text-muted-foreground mt-1">PDF, PPT, PPTX (Max 10MB)</p>
+                        </div>
+                      )}
+                    </div>
+                    <input
+                      type="file"
+                      accept=".pdf,.ppt,.pptx"
+                      className="hidden"
+                      onChange={handleDeckUpload}
+                      disabled={deckUploading}
+                    />
+                  </label>
                 </div>
 
                 {/* Company Links */}
