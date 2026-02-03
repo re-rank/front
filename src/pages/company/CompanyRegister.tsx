@@ -329,9 +329,9 @@ export function CompanyRegister() {
             <div
               className={`flex items-center justify-center w-9 h-9 rounded-full text-sm font-semibold transition-colors ${
                 step > num
-                  ? 'bg-primary-600 text-white'
+                  ? 'bg-primary text-primary-foreground'
                   : step === num
-                    ? 'bg-primary-600 text-white ring-2 ring-primary-300'
+                    ? 'bg-primary text-primary-foreground ring-2 ring-ring'
                     : 'bg-muted text-muted-foreground'
               }`}
             >
@@ -339,7 +339,7 @@ export function CompanyRegister() {
             </div>
             <span
               className={`text-xs font-medium whitespace-nowrap ${
-                step >= num ? 'text-primary-700' : 'text-muted-foreground'
+                step >= num ? 'text-foreground' : 'text-muted-foreground'
               }`}
             >
               {label}
@@ -348,7 +348,7 @@ export function CompanyRegister() {
           {idx < steps.length - 1 && (
             <div
               className={`w-8 sm:w-12 h-0.5 mx-1 ${
-                step > num ? 'bg-primary-500' : 'bg-muted'
+                step > num ? 'bg-primary' : 'bg-muted'
               }`}
             />
           )}
@@ -625,7 +625,7 @@ export function CompanyRegister() {
                 )}
 
                 {submitError && (
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
+                  <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-3 text-sm text-destructive">
                     {submitError}
                   </div>
                 )}
@@ -808,8 +808,8 @@ export function CompanyRegister() {
                           onClick={() => toggleQuestion(q)}
                           className={`w-full text-left px-4 py-3 rounded-lg border text-sm transition-colors ${
                             isSelected
-                              ? 'border-primary-400 bg-primary-50 text-primary-800'
-                              : 'border-border bg-white text-secondary-foreground hover:bg-background'
+                              ? 'border-ring bg-accent text-accent-foreground'
+                              : 'border-border bg-card text-secondary-foreground hover:bg-accent'
                           }`}
                         >
                           {q}
@@ -817,7 +817,7 @@ export function CompanyRegister() {
                         {isSelected && (
                           <div className="mt-2 ml-4">
                             <textarea
-                              className="w-full border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary-400 min-h-[80px]"
+                              className="w-full border border-border rounded-lg px-3 py-2 text-sm text-foreground bg-card focus:outline-none focus:ring-2 focus:ring-ring min-h-[80px]"
                               placeholder="답변을 작성하세요..."
                               value={questionAnswers[q] || ''}
                               onChange={(e) =>
@@ -863,8 +863,8 @@ export function CompanyRegister() {
                   </p>
                 </div>
 
-                <div className="border border-red-200 rounded-lg p-4 space-y-3">
-                  <h3 className="text-sm font-semibold text-red-700">회사 삭제</h3>
+                <div className="border border-destructive/30 rounded-lg p-4 space-y-3">
+                  <h3 className="text-sm font-semibold text-destructive">회사 삭제</h3>
                   <p className="text-xs text-muted-foreground">
                     등록 후 회사 페이지에서 삭제할 수 있습니다.
                   </p>
@@ -874,7 +874,7 @@ export function CompanyRegister() {
                 </div>
 
                 {submitError && (
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
+                  <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-3 text-sm text-destructive">
                     {submitError}
                   </div>
                 )}

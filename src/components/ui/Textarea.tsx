@@ -30,7 +30,7 @@ const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
           maxLength={maxLength}
           className={cn(
             'w-full px-3 py-2 border rounded-lg text-foreground placeholder:text-muted-foreground resize-y min-h-[120px]',
-            'focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent',
+            'focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent',
             'disabled:bg-background disabled:cursor-not-allowed',
             error ? 'border-red-500' : 'border-border',
             className

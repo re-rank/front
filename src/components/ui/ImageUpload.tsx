@@ -117,7 +117,7 @@ export function ImageUpload({
         ) : (
           <div className="flex flex-col items-center text-muted-foreground">
             {uploading ? (
-              <div className="animate-spin w-6 h-6 border-2 border-primary-500 border-t-transparent rounded-full" />
+              <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full" />
             ) : (
               <>
                 <Upload className="w-6 h-6 mb-1" />

@@ -132,7 +132,7 @@ export function CompanyList() {
 
           {loading ? (
             <div className="flex justify-center py-20">
-              <div className="animate-spin h-8 w-8 border-4 border-primary-500 border-t-transparent rounded-full" />
+              <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
             </div>
           ) : companies.length === 0 ? (
             <div className="text-center py-20 text-muted-foreground">
