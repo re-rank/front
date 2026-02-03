@@ -6,6 +6,7 @@ import {
   Bookmark,
   BookmarkCheck,
   Filter,
+  ArrowUpRight,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/stores/authStore';
@@ -175,7 +176,7 @@ export function CompanyList() {
               onClick={() => handleView(company.id)}
             >
               {/* Company Logo */}
-              <div className="w-16 h-16 rounded-full bg-secondary flex items-center justify-center overflow-hidden flex-shrink-0">
+              <div className="w-16 h-16 rounded-full bg-neutral-800 border border-neutral-700 flex items-center justify-center overflow-hidden flex-shrink-0 relative">
                 {company.logo_url ? (
                   <img
                     src={company.logo_url}
@@ -183,7 +184,12 @@ export function CompanyList() {
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <Building2 className="w-8 h-8 text-muted-foreground" />
+                  <>
+                    <ArrowUpRight className="w-3 h-3 text-green-400 absolute top-2 left-2" />
+                    <span className="text-[10px] text-neutral-400 leading-tight text-center px-1">
+                      {company.name.split(' ').slice(0, 2).join('')}
+                    </span>
+                  </>
                 )}
               </div>
 
