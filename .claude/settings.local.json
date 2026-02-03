@@ -42,7 +42,10 @@
       "mcp__playwright__browser_network_requests",
       "Bash(git status:*)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(dir /b \"C:\\\\Users\\\\박호진\\\\OneDrive\\\\Desktop\\\\iv-privacy-policy-extracted\")",
+      "Bash(dir /b /s \"C:\\\\Users\\\\박호진\\\\OneDrive\\\\Desktop\\\\iv-privacy-policy-extracted\\\\app\")",
+      "Bash(dir:*)"
     ]
   }
 }

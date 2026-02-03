@@ -7,3 +7,5 @@ export * from './Textarea';
 export * from './ImageUpload';
 export * from './Checkbox';
 export * from './Dialog';
+export * from './Label';
+export * from './Progress';

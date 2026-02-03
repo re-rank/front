@@ -4,8 +4,8 @@ import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
-  Plus, Trash2, ChevronLeft, ChevronRight, Building2, Users,
-  Video, Newspaper, BarChart3, HelpCircle, Settings, Check,
+  Plus, Trash2, Building2, Users, Video, BarChart3, MessageSquare,
+  Check, ArrowLeft, ArrowRight, Upload, Globe, Github, Linkedin, Youtube,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/stores/authStore';
@@ -15,11 +15,19 @@ import {
   Select,
   Card,
   CardContent,
-  CardHeader,
   Textarea,
   ImageUpload,
+  Label,
+  Progress,
 } from '@/components/ui';
 import type { SelectOption } from '@/components/ui/Select';
+
+// X Icon
+const XIcon = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+  </svg>
+);
 
 // --- Options ---
 const employeeCountOptions: SelectOption[] = [
@@ -69,14 +77,12 @@ const investorQuestionOptions = [
 ];
 
 // --- Steps Config ---
-const steps = [
-  { num: 1, icon: Building2, label: 'Profile' },
-  { num: 2, icon: Users, label: 'Team' },
-  { num: 3, icon: Video, label: 'Media' },
-  { num: 4, icon: Newspaper, label: 'News' },
-  { num: 5, icon: BarChart3, label: 'Metrics' },
-  { num: 6, icon: HelpCircle, label: 'Questions' },
-  { num: 7, icon: Settings, label: 'Settings' },
+const STEPS = [
+  { id: 1, title: 'Basic Info', icon: Building2 },
+  { id: 2, title: 'Team', icon: Users },
+  { id: 3, title: 'Video', icon: Video },
+  { id: 4, title: 'Metrics', icon: BarChart3 },
+  { id: 5, title: 'Q&A', icon: MessageSquare },
 ];
 
 // --- Schema ---
@@ -122,22 +128,12 @@ const companyRegisterSchema = z.object({
   executives: z.array(executiveSchema).min(1, 'At least one executive is required'),
   // Step 3: Media
   intro_video_url: z.string().url('Please enter a valid URL').or(z.literal('')).optional(),
-  additional_videos: z.array(z.string()).optional(),
-  // Step 6: Questions
+  // Step 5: Questions
   selected_questions: z.array(z.string()).optional(),
   question_answers: z.record(z.string(), z.string()).optional(),
 });
 
 type CompanyRegisterForm = z.infer<typeof companyRegisterSchema>;
-
-// --- News item type (local state) ---
-interface NewsItem {
-  id: string;
-  title: string;
-  url: string;
-  source: string;
-  date: string;
-}
 
 const defaultExecutive = (role: string = 'CEO') => ({
   name: '',
@@ -155,14 +151,7 @@ export function CompanyRegister() {
   const [step, setStep] = useState(1);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  // Step 3: Media - additional videos
-  const [newVideoUrl, setNewVideoUrl] = useState('');
-
-  // Step 4: News - local state
-  const [newsItems, setNewsItems] = useState<NewsItem[]>([]);
-  const [newsForm, setNewsForm] = useState({ title: '', url: '', source: '', date: '' });
-
-  // Step 6: Questions
+  // Step 5: Questions
   const [selectedQuestions, setSelectedQuestions] = useState<string[]>([]);
   const [questionAnswers, setQuestionAnswers] = useState<Record<string, string>>({});
 
@@ -171,8 +160,7 @@ export function CompanyRegister() {
     control,
     handleSubmit,
     trigger,
-    getValues,
-    setValue,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<CompanyRegisterForm>({
     resolver: zodResolver(companyRegisterSchema),
@@ -193,7 +181,6 @@ export function CompanyRegister() {
       youtube_url: '',
       executives: [defaultExecutive('CEO')],
       intro_video_url: '',
-      additional_videos: [],
       selected_questions: [],
       question_answers: {},
     },
@@ -204,11 +191,14 @@ export function CompanyRegister() {
     name: 'executives',
   });
 
+  const watchDescription = watch('description');
+  const watchShortDesc = watch('short_description');
+  const watchIntroVideo = watch('intro_video_url');
+
   // --- Step validation ---
   const step1Fields = [
     'logo_url', 'name', 'short_description', 'founded_at', 'location',
     'employee_count', 'description', 'category', 'stage',
-    'website_url', 'github_url', 'linkedin_url', 'twitter_url', 'youtube_url',
   ] as const;
 
   const handleNext = async () => {
@@ -220,47 +210,19 @@ export function CompanyRegister() {
       const valid = await trigger('executives');
       if (!valid) return;
     }
-    // Steps 3~7 have no required validation
-    setStep((s) => Math.min(s + 1, 7));
+    setStep((s) => Math.min(s + 1, STEPS.length));
   };
 
   const handlePrev = () => setStep((s) => Math.max(s - 1, 1));
 
-  // --- News helpers ---
-  const addNewsItem = () => {
-    if (!newsForm.title || !newsForm.url) return;
-    setNewsItems((prev) => [
-      ...prev,
-      { ...newsForm, id: crypto.randomUUID() },
-    ]);
-    setNewsForm({ title: '', url: '', source: '', date: '' });
-  };
-
-  const removeNewsItem = (id: string) => {
-    setNewsItems((prev) => prev.filter((n) => n.id !== id));
-  };
-
   // --- Questions helpers ---
   const toggleQuestion = (q: string) => {
     setSelectedQuestions((prev) =>
-      prev.includes(q) ? prev.filter((x) => x !== q) : [...prev, q]
+      prev.includes(q) ? prev.filter((x) => x !== q) : prev.length < 5 ? [...prev, q] : prev
     );
   };
 
-  // --- Additional video helpers ---
-  const addVideo = () => {
-    if (!newVideoUrl) return;
-    const current = getValues('additional_videos') || [];
-    setValue('additional_videos', [...current, newVideoUrl]);
-    setNewVideoUrl('');
-  };
-
-  const removeVideo = (index: number) => {
-    const current = getValues('additional_videos') || [];
-    setValue('additional_videos', current.filter((_, i) => i !== index));
-  };
-
-  // --- Submit (Step 1~2 data only) ---
+  // --- Submit ---
   const onSubmit = async (data: CompanyRegisterForm) => {
     if (!user) return;
     setSubmitError(null);
@@ -306,584 +268,535 @@ export function CompanyRegister() {
     const { error: execError } = await supabase.from('executives').insert(executives);
 
     if (execError) {
-      setSubmitError('Failed to register executives. Please add them again from the company page.');
+      setSubmitError('Failed to register executives.');
       return;
     }
 
     navigate('/dashboard');
   };
 
-  // --- Step Indicator ---
-  const renderStepIndicator = () => (
-    <div className="flex items-center justify-between mb-8">
-      {steps.map(({ num, icon: Icon, label }, idx) => (
-        <div key={num} className="flex items-center flex-1 last:flex-none">
-          <button
-            type="button"
-            onClick={() => {
-              if (num <= step) setStep(num);
-            }}
-            className="flex flex-col items-center gap-1 cursor-pointer"
-          >
-            <div
-              className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-semibold transition-colors ${
-                step > num
-                  ? 'bg-primary text-primary-foreground'
-                  : step === num
-                    ? 'bg-primary text-primary-foreground ring-2 ring-ring'
-                    : 'bg-muted text-muted-foreground'
-              }`}
-            >
-              {step > num ? <Check className="w-3.5 h-3.5" /> : <Icon className="w-3.5 h-3.5" />}
-            </div>
-            <span
-              className={`text-[10px] font-medium whitespace-nowrap ${
-                step >= num ? 'text-foreground' : 'text-muted-foreground'
-              }`}
-            >
-              {label}
-            </span>
-          </button>
-          {idx < steps.length - 1 && (
-            <div
-              className={`flex-1 h-0.5 mx-1 ${
-                step > num ? 'bg-primary' : 'bg-muted'
-              }`}
-            />
-          )}
-        </div>
-      ))}
-    </div>
-  );
-
-  // --- Navigation Buttons ---
-  const renderNavButtons = (showSubmit = false) => (
-    <div className="flex justify-between pt-4">
-      {step > 1 ? (
-        <Button type="button" variant="outline" onClick={handlePrev}>
-          <ChevronLeft className="w-4 h-4 mr-1" /> Previous
-        </Button>
-      ) : (
-        <div />
-      )}
-      {showSubmit ? (
-        <Button type="submit" isLoading={isSubmitting}>
-          Register Company
-        </Button>
-      ) : step < 7 ? (
-        <Button type="button" onClick={handleNext}>
-          Next <ChevronRight className="w-4 h-4 ml-1" />
-        </Button>
-      ) : (
-        <Button type="submit" isLoading={isSubmitting}>
-          Register Company
-        </Button>
-      )}
-    </div>
-  );
+  const progress = (step / STEPS.length) * 100;
 
   return (
-    <div className="max-w-3xl mx-auto py-8 px-4">
-      <h1 className="text-2xl font-bold text-foreground mb-2">Register Company</h1>
-      <p className="text-muted-foreground mb-6">Enter your company info to showcase to investors.</p>
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="border-b border-border sticky top-0 bg-background/95 backdrop-blur z-50">
+        <div className="max-w-4xl mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-lg font-serif">Company Registration</h1>
+              <p className="text-sm text-muted-foreground">{user?.email}</p>
+            </div>
+            <Button variant="ghost" onClick={() => navigate(-1)}>
+              Cancel
+            </Button>
+          </div>
+        </div>
+      </header>
 
-      {renderStepIndicator()}
+      <div className="max-w-4xl mx-auto px-4 py-6">
+        {/* Progress */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm text-muted-foreground">
+              Step {step} of {STEPS.length}
+            </span>
+            <span className="text-sm text-muted-foreground">{Math.round(progress)}% Complete</span>
+          </div>
+          <Progress value={progress} className="h-2" />
+        </div>
 
-      <form onSubmit={handleSubmit(onSubmit)}>
-        {/* Step 1: Profile */}
-        {step === 1 && (
-          <Card>
-            <CardHeader>
-              <h2 className="text-lg font-semibold text-foreground">Company Info</h2>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-5">
-                <Controller
-                  control={control}
-                  name="logo_url"
-                  render={({ field }) => (
-                    <ImageUpload
-                      label="Company Logo"
-                      required
-                      bucket="company-assets"
-                      path="logos"
-                      value={field.value}
-                      onChange={(url) => field.onChange(url || '')}
-                      error={errors.logo_url?.message}
-                      shape="square"
-                      size="lg"
-                    />
-                  )}
-                />
+        {/* Step Indicators */}
+        <div className="flex items-center justify-between mb-8 overflow-x-auto pb-2">
+          {STEPS.map((s) => {
+            const Icon = s.icon;
+            const isCompleted = step > s.id;
+            const isCurrent = step === s.id;
+            return (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => { if (s.id <= step) setStep(s.id); }}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
+                  isCurrent
+                    ? 'bg-primary text-primary-foreground'
+                    : isCompleted
+                      ? 'bg-secondary text-foreground'
+                      : 'text-muted-foreground'
+                }`}
+              >
+                {isCompleted ? <Check className="w-4 h-4" /> : <Icon className="w-4 h-4" />}
+                <span className="text-sm font-medium hidden sm:inline">{s.title}</span>
+              </button>
+            );
+          })}
+        </div>
 
-                <Input
-                  label="Company Name"
-                  required
-                  placeholder="e.g. NextChallenger"
-                  error={errors.name?.message}
-                  {...register('name')}
-                />
-
-                <Input
-                  label="Short Description"
-                  required
-                  placeholder="Describe your company in one sentence (10-100 chars)"
-                  error={errors.short_description?.message}
-                  {...register('short_description')}
-                />
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <Input
-                    label="Founded"
-                    type="date"
-                    required
-                    error={errors.founded_at?.message}
-                    {...register('founded_at')}
-                  />
-                  <Input
-                    label="Location"
-                    required
-                    placeholder="e.g. San Francisco, CA"
-                    error={errors.location?.message}
-                    {...register('location')}
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <Select
-                    label="Employees"
-                    required
-                    options={employeeCountOptions}
-                    placeholder="Select"
-                    error={errors.employee_count?.message}
-                    {...register('employee_count')}
-                  />
-                  <Select
-                    label="Category"
-                    required
-                    options={categoryOptions}
-                    placeholder="Select"
-                    error={errors.category?.message}
-                    {...register('category')}
-                  />
-                  <Select
-                    label="Stage"
-                    required
-                    options={stageOptions}
-                    placeholder="Select"
-                    error={errors.stage?.message}
-                    {...register('stage')}
-                  />
-                </div>
-
-                <Controller
-                  control={control}
-                  name="description"
-                  render={({ field }) => (
-                    <Textarea
-                      label="About"
-                      required
-                      placeholder="Tell us about your company in detail (100-10,000 chars)"
-                      showCount
-                      maxLength={10000}
-                      value={field.value}
-                      onChange={field.onChange}
-                      onBlur={field.onBlur}
-                      error={errors.description?.message}
-                      className="min-h-[200px]"
-                    />
-                  )}
-                />
-
+        {/* Form */}
+        <form onSubmit={handleSubmit(onSubmit)}>
+          {/* Step 1: Basic Info */}
+          {step === 1 && (
+            <Card className="mb-8">
+              <CardContent className="p-6 space-y-6">
                 <div>
-                  <p className="text-sm font-medium text-secondary-foreground mb-3">Company Links (Optional)</p>
-                  <div className="space-y-3">
-                    <Input label="Website" placeholder="https://example.com" error={errors.website_url?.message} {...register('website_url')} />
-                    <Input label="GitHub" placeholder="https://github.com/..." error={errors.github_url?.message} {...register('github_url')} />
-                    <Input label="LinkedIn" placeholder="https://linkedin.com/company/..." error={errors.linkedin_url?.message} {...register('linkedin_url')} />
-                    <Input label="Twitter" placeholder="https://twitter.com/..." error={errors.twitter_url?.message} {...register('twitter_url')} />
-                    <Input label="YouTube" placeholder="https://youtube.com/..." error={errors.youtube_url?.message} {...register('youtube_url')} />
+                  <h2 className="text-2xl font-serif mb-2">Basic Information</h2>
+                  <p className="text-muted-foreground">Tell us about your company</p>
+                </div>
+
+                {/* Logo */}
+                <div className="space-y-2">
+                  <Label required>Company Logo</Label>
+                  <Controller
+                    control={control}
+                    name="logo_url"
+                    render={({ field }) => (
+                      <ImageUpload
+                        bucket="company-assets"
+                        path="logos"
+                        value={field.value}
+                        onChange={(url) => field.onChange(url || '')}
+                        error={errors.logo_url?.message}
+                        shape="square"
+                        size="lg"
+                      />
+                    )}
+                  />
+                </div>
+
+                <div className="grid sm:grid-cols-2 gap-4">
+                  {/* Company Name */}
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label required>Company Name</Label>
+                    <Input
+                      placeholder="Enter company name"
+                      error={errors.name?.message}
+                      className="bg-secondary border-border"
+                      {...register('name')}
+                    />
+                  </div>
+
+                  {/* Tagline */}
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label required>Tagline (10-100 characters)</Label>
+                    <Input
+                      placeholder="Brief description of what you do"
+                      maxLength={100}
+                      error={errors.short_description?.message}
+                      className="bg-secondary border-border"
+                      {...register('short_description')}
+                    />
+                    <p className={`text-xs ${(watchShortDesc?.length || 0) < 10 ? 'text-red-400' : 'text-muted-foreground'}`}>
+                      {watchShortDesc?.length || 0}/100 characters {(watchShortDesc?.length || 0) < 10 && '(minimum 10)'}
+                    </p>
+                  </div>
+
+                  {/* Founded Date */}
+                  <div className="space-y-2">
+                    <Label required>Founded Date</Label>
+                    <Input
+                      type="month"
+                      error={errors.founded_at?.message}
+                      className="bg-secondary border-border"
+                      {...register('founded_at')}
+                    />
+                  </div>
+
+                  {/* Location */}
+                  <div className="space-y-2">
+                    <Label required>Location</Label>
+                    <Input
+                      placeholder="e.g. San Francisco, CA"
+                      error={errors.location?.message}
+                      className="bg-secondary border-border"
+                      {...register('location')}
+                    />
+                  </div>
+
+                  {/* Employee Count */}
+                  <div className="space-y-2">
+                    <Label required>Employee Count</Label>
+                    <Select
+                      options={employeeCountOptions}
+                      placeholder="Select range"
+                      error={errors.employee_count?.message}
+                      className="bg-secondary border-border"
+                      {...register('employee_count')}
+                    />
+                  </div>
+
+                  {/* Category */}
+                  <div className="space-y-2">
+                    <Label required>Category</Label>
+                    <Select
+                      options={categoryOptions}
+                      placeholder="Select category"
+                      error={errors.category?.message}
+                      className="bg-secondary border-border"
+                      {...register('category')}
+                    />
+                  </div>
+
+                  {/* Stage */}
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label required>Company Stage</Label>
+                    <Select
+                      options={stageOptions}
+                      placeholder="Select stage"
+                      error={errors.stage?.message}
+                      className="bg-secondary border-border"
+                      {...register('stage')}
+                    />
                   </div>
                 </div>
 
-                {renderNavButtons()}
-              </div>
-            </CardContent>
-          </Card>
-        )}
+                {/* Company Links */}
+                <div className="space-y-4 pt-4 border-t border-border">
+                  <div>
+                    <h3 className="text-lg font-medium mb-1">Company Links</h3>
+                    <p className="text-sm text-muted-foreground">Recommended - Add your online presence</p>
+                  </div>
 
-        {/* Step 2: Team */}
-        {step === 2 && (
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-foreground">Executives (C-level)</h2>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => append(defaultExecutive('CTO'))}
-                >
-                  <Plus className="w-4 h-4 mr-1" /> Add
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="flex items-center gap-2"><Globe className="w-4 h-4" /> Website</Label>
+                      <Input placeholder="https://yourcompany.com" className="bg-secondary border-border" {...register('website_url')} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="flex items-center gap-2"><Github className="w-4 h-4" /> GitHub</Label>
+                      <Input placeholder="https://github.com/yourcompany" className="bg-secondary border-border" {...register('github_url')} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="flex items-center gap-2"><Linkedin className="w-4 h-4" /> LinkedIn</Label>
+                      <Input placeholder="https://linkedin.com/company/..." className="bg-secondary border-border" {...register('linkedin_url')} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="flex items-center gap-2"><XIcon className="w-4 h-4" /> X</Label>
+                      <Input placeholder="https://x.com/company" className="bg-secondary border-border" {...register('twitter_url')} />
+                    </div>
+                    <div className="space-y-2 sm:col-span-2">
+                      <Label className="flex items-center gap-2"><Youtube className="w-4 h-4" /> YouTube</Label>
+                      <Input placeholder="https://youtube.com/@yourcompany" className="bg-secondary border-border" {...register('youtube_url')} />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Description */}
+                <div className="space-y-2 pt-4 border-t border-border">
+                  <Label required>Company Description (100-10,000 characters)</Label>
+                  <Controller
+                    control={control}
+                    name="description"
+                    render={({ field }) => (
+                      <Textarea
+                        placeholder="Describe your company, product, vision, market opportunity..."
+                        showCount
+                        maxLength={10000}
+                        value={field.value}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        error={errors.description?.message}
+                        className="bg-secondary border-border min-h-[200px]"
+                      />
+                    )}
+                  />
+                  <p className={`text-xs ${(watchDescription?.length || 0) < 100 ? 'text-red-400' : 'text-muted-foreground'}`}>
+                    {(watchDescription?.length || 0).toLocaleString()}/10,000 characters {(watchDescription?.length || 0) < 100 && `(minimum 100 - need ${100 - (watchDescription?.length || 0)} more)`}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Step 2: Team */}
+          {step === 2 && (
+            <Card className="mb-8">
+              <CardContent className="p-6 space-y-6">
+                <div>
+                  <h2 className="text-2xl font-serif mb-2">Leadership Team</h2>
+                  <p className="text-muted-foreground">Add your C-Level executives. CEO is required.</p>
+                </div>
+
                 {fields.map((field, index) => {
                   const isCEO = index === 0;
                   return (
-                    <div
-                      key={field.id}
-                      className="border border-border rounded-lg p-4 space-y-4"
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-semibold text-secondary-foreground">
-                          Executive #{index + 1}
-                        </span>
-                        {!isCEO && (
-                          <button
-                            type="button"
-                            className="text-red-500 hover:text-red-700"
-                            onClick={() => remove(index)}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        )}
-                      </div>
+                    <Card key={field.id} className="bg-secondary/50">
+                      <CardContent className="p-4 space-y-4">
+                        <div className="flex items-center justify-between">
+                          <h3 className="text-lg font-medium flex items-center gap-2">
+                            {isCEO ? 'CEO' : field.role}
+                            {isCEO && <span className="text-red-400 text-sm">*</span>}
+                          </h3>
+                          {!isCEO && (
+                            <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} className="text-muted-foreground hover:text-destructive">
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          )}
+                        </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <Input
-                          label="Name"
-                          required
-                          placeholder="John Doe"
-                          error={errors.executives?.[index]?.name?.message}
-                          {...register(`executives.${index}.name`)}
-                        />
-                        <Select
-                          label="Role"
-                          required
-                          options={isCEO ? [{ value: 'CEO', label: 'CEO' }] : executiveRoleOptions}
-                          placeholder="Select"
-                          error={errors.executives?.[index]?.role?.message}
-                          disabled={isCEO}
-                          {...register(`executives.${index}.role`)}
-                        />
-                      </div>
-
-                      <Controller
-                        control={control}
-                        name={`executives.${index}.photo_url`}
-                        render={({ field: f }) => (
-                          <ImageUpload
-                            label="Profile Photo"
-                            bucket="company-assets"
-                            path={`executives`}
-                            value={f.value || undefined}
-                            onChange={(url) => f.onChange(url)}
-                            shape="circle"
-                            size="sm"
+                        <div className="flex items-start gap-4">
+                          <Controller
+                            control={control}
+                            name={`executives.${index}.photo_url`}
+                            render={({ field: f }) => (
+                              <div className="w-20 h-20 rounded-full border-2 border-dashed border-border flex items-center justify-center cursor-pointer hover:border-primary transition-colors overflow-hidden flex-shrink-0 bg-background">
+                                {f.value ? (
+                                  <img src={f.value} alt="Profile" className="w-full h-full object-cover" />
+                                ) : (
+                                  <div className="text-center">
+                                    <Upload className="w-5 h-5 mx-auto text-muted-foreground" />
+                                    <span className="text-[10px] text-muted-foreground">Photo</span>
+                                  </div>
+                                )}
+                              </div>
+                            )}
                           />
-                        )}
-                      />
+                          <div className="flex-1 grid sm:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label required={isCEO}>Full Name</Label>
+                              <Input
+                                placeholder="Enter full name"
+                                error={errors.executives?.[index]?.name?.message}
+                                className="bg-background border-border"
+                                {...register(`executives.${index}.name`)}
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label required>Role</Label>
+                              <Select
+                                options={isCEO ? [{ value: 'CEO', label: 'CEO' }] : executiveRoleOptions}
+                                placeholder="Select"
+                                disabled={isCEO}
+                                error={errors.executives?.[index]?.role?.message}
+                                className="bg-background border-border"
+                                {...register(`executives.${index}.role`)}
+                              />
+                            </div>
+                          </div>
+                        </div>
 
-                      <Input
-                        label="Bio"
-                        placeholder="Brief career introduction"
-                        error={errors.executives?.[index]?.bio?.message}
-                        {...register(`executives.${index}.bio`)}
-                      />
+                        <div className="space-y-2">
+                          <Label>Bio</Label>
+                          <Textarea
+                            placeholder="Brief introduction..."
+                            className="bg-background border-border min-h-[80px]"
+                            {...register(`executives.${index}.bio`)}
+                          />
+                        </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <Input
-                          label="LinkedIn"
-                          placeholder="https://linkedin.com/in/..."
-                          error={errors.executives?.[index]?.linkedin_url?.message}
-                          {...register(`executives.${index}.linkedin_url`)}
-                        />
-                        <Input
-                          label="Twitter"
-                          placeholder="https://twitter.com/..."
-                          error={errors.executives?.[index]?.twitter_url?.message}
-                          {...register(`executives.${index}.twitter_url`)}
-                        />
-                      </div>
-
-                      <Input
-                        label="Education"
-                        placeholder="e.g. Stanford University, Computer Science"
-                        error={errors.executives?.[index]?.education?.message}
-                        {...register(`executives.${index}.education`)}
-                      />
-                    </div>
+                        <div className="grid sm:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label>Education</Label>
+                            <Input
+                              placeholder="e.g. Stanford University, CS"
+                              className="bg-background border-border"
+                              {...register(`executives.${index}.education`)}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="flex items-center gap-2"><Linkedin className="w-3 h-3" /> LinkedIn</Label>
+                            <Input
+                              placeholder="LinkedIn profile URL"
+                              className="bg-background border-border"
+                              {...register(`executives.${index}.linkedin_url`)}
+                            />
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
                   );
                 })}
 
-                {errors.executives?.root?.message && (
-                  <p className="text-sm text-red-500">{errors.executives.root.message}</p>
-                )}
-
-                {submitError && (
-                  <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-3 text-sm text-destructive">
-                    {submitError}
+                {fields.length < 5 && (
+                  <div className="space-y-2">
+                    <Label>Add C-Level Executive (Optional)</Label>
+                    <div className="flex flex-wrap gap-2">
+                      {executiveRoleOptions
+                        .filter((opt) => !fields.find((f) => f.role === opt.value))
+                        .map((opt) => (
+                          <Button key={opt.value} type="button" variant="outline" size="sm" onClick={() => append(defaultExecutive(opt.value))} className="gap-1">
+                            <Plus className="w-3 h-3" /> {opt.label}
+                          </Button>
+                        ))}
+                    </div>
                   </div>
                 )}
+              </CardContent>
+            </Card>
+          )}
 
-                {renderNavButtons()}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Step 3: Media */}
-        {step === 3 && (
-          <Card>
-            <CardHeader>
-              <h2 className="text-lg font-semibold text-foreground">Media</h2>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-5">
-                <Input
-                  label="Introduction Video URL"
-                  placeholder="https://youtube.com/watch?v=..."
-                  error={errors.intro_video_url?.message}
-                  {...register('intro_video_url')}
-                />
-
+          {/* Step 3: Video */}
+          {step === 3 && (
+            <Card className="mb-8">
+              <CardContent className="p-6 space-y-6">
                 <div>
-                  <p className="text-sm font-medium text-secondary-foreground mb-3">Additional Videos</p>
-                  <div className="space-y-3">
-                    {(getValues('additional_videos') || []).map((url, idx) => (
-                      <div key={idx} className="flex items-center gap-2">
-                        <div className="flex-1 text-sm text-secondary-foreground bg-background border border-border rounded-lg px-3 py-2 truncate">
-                          {url}
-                        </div>
-                        <button
-                          type="button"
-                          className="text-red-500 hover:text-red-700"
-                          onClick={() => removeVideo(idx)}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    ))}
-                    <div className="flex gap-2">
+                  <h2 className="text-2xl font-serif mb-2">Company Introduction Video</h2>
+                  <p className="text-muted-foreground">Upload a video introducing your company to potential investors.</p>
+                </div>
+
+                <Card className="bg-secondary/50">
+                  <CardContent className="p-4 space-y-4">
+                    <div className="flex items-center gap-2">
+                      <Video className="w-5 h-5" />
+                      <h3 className="font-medium">5-Minute Intro Video</h3>
+                    </div>
+                    <p className="text-sm text-muted-foreground">Share your story, product demo, and vision.</p>
+
+                    <div className="space-y-2">
+                      <Label>Video URL (YouTube, Vimeo, or Loom)</Label>
                       <Input
-                        placeholder="Enter video URL"
-                        value={newVideoUrl}
-                        onChange={(e) => setNewVideoUrl(e.target.value)}
+                        placeholder="https://youtube.com/watch?v=..."
+                        className="bg-background border-border"
+                        {...register('intro_video_url')}
                       />
-                      <Button type="button" variant="outline" onClick={addVideo}>
-                        <Plus className="w-4 h-4" />
-                      </Button>
                     </div>
-                  </div>
-                </div>
 
-                {renderNavButtons()}
-              </div>
-            </CardContent>
-          </Card>
-        )}
+                    {watchIntroVideo && (
+                      <div className="aspect-video rounded-lg overflow-hidden bg-background">
+                        <iframe
+                          src={
+                            watchIntroVideo.includes('youtube.com')
+                              ? watchIntroVideo.replace('watch?v=', 'embed/')
+                              : watchIntroVideo.includes('vimeo.com')
+                                ? watchIntroVideo.replace('vimeo.com', 'player.vimeo.com/video')
+                                : watchIntroVideo
+                          }
+                          className="w-full h-full"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                        />
+                      </div>
+                    )}
 
-        {/* Step 4: News */}
-        {step === 4 && (
-          <Card>
-            <CardHeader>
-              <h2 className="text-lg font-semibold text-foreground">News</h2>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-5">
-                <p className="text-sm text-muted-foreground">
-                  Add news articles about your company.
-                </p>
-
-                {newsItems.map((item) => (
-                  <div
-                    key={item.id}
-                    className="border border-border rounded-lg p-4 flex items-start justify-between gap-3"
-                  >
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold text-foreground truncate">{item.title}</p>
-                      <p className="text-xs text-muted-foreground truncate">{item.url}</p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {item.source} {item.date && `| ${item.date}`}
-                      </p>
+                    <div className="p-4 rounded-lg bg-background border border-border">
+                      <h4 className="font-medium mb-2">Tips for a great intro video:</h4>
+                      <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
+                        <li>Keep it under 5 minutes</li>
+                        <li>Introduce yourself and your team</li>
+                        <li>Explain the problem you're solving</li>
+                        <li>Demo your product if possible</li>
+                        <li>Share your traction and metrics</li>
+                      </ul>
                     </div>
-                    <button
-                      type="button"
-                      className="text-red-500 hover:text-red-700 shrink-0"
-                      onClick={() => removeNewsItem(item.id)}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))}
+                  </CardContent>
+                </Card>
+              </CardContent>
+            </Card>
+          )}
 
-                <div className="border border-border rounded-lg p-4 space-y-3">
-                  <p className="text-sm font-medium text-secondary-foreground">Add New Article</p>
-                  <Input
-                    label="Title"
-                    required
-                    placeholder="Article title"
-                    value={newsForm.title}
-                    onChange={(e) => setNewsForm((f) => ({ ...f, title: e.target.value }))}
-                  />
-                  <Input
-                    label="URL"
-                    required
-                    placeholder="https://..."
-                    value={newsForm.url}
-                    onChange={(e) => setNewsForm((f) => ({ ...f, url: e.target.value }))}
-                  />
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <Input
-                      label="Source"
-                      placeholder="e.g. TechCrunch"
-                      value={newsForm.source}
-                      onChange={(e) => setNewsForm((f) => ({ ...f, source: e.target.value }))}
-                    />
-                    <Input
-                      label="Date"
-                      type="date"
-                      value={newsForm.date}
-                      onChange={(e) => setNewsForm((f) => ({ ...f, date: e.target.value }))}
-                    />
-                  </div>
-                  <div className="flex justify-end">
-                    <Button type="button" variant="outline" size="sm" onClick={addNewsItem}>
-                      <Plus className="w-4 h-4 mr-1" /> Add
-                    </Button>
-                  </div>
+          {/* Step 4: Metrics */}
+          {step === 4 && (
+            <Card className="mb-8">
+              <CardContent className="p-6 space-y-6">
+                <div>
+                  <h2 className="text-2xl font-serif mb-2">Business Metrics</h2>
+                  <p className="text-muted-foreground">Connect your accounts to automatically sync your metrics.</p>
                 </div>
 
-                {renderNavButtons()}
-              </div>
-            </CardContent>
-          </Card>
-        )}
+                <Card className="bg-secondary/50">
+                  <CardContent className="p-4 space-y-4">
+                    <div className="flex items-center gap-2">
+                      <BarChart3 className="w-5 h-5" />
+                      <h3 className="font-medium">Stripe & GA4 Integration</h3>
+                    </div>
 
-        {/* Step 5: Metrics */}
-        {step === 5 && (
-          <Card>
-            <CardHeader>
-              <h2 className="text-lg font-semibold text-foreground">Metrics</h2>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-5">
-                <div className="bg-background border border-border rounded-lg p-6 text-center">
-                  <BarChart3 className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-                  <p className="text-sm font-medium text-secondary-foreground mb-1">Stripe / GA4 Integration</p>
-                  <p className="text-xs text-muted-foreground">
-                    Automatic sync of revenue, traffic, and key metrics coming soon.
-                  </p>
+                    <div className="grid sm:grid-cols-3 gap-4 text-center">
+                      <div className="p-4 rounded-lg bg-background border border-border">
+                        <p className="text-sm text-muted-foreground">Revenue</p>
+                        <p className="font-semibold">Monthly MRR</p>
+                      </div>
+                      <div className="p-4 rounded-lg bg-background border border-border">
+                        <p className="text-sm text-muted-foreground">Users</p>
+                        <p className="font-semibold">Active Users</p>
+                      </div>
+                      <div className="p-4 rounded-lg bg-background border border-border">
+                        <p className="text-sm text-muted-foreground">Growth</p>
+                        <p className="font-semibold">Retention Rate</p>
+                      </div>
+                    </div>
+
+                    <div className="p-4 rounded-lg bg-primary/10 border border-primary/20 text-center">
+                      <BarChart3 className="w-12 h-12 mx-auto text-primary mb-2" />
+                      <p className="text-sm font-medium">Coming Soon</p>
+                      <p className="text-xs text-muted-foreground">Stripe and GA4 integration will be available soon.</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Step 5: Q&A */}
+          {step === 5 && (
+            <Card className="mb-8">
+              <CardContent className="p-6 space-y-6">
+                <div>
+                  <h2 className="text-2xl font-serif mb-2">Investor Q&A</h2>
+                  <p className="text-muted-foreground">Select up to 5 questions and provide thoughtful answers.</p>
+                  <p className="text-sm text-muted-foreground mt-1">Selected: {selectedQuestions.length}/5</p>
                 </div>
 
-                {renderNavButtons()}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Step 6: Questions */}
-        {step === 6 && (
-          <Card>
-            <CardHeader>
-              <h2 className="text-lg font-semibold text-foreground">Investor Questions</h2>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-5">
-                <p className="text-sm text-muted-foreground">
-                  Select frequently asked investor questions and prepare your answers.
-                </p>
-
-                <div className="space-y-2">
+                <div className="space-y-4">
                   {investorQuestionOptions.map((q) => {
                     const isSelected = selectedQuestions.includes(q);
                     return (
-                      <div key={q}>
-                        <button
-                          type="button"
-                          onClick={() => toggleQuestion(q)}
-                          className={`w-full text-left px-4 py-3 rounded-lg border text-sm transition-colors ${
-                            isSelected
-                              ? 'border-ring bg-accent text-accent-foreground'
-                              : 'border-border bg-card text-secondary-foreground hover:bg-accent'
-                          }`}
-                        >
-                          {q}
-                        </button>
-                        {isSelected && (
-                          <div className="mt-2 ml-4">
-                            <textarea
-                              className="w-full border border-border rounded-lg px-3 py-2 text-sm text-foreground bg-card focus:outline-none focus:ring-2 focus:ring-ring min-h-[80px]"
-                              placeholder="Write your answer..."
-                              value={questionAnswers[q] || ''}
-                              onChange={(e) =>
-                                setQuestionAnswers((prev) => ({
-                                  ...prev,
-                                  [q]: e.target.value,
-                                }))
-                              }
+                      <Card key={q} className={`transition-colors ${isSelected ? 'bg-primary/10 border-primary/50' : 'bg-secondary/50'}`}>
+                        <CardContent className="p-4">
+                          <div className="flex items-start gap-3">
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => toggleQuestion(q)}
+                              disabled={!isSelected && selectedQuestions.length >= 5}
+                              className="mt-1 h-4 w-4 rounded border-border"
                             />
+                            <div className="flex-1 space-y-3">
+                              <p className="font-medium leading-relaxed">{q}</p>
+                              {isSelected && (
+                                <Textarea
+                                  placeholder="Write your answer here..."
+                                  value={questionAnswers[q] || ''}
+                                  onChange={(e) => setQuestionAnswers((prev) => ({ ...prev, [q]: e.target.value }))}
+                                  className="bg-background border-border min-h-[120px]"
+                                />
+                              )}
+                            </div>
                           </div>
-                        )}
-                      </div>
+                        </CardContent>
+                      </Card>
                     );
                   })}
                 </div>
 
-                {renderNavButtons()}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Step 7: Settings */}
-        {step === 7 && (
-          <Card>
-            <CardHeader>
-              <h2 className="text-lg font-semibold text-foreground">Settings</h2>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-5">
-                <div className="border border-border rounded-lg p-4 space-y-3">
-                  <h3 className="text-sm font-semibold text-foreground">Subscription</h3>
-                  <p className="text-xs text-muted-foreground">Current plan: Free</p>
-                  <Button type="button" variant="outline" size="sm" disabled>
-                    Upgrade Plan (Coming Soon)
-                  </Button>
-                </div>
-
-                <div className="border border-border rounded-lg p-4 space-y-3">
-                  <h3 className="text-sm font-semibold text-foreground">Account</h3>
-                  <p className="text-xs text-muted-foreground">
-                    You can edit your info from the dashboard after registration.
-                  </p>
-                </div>
-
-                <div className="border border-destructive/30 rounded-lg p-4 space-y-3">
-                  <h3 className="text-sm font-semibold text-destructive">Delete Company</h3>
-                  <p className="text-xs text-muted-foreground">
-                    You can delete your company from the company page after registration.
-                  </p>
-                  <Button type="button" variant="danger" size="sm" disabled>
-                    Delete Company (Available after registration)
-                  </Button>
-                </div>
-
                 {submitError && (
                   <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-3 text-sm text-destructive">
                     {submitError}
                   </div>
                 )}
+              </CardContent>
+            </Card>
+          )}
 
-                {renderNavButtons(true)}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-      </form>
+          {/* Navigation */}
+          <div className="flex items-center justify-between">
+            <Button type="button" variant="outline" onClick={step === 1 ? () => navigate(-1) : handlePrev} className="gap-2">
+              <ArrowLeft className="w-4 h-4" />
+              {step === 1 ? 'Cancel' : 'Back'}
+            </Button>
+
+            {step < STEPS.length ? (
+              <Button type="button" onClick={handleNext} className="gap-2">
+                Next
+                <ArrowRight className="w-4 h-4" />
+              </Button>
+            ) : (
+              <Button type="submit" isLoading={isSubmitting} className="gap-2">
+                Submit for Review
+                <Check className="w-4 h-4" />
+              </Button>
+            )}
+          </div>
+        </form>
+      </div>
     </div>
   );
 }
