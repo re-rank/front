@@ -20,8 +20,29 @@ const AdminDashboard = lazy(() => import('@/pages/admin/AdminDashboard').then(m 
 // Loading fallback component
 function PageLoader() {
   return (
-    <div className="min-h-[calc(100vh-64px)] flex items-center justify-center">
+    <div className="min-h-[calc(100vh-64px)] flex items-center justify-center bg-background">
       <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
+    </div>
+  );
+}
+
+// Auth loading skeleton - shows page structure while checking auth
+function AuthLoadingSkeleton() {
+  return (
+    <div className="min-h-screen bg-background">
+      <div className="h-16 border-b border-border bg-background" />
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 bg-muted rounded w-48" />
+          <div className="h-4 bg-muted rounded w-72" />
+          <div className="h-10 bg-muted rounded w-full mt-6" />
+          <div className="space-y-3 mt-8">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-24 bg-muted rounded-xl" />
+            ))}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -41,8 +62,10 @@ function RequireRole({ children }: { children: React.ReactNode }) {
     return <>{children}</>;
   }
 
-  // For protected routes, wait for auth check
-  if (isLoading) return null;
+  // For protected routes, show skeleton while loading
+  if (isLoading) {
+    return <AuthLoadingSkeleton />;
+  }
 
   const allowedWithoutRole = ['/select-role', '/login', '/register', '/register/company', '/register/member'];
   if (user && !role && !allowedWithoutRole.includes(location.pathname)) {
