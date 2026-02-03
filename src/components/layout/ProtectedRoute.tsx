@@ -7,18 +7,11 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ allowedRoles }: ProtectedRouteProps) {
-  const { user, isLoading, getRole } = useAuthStore();
+  const { user, getRole } = useAuthStore();
   const role = getRole();
 
-  if (isLoading && !user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-      </div>
-    );
-  }
-
-  if (!isLoading && !user) {
+  // RequireRole already handles loading state, so we only check auth here
+  if (!user) {
     return <Navigate to="/login" replace />;
   }
 
