@@ -187,9 +187,9 @@ export function Home() {
             <span className="text-sm text-neutral-300">Full transparency into our projects</span>
           </div>
 
-          <h1 className="text-4xl sm:text-6xl font-bold tracking-tight mb-6 font-serif italic">
-            Access all project insights{' '}
-            <span className="text-neutral-500">in one view.</span>
+          <h1 className="text-4xl md:text-6xl font-serif leading-tight text-balance">
+            Access all project insights<br />
+            <span className="text-muted-foreground">in one view.</span>
           </h1>
 
           <p className="text-lg text-neutral-400 max-w-2xl mx-auto mb-10">
@@ -268,9 +268,9 @@ export function Home() {
               <div className="w-10 h-10 bg-neutral-800 rounded-lg flex items-center justify-center mb-4">
                 <Play className="w-5 h-5 text-neutral-300" />
               </div>
-              <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-                5-Minute Company{' '}
-                <span className="text-neutral-500">Introduction Videos</span>
+              <h2 className="text-3xl md:text-4xl font-serif leading-tight text-balance">
+                5-Minute Company<br />
+                <span className="text-muted-foreground">Introduction Videos</span>
               </h2>
               <p className="text-neutral-400">
                 Every company shares a 5-minute introduction video. Get to know the founders,
@@ -309,7 +309,7 @@ export function Home() {
             <div className="w-10 h-10 bg-neutral-800 rounded-lg flex items-center justify-center mx-auto mb-4">
               <GraduationCap className="w-5 h-5 text-neutral-300" />
             </div>
-            <h2 className="text-3xl sm:text-4xl font-bold mb-3">Meet the Leadership Team</h2>
+            <h2 className="text-3xl md:text-4xl font-serif leading-tight text-balance">Meet the Leadership Team</h2>
             <p className="text-neutral-400 max-w-2xl mx-auto">
               Access detailed C-level profiles including education background, career history, and direct links to their professional networks.
             </p>
@@ -382,9 +382,9 @@ export function Home() {
               <div className="w-10 h-10 bg-neutral-800 rounded-lg flex items-center justify-center mb-4">
                 <Newspaper className="w-5 h-5 text-neutral-300" />
               </div>
-              <h2 className="text-3xl sm:text-4xl font-bold mb-3">
-                Stay Updated with{' '}
-                <span className="text-neutral-500">Company News</span>
+              <h2 className="text-3xl md:text-4xl font-serif leading-tight text-balance">
+                Stay Updated with<br />
+                <span className="text-muted-foreground">Company News</span>
               </h2>
               <p className="text-neutral-400">
                 Companies share their latest press coverage, funding announcements, and milestones.
@@ -399,7 +399,7 @@ export function Home() {
       <section id="analytics" className="py-20 border-t border-neutral-800">
         <div className="max-w-6xl mx-auto px-4">
           <div className="text-center mb-6">
-            <h2 className="text-3xl sm:text-4xl font-bold mb-3">Real-time Data Sync</h2>
+            <h2 className="text-3xl md:text-4xl font-serif leading-tight text-balance">Real-time Data Sync</h2>
             <p className="text-neutral-400 max-w-2xl mx-auto">
               Seamlessly integrated with Stripe and GA4, reflecting every business heartbeat in live graphs.
             </p>
@@ -435,9 +435,9 @@ export function Home() {
         <div className="max-w-6xl mx-auto px-4">
           <div className="grid md:grid-cols-2 gap-12 items-start">
             <div>
-              <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-                Analyze Investment Value{' '}
-                <span className="text-neutral-500">with Key Questions</span>
+              <h2 className="text-3xl md:text-4xl font-serif leading-tight text-balance">
+                Analyze Investment Value<br />
+                <span className="text-muted-foreground">with Key Questions</span>
               </h2>
               <p className="text-neutral-400 mb-6">
                 Each startup selects and answers 5 out of 10 curated questions that investors care about most.
@@ -477,7 +477,7 @@ export function Home() {
       {/* CTA Section */}
       <section className="py-20 border-t border-neutral-800">
         <div className="max-w-3xl mx-auto px-4 text-center">
-          <h2 className="text-3xl sm:text-4xl font-bold mb-4">Ready to get started?</h2>
+          <h2 className="text-3xl md:text-4xl font-serif leading-tight text-balance">Ready to get started?</h2>
           <p className="text-neutral-400 mb-8">
             Join IV today and discover the future of startup transparency.
           </p>
