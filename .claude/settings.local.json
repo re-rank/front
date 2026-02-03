@@ -39,7 +39,10 @@
       "mcp__playwright__browser_handle_dialog",
       "mcp__playwright__browser_close",
       "Bash(curl:*)",
-      "mcp__playwright__browser_network_requests"
+      "mcp__playwright__browser_network_requests",
+      "Bash(git status:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ]
   }
 }
