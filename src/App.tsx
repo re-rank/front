@@ -37,10 +37,13 @@ function AppContent() {
   const { setUser, setProfile, setLoading } = useAuthStore();
 
   useEffect(() => {
+    let cancelled = false;
+
     // Get initial session
     (async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
+        if (cancelled) return;
         setUser(session?.user ?? null);
 
         if (session?.user) {
@@ -49,12 +52,13 @@ function AppContent() {
             .select('*')
             .eq('id', session.user.id)
             .single();
+          if (cancelled) return;
           setProfile(data);
         }
       } catch {
         // session/profile fetch failed
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     })();
 
@@ -62,6 +66,7 @@ function AppContent() {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (cancelled) return;
       setUser(session?.user ?? null);
 
       if (session?.user) {
@@ -71,6 +76,7 @@ function AppContent() {
             .select('*')
             .eq('id', session.user.id)
             .single();
+          if (cancelled) return;
           setProfile(data);
         } catch {
           // Continue even if profile fetch fails
@@ -78,10 +84,13 @@ function AppContent() {
       } else {
         setProfile(null);
       }
-      setLoading(false);
+      if (!cancelled) setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      cancelled = true;
+      subscription.unsubscribe();
+    };
   }, [setUser, setProfile, setLoading]);
 
   return (
