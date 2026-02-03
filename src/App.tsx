@@ -1,4 +1,4 @@
-import { useEffect, lazy, Suspense } from 'react';
+import { useEffect, lazy, Suspense, useState } from 'react';
 import { BrowserRouter, Routes, Route, Link, Navigate, useLocation } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
@@ -49,30 +49,34 @@ function AuthLoadingSkeleton() {
 
 /** Redirect logged-in users without a role to /select-role */
 function RequireRole({ children }: { children: React.ReactNode }) {
-  const { user, isLoading, getRole } = useAuthStore();
+  const { user, isLoading, getRole, setLoading } = useAuthStore();
   const location = useLocation();
   const role = getRole();
+  const [timedOut, setTimedOut] = useState(false);
 
-  // Public pages that don't need to wait for auth
+  // Timeout for auth loading - redirect after 2s if still loading
+  useEffect(() => {
+    if (!isLoading) return;
+    const timer = setTimeout(() => {
+      setTimedOut(true);
+      setLoading(false);
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [isLoading, setLoading]);
+
+  // Public pages - show immediately
   const publicPaths = ['/', '/login', '/register/company', '/register/member'];
-  const isPublicPage = publicPaths.includes(location.pathname);
-
-  // Show public pages immediately without waiting for auth
-  if (isPublicPage) {
+  if (publicPaths.includes(location.pathname)) {
     return <>{children}</>;
   }
 
-  // For protected routes: if no cached user, redirect immediately without waiting
-  // This prevents showing skeleton when we know user isn't logged in
-  const cachedAuth = localStorage.getItem('auth-storage');
-  const hasCachedUser = cachedAuth && JSON.parse(cachedAuth)?.state?.user;
-
-  if (!hasCachedUser && !user) {
+  // Protected routes - redirect to login if not authenticated or timed out
+  if ((!isLoading && !user) || (timedOut && !user)) {
     return <Navigate to="/login" replace />;
   }
 
-  // Show skeleton only if we have cached user and are verifying
-  if (isLoading && hasCachedUser) {
+  // Show skeleton while checking auth
+  if (isLoading) {
     return <AuthLoadingSkeleton />;
   }
 
