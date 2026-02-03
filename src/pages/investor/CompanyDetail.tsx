@@ -83,7 +83,7 @@ export function CompanyDetail() {
 
   if (!company) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-20 text-center text-warm-500">
+      <div className="max-w-4xl mx-auto px-4 py-20 text-center text-muted-foreground">
         회사를 찾을 수 없습니다.
       </div>
     );
@@ -103,7 +103,7 @@ export function CompanyDetail() {
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 space-y-8">
       {/* 뒤로 */}
-      <Link to="/companies" className="inline-flex items-center gap-1 text-sm text-warm-500 hover:text-warm-700">
+      <Link to="/companies" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-secondary-foreground">
         <ArrowLeft className="h-4 w-4" />
         목록으로
       </Link>
@@ -115,13 +115,13 @@ export function CompanyDetail() {
             {company.logo_url ? (
               <img src={company.logo_url} alt={company.name} className="h-16 w-16 rounded-xl object-cover" />
             ) : (
-              <div className="h-16 w-16 rounded-xl bg-warm-200 flex items-center justify-center text-2xl font-bold text-warm-500">
+              <div className="h-16 w-16 rounded-xl bg-muted flex items-center justify-center text-2xl font-bold text-muted-foreground">
                 {company.name[0]}
               </div>
             )}
             <div className="flex-1 min-w-0">
-              <h1 className="text-2xl font-bold text-warm-900">{company.name}</h1>
-              <p className="text-warm-600 mt-1">{company.short_description}</p>
+              <h1 className="text-2xl font-bold text-foreground">{company.name}</h1>
+              <p className="text-muted-foreground mt-1">{company.short_description}</p>
               <div className="flex flex-wrap gap-2 mt-2">
                 <Badge variant="primary">{company.category}</Badge>
                 <Badge variant="warning">{company.stage}</Badge>
@@ -130,7 +130,7 @@ export function CompanyDetail() {
           </div>
 
           {/* 메타 정보 */}
-          <div className="flex flex-wrap gap-4 text-sm text-warm-600">
+          <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
             <span className="inline-flex items-center gap-1">
               <Calendar className="h-4 w-4" /> {company.founded_at}
             </span>
@@ -162,29 +162,29 @@ export function CompanyDetail() {
       <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="md:col-span-2">
           <Card>
-            <CardHeader><h2 className="font-semibold text-warm-900">회사 소개</h2></CardHeader>
+            <CardHeader><h2 className="font-semibold text-foreground">회사 소개</h2></CardHeader>
             <CardContent>
-              <p className="text-warm-700 whitespace-pre-line leading-relaxed">{company.description}</p>
+              <p className="text-secondary-foreground whitespace-pre-line leading-relaxed">{company.description}</p>
             </CardContent>
           </Card>
         </div>
 
         {executives.length > 0 && (
           <Card>
-            <CardHeader><h2 className="font-semibold text-warm-900">경영진</h2></CardHeader>
+            <CardHeader><h2 className="font-semibold text-foreground">경영진</h2></CardHeader>
             <CardContent className="space-y-4">
               {executives.map((e) => (
                 <div key={e.id} className="flex items-center gap-3">
                   {e.photo_url ? (
                     <img src={e.photo_url} alt={e.name} className="h-10 w-10 rounded-full object-cover" />
                   ) : (
-                    <div className="h-10 w-10 rounded-full bg-warm-200 flex items-center justify-center text-sm font-bold text-warm-500">
+                    <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center text-sm font-bold text-muted-foreground">
                       {e.name[0]}
                     </div>
                   )}
                   <div>
-                    <p className="text-sm font-medium text-warm-900">{e.name}</p>
-                    <p className="text-xs text-warm-500">{e.role}</p>
+                    <p className="text-sm font-medium text-foreground">{e.name}</p>
+                    <p className="text-xs text-muted-foreground">{e.role}</p>
                   </div>
                 </div>
               ))}
@@ -196,7 +196,7 @@ export function CompanyDetail() {
       {/* ── Pitch Video ── */}
       {videos.length > 0 && (
         <section>
-          <h2 className="text-lg font-semibold text-warm-900 mb-4 flex items-center gap-2">
+          <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
             <Play className="h-5 w-5" /> Pitch Video
           </h2>
           {mainVideo && (
@@ -211,7 +211,7 @@ export function CompanyDetail() {
                   />
                 </div>
                 {mainVideo.description && (
-                  <p className="mt-3 text-sm text-warm-600">{mainVideo.description}</p>
+                  <p className="mt-3 text-sm text-muted-foreground">{mainVideo.description}</p>
                 )}
               </CardContent>
             </Card>
@@ -224,7 +224,7 @@ export function CompanyDetail() {
                     <div className="aspect-video rounded-lg overflow-hidden bg-black">
                       <iframe src={v.video_url} title="Video" className="w-full h-full" allowFullScreen />
                     </div>
-                    {v.description && <p className="mt-2 text-sm text-warm-600">{v.description}</p>}
+                    {v.description && <p className="mt-2 text-sm text-muted-foreground">{v.description}</p>}
                   </CardContent>
                 </Card>
               ))}
@@ -236,10 +236,10 @@ export function CompanyDetail() {
       {/* ── 비즈니스 지표 ── */}
       {metrics.length > 0 && (
         <section>
-          <h2 className="text-lg font-semibold text-warm-900 mb-1 flex items-center gap-2">
+          <h2 className="text-lg font-semibold text-foreground mb-1 flex items-center gap-2">
             <BarChart3 className="h-5 w-5" /> 비즈니스 지표
           </h2>
-          <p className="text-xs text-warm-500 mb-4">
+          <p className="text-xs text-muted-foreground mb-4">
             검증된 데이터 &middot;
             {company.stripe_connected && <Badge variant="success" className="ml-1">Stripe</Badge>}
             {company.ga4_connected && <Badge variant="success" className="ml-1">GA4</Badge>}
@@ -259,7 +259,7 @@ export function CompanyDetail() {
       {/* ── Q&A ── */}
       {qna.length > 0 && (
         <section>
-          <h2 className="text-lg font-semibold text-warm-900 mb-4 flex items-center gap-2">
+          <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
             <MessageSquare className="h-5 w-5" /> Q&A
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -267,8 +267,8 @@ export function CompanyDetail() {
               <Card key={q.id}>
                 <CardContent className="space-y-2">
                   <Badge variant={qnaCategoryVariant[q.category] ?? 'default'}>{q.category}</Badge>
-                  <p className="font-medium text-warm-900">{q.question}</p>
-                  <p className="text-sm text-warm-600 whitespace-pre-line">{q.answer}</p>
+                  <p className="font-medium text-foreground">{q.question}</p>
+                  <p className="text-sm text-muted-foreground whitespace-pre-line">{q.answer}</p>
                 </CardContent>
               </Card>
             ))}
@@ -299,7 +299,7 @@ function MetricChart({
   return (
     <Card>
       <CardContent>
-        <p className="text-sm font-medium text-warm-700 mb-2">{title}</p>
+        <p className="text-sm font-medium text-secondary-foreground mb-2">{title}</p>
         <ResponsiveContainer width="100%" height={180}>
           <LineChart data={filtered}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />

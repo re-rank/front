@@ -6,7 +6,7 @@ export function Layout() {
   const { user } = useAuthStore();
 
   return (
-    <div className={`min-h-screen ${user ? 'bg-warm-100' : 'bg-neutral-950'}`}>
+    <div className={`min-h-screen ${user ? 'bg-background' : 'bg-neutral-950'}`}>
       <Header />
       <main>
         <Outlet />

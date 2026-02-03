@@ -332,14 +332,14 @@ export function CompanyRegister() {
                   ? 'bg-primary-600 text-white'
                   : step === num
                     ? 'bg-primary-600 text-white ring-2 ring-primary-300'
-                    : 'bg-warm-200 text-warm-500'
+                    : 'bg-muted text-muted-foreground'
               }`}
             >
               {step > num ? <Check className="w-4 h-4" /> : <Icon className="w-4 h-4" />}
             </div>
             <span
               className={`text-xs font-medium whitespace-nowrap ${
-                step >= num ? 'text-primary-700' : 'text-warm-400'
+                step >= num ? 'text-primary-700' : 'text-muted-foreground'
               }`}
             >
               {label}
@@ -348,7 +348,7 @@ export function CompanyRegister() {
           {idx < steps.length - 1 && (
             <div
               className={`w-8 sm:w-12 h-0.5 mx-1 ${
-                step > num ? 'bg-primary-500' : 'bg-warm-200'
+                step > num ? 'bg-primary-500' : 'bg-muted'
               }`}
             />
           )}
@@ -385,8 +385,8 @@ export function CompanyRegister() {
 
   return (
     <div className="max-w-3xl mx-auto py-8 px-4">
-      <h1 className="text-2xl font-bold text-warm-900 mb-2">회사 등록</h1>
-      <p className="text-warm-600 mb-6">회사 정보를 입력하여 투자자에게 공개하세요.</p>
+      <h1 className="text-2xl font-bold text-foreground mb-2">회사 등록</h1>
+      <p className="text-muted-foreground mb-6">회사 정보를 입력하여 투자자에게 공개하세요.</p>
 
       {renderStepIndicator()}
 
@@ -395,7 +395,7 @@ export function CompanyRegister() {
         {step === 1 && (
           <Card>
             <CardHeader>
-              <h2 className="text-lg font-semibold text-warm-900">회사 정보</h2>
+              <h2 className="text-lg font-semibold text-foreground">회사 정보</h2>
             </CardHeader>
             <CardContent>
               <div className="space-y-5">
@@ -497,7 +497,7 @@ export function CompanyRegister() {
                 />
 
                 <div>
-                  <p className="text-sm font-medium text-warm-700 mb-3">회사 링크 (선택)</p>
+                  <p className="text-sm font-medium text-secondary-foreground mb-3">회사 링크 (선택)</p>
                   <div className="space-y-3">
                     <Input label="Website" placeholder="https://example.com" error={errors.website_url?.message} {...register('website_url')} />
                     <Input label="GitHub" placeholder="https://github.com/..." error={errors.github_url?.message} {...register('github_url')} />
@@ -518,7 +518,7 @@ export function CompanyRegister() {
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-warm-900">경영진 (C-level)</h2>
+                <h2 className="text-lg font-semibold text-foreground">경영진 (C-level)</h2>
                 <Button
                   type="button"
                   variant="outline"
@@ -536,10 +536,10 @@ export function CompanyRegister() {
                   return (
                     <div
                       key={field.id}
-                      className="border border-warm-200 rounded-lg p-4 space-y-4"
+                      className="border border-border rounded-lg p-4 space-y-4"
                     >
                       <div className="flex items-center justify-between">
-                        <span className="text-sm font-semibold text-warm-700">
+                        <span className="text-sm font-semibold text-secondary-foreground">
                           경영진 #{index + 1}
                         </span>
                         {!isCEO && (
@@ -640,7 +640,7 @@ export function CompanyRegister() {
         {step === 3 && (
           <Card>
             <CardHeader>
-              <h2 className="text-lg font-semibold text-warm-900">미디어</h2>
+              <h2 className="text-lg font-semibold text-foreground">미디어</h2>
             </CardHeader>
             <CardContent>
               <div className="space-y-5">
@@ -652,11 +652,11 @@ export function CompanyRegister() {
                 />
 
                 <div>
-                  <p className="text-sm font-medium text-warm-700 mb-3">추가 영상</p>
+                  <p className="text-sm font-medium text-secondary-foreground mb-3">추가 영상</p>
                   <div className="space-y-3">
                     {(getValues('additional_videos') || []).map((url, idx) => (
                       <div key={idx} className="flex items-center gap-2">
-                        <div className="flex-1 text-sm text-warm-700 bg-warm-50 border border-warm-200 rounded-lg px-3 py-2 truncate">
+                        <div className="flex-1 text-sm text-secondary-foreground bg-background border border-border rounded-lg px-3 py-2 truncate">
                           {url}
                         </div>
                         <button
@@ -691,23 +691,23 @@ export function CompanyRegister() {
         {step === 4 && (
           <Card>
             <CardHeader>
-              <h2 className="text-lg font-semibold text-warm-900">뉴스</h2>
+              <h2 className="text-lg font-semibold text-foreground">뉴스</h2>
             </CardHeader>
             <CardContent>
               <div className="space-y-5">
-                <p className="text-sm text-warm-600">
+                <p className="text-sm text-muted-foreground">
                   회사 관련 뉴스 기사를 추가하세요.
                 </p>
 
                 {newsItems.map((item) => (
                   <div
                     key={item.id}
-                    className="border border-warm-200 rounded-lg p-4 flex items-start justify-between gap-3"
+                    className="border border-border rounded-lg p-4 flex items-start justify-between gap-3"
                   >
                     <div className="min-w-0">
-                      <p className="text-sm font-semibold text-warm-900 truncate">{item.title}</p>
-                      <p className="text-xs text-warm-500 truncate">{item.url}</p>
-                      <p className="text-xs text-warm-400 mt-1">
+                      <p className="text-sm font-semibold text-foreground truncate">{item.title}</p>
+                      <p className="text-xs text-muted-foreground truncate">{item.url}</p>
+                      <p className="text-xs text-muted-foreground mt-1">
                         {item.source} {item.date && `| ${item.date}`}
                       </p>
                     </div>
@@ -721,8 +721,8 @@ export function CompanyRegister() {
                   </div>
                 ))}
 
-                <div className="border border-warm-200 rounded-lg p-4 space-y-3">
-                  <p className="text-sm font-medium text-warm-700">새 뉴스 추가</p>
+                <div className="border border-border rounded-lg p-4 space-y-3">
+                  <p className="text-sm font-medium text-secondary-foreground">새 뉴스 추가</p>
                   <Input
                     label="제목"
                     required
@@ -768,14 +768,14 @@ export function CompanyRegister() {
         {step === 5 && (
           <Card>
             <CardHeader>
-              <h2 className="text-lg font-semibold text-warm-900">Metrics</h2>
+              <h2 className="text-lg font-semibold text-foreground">Metrics</h2>
             </CardHeader>
             <CardContent>
               <div className="space-y-5">
-                <div className="bg-warm-50 border border-warm-200 rounded-lg p-6 text-center">
-                  <BarChart3 className="w-12 h-12 text-warm-400 mx-auto mb-3" />
-                  <p className="text-sm font-medium text-warm-700 mb-1">Stripe / GA4 연동</p>
-                  <p className="text-xs text-warm-500">
+                <div className="bg-background border border-border rounded-lg p-6 text-center">
+                  <BarChart3 className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+                  <p className="text-sm font-medium text-secondary-foreground mb-1">Stripe / GA4 연동</p>
+                  <p className="text-xs text-muted-foreground">
                     매출, 트래픽 등 핵심 지표를 자동으로 가져오는 기능이 곧 제공됩니다.
                   </p>
                 </div>
@@ -790,11 +790,11 @@ export function CompanyRegister() {
         {step === 6 && (
           <Card>
             <CardHeader>
-              <h2 className="text-lg font-semibold text-warm-900">투자자 질문</h2>
+              <h2 className="text-lg font-semibold text-foreground">투자자 질문</h2>
             </CardHeader>
             <CardContent>
               <div className="space-y-5">
-                <p className="text-sm text-warm-600">
+                <p className="text-sm text-muted-foreground">
                   투자자가 자주 묻는 질문을 선택하고 답변을 미리 작성하세요.
                 </p>
 
@@ -809,7 +809,7 @@ export function CompanyRegister() {
                           className={`w-full text-left px-4 py-3 rounded-lg border text-sm transition-colors ${
                             isSelected
                               ? 'border-primary-400 bg-primary-50 text-primary-800'
-                              : 'border-warm-200 bg-white text-warm-700 hover:bg-warm-50'
+                              : 'border-border bg-white text-secondary-foreground hover:bg-background'
                           }`}
                         >
                           {q}
@@ -817,7 +817,7 @@ export function CompanyRegister() {
                         {isSelected && (
                           <div className="mt-2 ml-4">
                             <textarea
-                              className="w-full border border-warm-200 rounded-lg px-3 py-2 text-sm text-warm-800 focus:outline-none focus:ring-2 focus:ring-primary-400 min-h-[80px]"
+                              className="w-full border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary-400 min-h-[80px]"
                               placeholder="답변을 작성하세요..."
                               value={questionAnswers[q] || ''}
                               onChange={(e) =>
@@ -844,28 +844,28 @@ export function CompanyRegister() {
         {step === 7 && (
           <Card>
             <CardHeader>
-              <h2 className="text-lg font-semibold text-warm-900">설정</h2>
+              <h2 className="text-lg font-semibold text-foreground">설정</h2>
             </CardHeader>
             <CardContent>
               <div className="space-y-5">
-                <div className="border border-warm-200 rounded-lg p-4 space-y-3">
-                  <h3 className="text-sm font-semibold text-warm-800">구독 관리</h3>
-                  <p className="text-xs text-warm-500">현재 플랜: Free</p>
+                <div className="border border-border rounded-lg p-4 space-y-3">
+                  <h3 className="text-sm font-semibold text-foreground">구독 관리</h3>
+                  <p className="text-xs text-muted-foreground">현재 플랜: Free</p>
                   <Button type="button" variant="outline" size="sm" disabled>
                     플랜 업그레이드 (준비 중)
                   </Button>
                 </div>
 
-                <div className="border border-warm-200 rounded-lg p-4 space-y-3">
-                  <h3 className="text-sm font-semibold text-warm-800">계정 관리</h3>
-                  <p className="text-xs text-warm-500">
+                <div className="border border-border rounded-lg p-4 space-y-3">
+                  <h3 className="text-sm font-semibold text-foreground">계정 관리</h3>
+                  <p className="text-xs text-muted-foreground">
                     회사 등록 후 대시보드에서 정보를 수정할 수 있습니다.
                   </p>
                 </div>
 
                 <div className="border border-red-200 rounded-lg p-4 space-y-3">
                   <h3 className="text-sm font-semibold text-red-700">회사 삭제</h3>
-                  <p className="text-xs text-warm-500">
+                  <p className="text-xs text-muted-foreground">
                     등록 후 회사 페이지에서 삭제할 수 있습니다.
                   </p>
                   <Button type="button" variant="danger" size="sm" disabled>

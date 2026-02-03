@@ -62,7 +62,7 @@ export function Header() {
 
   // 로그인 상태: 기존 라이트 헤더
   return (
-    <header className="bg-warm-50 border-b border-warm-200">
+    <header className="bg-background border-b border-border">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <Link to="/" className="flex items-center gap-2">
@@ -71,22 +71,22 @@ export function Header() {
 
           <nav className="flex items-center gap-4">
             {role === 'admin' && (
-              <Link to="/admin" className="text-warm-600 hover:text-warm-900">
+              <Link to="/admin" className="text-muted-foreground hover:text-foreground">
                 Admin
               </Link>
             )}
             {(role === 'investor' || role === 'admin') && (
-              <Link to="/companies" className="text-warm-600 hover:text-warm-900">
+              <Link to="/companies" className="text-muted-foreground hover:text-foreground">
                 스타트업 탐색
               </Link>
             )}
             {role === 'startup' && (
-              <Link to="/dashboard" className="text-warm-600 hover:text-warm-900">
+              <Link to="/dashboard" className="text-muted-foreground hover:text-foreground">
                 대시보드
               </Link>
             )}
             <div className="flex items-center gap-3 ml-4">
-              <span className="text-sm text-warm-600">{profile?.full_name || user.email}</span>
+              <span className="text-sm text-muted-foreground">{profile?.full_name || user.email}</span>
               <Button variant="ghost" size="sm" onClick={handleLogout}>
                 로그아웃
               </Button>

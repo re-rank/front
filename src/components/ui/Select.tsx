@@ -20,7 +20,7 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
     return (
       <div className="w-full">
         {label && (
-          <label htmlFor={selectId} className="block text-sm font-medium text-warm-700 mb-1">
+          <label htmlFor={selectId} className="block text-sm font-medium text-foreground mb-1">
             {label}
             {props.required && <span className="text-red-500 ml-1">*</span>}
           </label>
@@ -29,10 +29,10 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
           ref={ref}
           id={selectId}
           className={cn(
-            'w-full px-3 py-2 border rounded-lg text-warm-900 bg-white',
+            'w-full px-3 py-2 border rounded-lg text-foreground bg-white',
             'focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent',
-            'disabled:bg-warm-100 disabled:cursor-not-allowed',
-            error ? 'border-red-500' : 'border-warm-300',
+            'disabled:bg-background disabled:cursor-not-allowed',
+            error ? 'border-red-500' : 'border-border',
             className
           )}
           {...props}

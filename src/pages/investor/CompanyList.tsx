@@ -94,14 +94,14 @@ export function CompanyList() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold text-warm-900 mb-6">스타트업 탐색</h1>
+      <h1 className="text-2xl font-bold text-foreground mb-6">스타트업 탐색</h1>
 
       <div className="flex flex-col lg:flex-row gap-6">
         {/* 필터 패널 */}
         <aside className="w-full lg:w-64 shrink-0 space-y-4">
           <Card>
             <CardContent className="space-y-4">
-              <h2 className="font-semibold text-warm-800">필터</h2>
+              <h2 className="font-semibold text-foreground">필터</h2>
               <Select
                 label="카테고리"
                 options={categoryOptions}
@@ -126,8 +126,8 @@ export function CompanyList() {
 
         {/* 회사 그리드 */}
         <section className="flex-1">
-          <p className="text-sm text-warm-600 mb-4">
-            총 <span className="font-semibold text-warm-900">{companies.length}개</span> 스타트업
+          <p className="text-sm text-muted-foreground mb-4">
+            총 <span className="font-semibold text-foreground">{companies.length}개</span> 스타트업
           </p>
 
           {loading ? (
@@ -135,7 +135,7 @@ export function CompanyList() {
               <div className="animate-spin h-8 w-8 border-4 border-primary-500 border-t-transparent rounded-full" />
             </div>
           ) : companies.length === 0 ? (
-            <div className="text-center py-20 text-warm-500">
+            <div className="text-center py-20 text-muted-foreground">
               <Search className="mx-auto mb-3 h-10 w-10" />
               <p>조건에 맞는 스타트업이 없습니다.</p>
             </div>
@@ -153,17 +153,17 @@ export function CompanyList() {
                           className="h-10 w-10 rounded-lg object-cover"
                         />
                       ) : (
-                        <div className="h-10 w-10 rounded-lg bg-warm-200 flex items-center justify-center text-warm-500 font-bold">
+                        <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center text-muted-foreground font-bold">
                           {c.name[0]}
                         </div>
                       )}
-                      <h3 className="font-semibold text-warm-900 truncate">{c.name}</h3>
+                      <h3 className="font-semibold text-foreground truncate">{c.name}</h3>
                     </div>
 
-                    <p className="text-sm text-warm-600 line-clamp-2">{c.short_description}</p>
+                    <p className="text-sm text-muted-foreground line-clamp-2">{c.short_description}</p>
 
                     {/* 메타 */}
-                    <div className="flex flex-wrap items-center gap-2 text-xs text-warm-500">
+                    <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                       <span className="inline-flex items-center gap-1">
                         <Calendar className="h-3 w-3" />
                         {c.founded_at}

@@ -86,15 +86,15 @@ export function ImageUpload({
   return (
     <div className={cn('w-full', className)}>
       {label && (
-        <label className="block text-sm font-medium text-warm-700 mb-1">
+        <label className="block text-sm font-medium text-foreground mb-1">
           {label}
           {required && <span className="text-red-500 ml-1">*</span>}
         </label>
       )}
       <div
         className={cn(
-          'relative border-2 border-dashed flex items-center justify-center cursor-pointer overflow-hidden bg-warm-50 hover:bg-warm-100 transition-colors',
-          displayError ? 'border-red-400' : 'border-warm-300',
+          'relative border-2 border-dashed flex items-center justify-center cursor-pointer overflow-hidden bg-background hover:bg-accent transition-colors',
+          displayError ? 'border-red-400' : 'border-border',
           shape === 'circle' ? 'rounded-full' : 'rounded-lg',
           sizeMap[size]
         )}
@@ -115,7 +115,7 @@ export function ImageUpload({
             </button>
           </>
         ) : (
-          <div className="flex flex-col items-center text-warm-400">
+          <div className="flex flex-col items-center text-muted-foreground">
             {uploading ? (
               <div className="animate-spin w-6 h-6 border-2 border-primary-500 border-t-transparent rounded-full" />
             ) : (
