@@ -55,6 +55,14 @@ export function ImageUpload({
       setUploading(true);
       setUploadError(null);
 
+      // Ensure session is valid before upload
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !session) {
+        setUploadError('Please log in again to upload.');
+        setUploading(false);
+        return;
+      }
+
       const ext = file.name.split('.').pop();
       const fileName = `${path}/${crypto.randomUUID()}.${ext}`;
 
