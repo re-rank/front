@@ -126,7 +126,10 @@ export function ImageUpload({
           shape === 'circle' ? 'rounded-full' : 'rounded-lg',
           sizeMap[size]
         )}
-        onClick={() => inputRef.current?.click()}
+        onClick={() => {
+          console.log('[ImageUpload] Click triggered, uploading:', uploading);
+          inputRef.current?.click();
+        }}
       >
         {value ? (
           <>
