@@ -49,7 +49,8 @@
       "WebFetch(domain:docs.stripe.com)",
       "Bash(git pull:*)",
       "Bash(git fetch:*)",
-      "Bash(cmdkey /delete:git:https://github.com)"
+      "Bash(cmdkey /delete:git:https://github.com)",
+      "mcp__playwright__browser_file_upload"
     ]
   }
 }
