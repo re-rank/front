@@ -48,7 +48,8 @@
       "Bash(dir:*)",
       "WebFetch(domain:docs.stripe.com)",
       "Bash(git pull:*)",
-      "Bash(git fetch:*)"
+      "Bash(git fetch:*)",
+      "Bash(cmdkey /delete:git:https://github.com)"
     ]
   }
 }
