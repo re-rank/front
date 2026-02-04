@@ -364,6 +364,8 @@ export function CompanyRegister() {
 
     try {
       console.log('Inserting company with user_id:', user.id);
+      const { data: session } = await supabase.auth.getSession();
+      console.log('Supabase session:', session?.session ? 'exists' : 'null');
       const { data: company, error: companyError } = await supabase
         .from('companies')
         .insert({
