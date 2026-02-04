@@ -188,34 +188,45 @@ export function CompanyRegister() {
     ga4: 'disconnected',
   });
 
-  // Check for existing integrations on mount
+  // Check for existing integrations and restore step on mount
   useEffect(() => {
-    const checkIntegrations = () => {
-      // Check localStorage for pending integrations (connected via OAuth)
-      const pendingIntegrations = localStorage.getItem('pending_integrations');
-      if (pendingIntegrations) {
-        try {
-          const integrations = JSON.parse(pendingIntegrations);
-          setIntegrationStatus((prev) => ({
-            stripe: integrations.stripe?.status === 'connected' ? 'connected' : prev.stripe,
-            ga4: integrations.ga4?.status === 'connected' ? 'connected' : prev.ga4,
-          }));
-        } catch (e) {
-          console.error('Failed to parse integrations:', e);
-        }
+    // Restore step from localStorage (after OAuth redirect)
+    const savedStep = localStorage.getItem('company_register_step');
+    if (savedStep) {
+      const stepNum = parseInt(savedStep, 10);
+      if (stepNum >= 1 && stepNum <= STEPS.length) {
+        setStep(stepNum);
       }
-    };
-    checkIntegrations();
+      localStorage.removeItem('company_register_step');
+    }
+
+    // Check localStorage for pending integrations (connected via OAuth)
+    const pendingIntegrations = localStorage.getItem('pending_integrations');
+    if (pendingIntegrations) {
+      try {
+        const integrations = JSON.parse(pendingIntegrations);
+        setIntegrationStatus((prev) => ({
+          stripe: integrations.stripe?.status === 'connected' ? 'connected' : prev.stripe,
+          ga4: integrations.ga4?.status === 'connected' ? 'connected' : prev.ga4,
+        }));
+      } catch (e) {
+        console.error('Failed to parse integrations:', e);
+      }
+    }
   }, []);
 
   // Handle Stripe Connect
   const handleStripeConnect = () => {
+    // Save current step before OAuth redirect
+    localStorage.setItem('company_register_step', String(step));
     setIntegrationStatus((prev) => ({ ...prev, stripe: 'loading' }));
     initiateStripeConnect();
   };
 
   // Handle GA4 Connect
   const handleGA4Connect = () => {
+    // Save current step before OAuth redirect
+    localStorage.setItem('company_register_step', String(step));
     setIntegrationStatus((prev) => ({ ...prev, ga4: 'loading' }));
     initiateGoogleOAuth();
   };
