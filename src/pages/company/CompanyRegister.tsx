@@ -359,64 +359,69 @@ export function CompanyRegister() {
     }
     setSubmitError(null);
 
-    console.log('Inserting company...');
-    const { data: company, error: companyError } = await supabase
-      .from('companies')
-      .insert({
-        user_id: user.id,
-        name: data.name,
-        logo_url: data.logo_url || null,
-        short_description: data.short_description,
-        description: data.description,
-        founded_at: data.founded_at,
-        location: data.location,
-        employee_count: data.employee_count,
-        category: data.category,
-        stage: data.stage,
-        website_url: data.website_url || null,
-        github_url: data.github_url || null,
-        linkedin_url: data.linkedin_url || null,
-        twitter_url: data.twitter_url || null,
-        youtube_url: data.youtube_url || null,
-        deck_url: companyDeck?.url || null,
-        stripe_connected: integrationStatus.stripe === 'connected',
-        ga4_connected: integrationStatus.ga4 === 'connected',
-      })
-      .select('id')
-      .single();
+    try {
+      console.log('Inserting company...');
+      const { data: company, error: companyError } = await supabase
+        .from('companies')
+        .insert({
+          user_id: user.id,
+          name: data.name,
+          logo_url: data.logo_url || null,
+          short_description: data.short_description,
+          description: data.description,
+          founded_at: data.founded_at,
+          location: data.location,
+          employee_count: data.employee_count,
+          category: data.category,
+          stage: data.stage,
+          website_url: data.website_url || null,
+          github_url: data.github_url || null,
+          linkedin_url: data.linkedin_url || null,
+          twitter_url: data.twitter_url || null,
+          youtube_url: data.youtube_url || null,
+          deck_url: companyDeck?.url || null,
+          stripe_connected: integrationStatus.stripe === 'connected',
+          ga4_connected: integrationStatus.ga4 === 'connected',
+        })
+        .select('id')
+        .single();
 
-    console.log('Company insert result:', { company, companyError });
-    if (companyError || !company) {
-      console.error('Company insert failed:', companyError);
-      setSubmitError(companyError?.message || 'Failed to register company.');
-      return;
+      console.log('Company insert result:', { company, companyError });
+      if (companyError || !company) {
+        console.error('Company insert failed:', companyError);
+        setSubmitError(companyError?.message || 'Failed to register company.');
+        return;
+      }
+
+      console.log('Inserting executives...');
+      const executives = data.executives.map((exec) => ({
+        company_id: company.id,
+        name: exec.name,
+        role: exec.role,
+        photo_url: exec.photo_url || null,
+        bio: exec.bio || null,
+        linkedin_url: exec.linkedin_url || null,
+        twitter_url: exec.twitter_url || null,
+        education: exec.education || null,
+      }));
+
+      const { error: execError } = await supabase.from('executives').insert(executives);
+      console.log('Executives insert result:', { execError });
+
+      if (execError) {
+        console.error('Executives insert failed:', execError);
+        setSubmitError('Failed to register executives.');
+        return;
+      }
+
+      // Clear pending integrations from localStorage
+      localStorage.removeItem('pending_integrations');
+      console.log('Success! Navigating to dashboard...');
+      navigate('/dashboard');
+    } catch (error) {
+      console.error('Unexpected error during submission:', error);
+      setSubmitError(error instanceof Error ? error.message : 'An unexpected error occurred.');
     }
-
-    console.log('Inserting executives...');
-    const executives = data.executives.map((exec) => ({
-      company_id: company.id,
-      name: exec.name,
-      role: exec.role,
-      photo_url: exec.photo_url || null,
-      bio: exec.bio || null,
-      linkedin_url: exec.linkedin_url || null,
-      twitter_url: exec.twitter_url || null,
-      education: exec.education || null,
-    }));
-
-    const { error: execError } = await supabase.from('executives').insert(executives);
-    console.log('Executives insert result:', { execError });
-
-    if (execError) {
-      console.error('Executives insert failed:', execError);
-      setSubmitError('Failed to register executives.');
-      return;
-    }
-
-    // Clear pending integrations from localStorage
-    localStorage.removeItem('pending_integrations');
-    console.log('Success! Navigating to dashboard...');
-    navigate('/dashboard');
   };
 
   const progress = (step / STEPS.length) * 100;
