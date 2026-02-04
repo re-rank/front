@@ -121,7 +121,7 @@ const executiveSchema = z.object({
 
 const companyRegisterSchema = z.object({
   // Step 1: Profile
-  logo_url: z.string().min(1, 'Please upload a company logo'),
+  logo_url: z.string().optional(),
   name: z.string().min(1, 'Please enter a company name'),
   short_description: z
     .string()
@@ -468,7 +468,7 @@ export function CompanyRegister() {
 
                 {/* Logo */}
                 <div className="space-y-2">
-                  <Label required>Company Logo</Label>
+                  <Label>Company Logo</Label>
                   <Controller
                     control={control}
                     name="logo_url"
