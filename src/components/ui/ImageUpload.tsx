@@ -63,8 +63,17 @@ export function ImageUpload({
 
       console.log('[ImageUpload] Checking session...');
       // Ensure session is valid before upload
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      let { data: { session }, error: sessionError } = await supabase.auth.getSession();
       console.log('[ImageUpload] Session result:', { session: !!session, error: sessionError });
+
+      // If no session, try to refresh
+      if (!session) {
+        console.log('[ImageUpload] No session, attempting refresh...');
+        const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+        session = refreshData.session;
+        sessionError = refreshError;
+        console.log('[ImageUpload] Refresh result:', { session: !!session, error: refreshError });
+      }
 
       if (sessionError || !session) {
         setUploadError('Please log in again to upload.');
