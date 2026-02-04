@@ -40,8 +40,14 @@ export function ImageUpload({
 
   const handleUpload = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
+      console.log('[ImageUpload] handleUpload triggered');
       const file = e.target.files?.[0];
-      if (!file) return;
+      if (!file) {
+        console.log('[ImageUpload] No file selected');
+        return;
+      }
+
+      console.log('[ImageUpload] File selected:', file.name, file.type, file.size);
 
       if (!file.type.startsWith('image/')) {
         setUploadError('Only image files are allowed.');
@@ -55,13 +61,18 @@ export function ImageUpload({
       setUploading(true);
       setUploadError(null);
 
+      console.log('[ImageUpload] Checking session...');
       // Ensure session is valid before upload
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      console.log('[ImageUpload] Session result:', { session: !!session, error: sessionError });
+
       if (sessionError || !session) {
         setUploadError('Please log in again to upload.');
         setUploading(false);
         return;
       }
+
+      console.log('[ImageUpload] Session valid, starting upload...');
 
       const ext = file.name.split('.').pop();
       const fileName = `${path}/${crypto.randomUUID()}.${ext}`;
