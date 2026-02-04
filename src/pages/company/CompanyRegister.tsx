@@ -359,10 +359,11 @@ export function CompanyRegister() {
       console.log('No user found');
       return;
     }
+    console.log('User ID:', user.id);
     setSubmitError(null);
 
     try {
-      console.log('Inserting company...');
+      console.log('Inserting company with user_id:', user.id);
       const { data: company, error: companyError } = await supabase
         .from('companies')
         .insert({
