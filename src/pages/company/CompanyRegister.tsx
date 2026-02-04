@@ -352,9 +352,14 @@ export function CompanyRegister() {
 
   // --- Submit ---
   const onSubmit = async (data: CompanyRegisterForm) => {
-    if (!user) return;
+    console.log('onSubmit called', data);
+    if (!user) {
+      console.log('No user found');
+      return;
+    }
     setSubmitError(null);
 
+    console.log('Inserting company...');
     const { data: company, error: companyError } = await supabase
       .from('companies')
       .insert({
@@ -380,11 +385,14 @@ export function CompanyRegister() {
       .select('id')
       .single();
 
+    console.log('Company insert result:', { company, companyError });
     if (companyError || !company) {
+      console.error('Company insert failed:', companyError);
       setSubmitError(companyError?.message || 'Failed to register company.');
       return;
     }
 
+    console.log('Inserting executives...');
     const executives = data.executives.map((exec) => ({
       company_id: company.id,
       name: exec.name,
@@ -397,15 +405,17 @@ export function CompanyRegister() {
     }));
 
     const { error: execError } = await supabase.from('executives').insert(executives);
+    console.log('Executives insert result:', { execError });
 
     if (execError) {
+      console.error('Executives insert failed:', execError);
       setSubmitError('Failed to register executives.');
       return;
     }
 
     // Clear pending integrations from localStorage
     localStorage.removeItem('pending_integrations');
-
+    console.log('Success! Navigating to dashboard...');
     navigate('/dashboard');
   };
 
