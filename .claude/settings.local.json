@@ -50,7 +50,8 @@
       "Bash(git pull:*)",
       "Bash(git fetch:*)",
       "Bash(cmdkey /delete:git:https://github.com)",
-      "mcp__playwright__browser_file_upload"
+      "mcp__playwright__browser_file_upload",
+      "Bash(git branch:*)"
     ]
   }
 }
