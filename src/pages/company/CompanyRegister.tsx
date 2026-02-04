@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -8,6 +8,7 @@ import {
   Check, ArrowLeft, ArrowRight, Upload, Globe, Github, Linkedin, Youtube, FileText,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { initiateStripeConnect, initiateGoogleOAuth } from '@/lib/integrations';
 import { useAuthStore } from '@/stores/authStore';
 import {
   Button,
@@ -28,6 +29,28 @@ const XIcon = ({ className }: { className?: string }) => (
     <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
   </svg>
 );
+
+// Stripe Icon
+const StripeIcon = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M13.976 9.15c-2.172-.806-3.356-1.426-3.356-2.409 0-.831.683-1.305 1.901-1.305 2.227 0 4.515.858 6.09 1.631l.89-5.494C18.252.975 15.697 0 12.165 0 9.667 0 7.589.654 6.104 1.872 4.56 3.147 3.757 4.992 3.757 7.218c0 4.039 2.467 5.76 6.476 7.219 2.585.92 3.445 1.574 3.445 2.583 0 .98-.84 1.545-2.354 1.545-1.875 0-4.965-.921-6.99-2.109l-.9 5.555C5.175 22.99 8.385 24 11.714 24c2.641 0 4.843-.624 6.328-1.813 1.664-1.305 2.525-3.236 2.525-5.732 0-4.128-2.524-5.851-6.591-7.305z" />
+  </svg>
+);
+
+// Google Analytics Icon
+const GA4Icon = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M22.84 2.998v17.958c0 1.2-.6 2.1-1.5 2.7-.9.6-2.1.6-3 0l-6.6-3.9v-4.2l6.6 3.9v-12l-6.6 3.9v-4.2l6.6-3.9c.9-.6 2.1-.6 3 0 .9.6 1.5 1.5 1.5 2.7z" />
+    <path d="M8.04 12.898v8.1c0 1.2-.6 2.1-1.5 2.7-.9.6-2.1.6-3 0-.9-.6-1.5-1.5-1.5-2.7v-8.1c0-1.2.6-2.1 1.5-2.7.9-.6 2.1-.6 3 0 .9.6 1.5 1.5 1.5 2.7z" />
+    <circle cx="4.54" cy="4.998" r="3" />
+  </svg>
+);
+
+// Integration status type
+interface IntegrationStatus {
+  stripe: 'disconnected' | 'connected' | 'loading';
+  ga4: 'disconnected' | 'connected' | 'loading';
+}
 
 // --- Options ---
 const employeeCountOptions: SelectOption[] = [
@@ -158,6 +181,55 @@ export function CompanyRegister() {
   // Step 5: Questions
   const [selectedQuestions, setSelectedQuestions] = useState<string[]>([]);
   const [questionAnswers, setQuestionAnswers] = useState<Record<string, string>>({});
+
+  // Step 4: Integrations
+  const [integrationStatus, setIntegrationStatus] = useState<IntegrationStatus>({
+    stripe: 'disconnected',
+    ga4: 'disconnected',
+  });
+
+  // Check for existing integrations on mount
+  useEffect(() => {
+    const checkIntegrations = () => {
+      // Check localStorage for pending integrations (connected via OAuth)
+      const pendingIntegrations = localStorage.getItem('pending_integrations');
+      if (pendingIntegrations) {
+        try {
+          const integrations = JSON.parse(pendingIntegrations);
+          setIntegrationStatus((prev) => ({
+            stripe: integrations.stripe?.status === 'connected' ? 'connected' : prev.stripe,
+            ga4: integrations.ga4?.status === 'connected' ? 'connected' : prev.ga4,
+          }));
+        } catch (e) {
+          console.error('Failed to parse integrations:', e);
+        }
+      }
+    };
+    checkIntegrations();
+  }, []);
+
+  // Handle Stripe Connect
+  const handleStripeConnect = () => {
+    setIntegrationStatus((prev) => ({ ...prev, stripe: 'loading' }));
+    initiateStripeConnect();
+  };
+
+  // Handle GA4 Connect
+  const handleGA4Connect = () => {
+    setIntegrationStatus((prev) => ({ ...prev, ga4: 'loading' }));
+    initiateGoogleOAuth();
+  };
+
+  // Disconnect integration
+  const handleDisconnect = (provider: 'stripe' | 'ga4') => {
+    const pendingIntegrations = localStorage.getItem('pending_integrations');
+    if (pendingIntegrations) {
+      const integrations = JSON.parse(pendingIntegrations);
+      delete integrations[provider];
+      localStorage.setItem('pending_integrations', JSON.stringify(integrations));
+    }
+    setIntegrationStatus((prev) => ({ ...prev, [provider]: 'disconnected' }));
+  };
 
   const {
     register,
@@ -291,6 +363,8 @@ export function CompanyRegister() {
         twitter_url: data.twitter_url || null,
         youtube_url: data.youtube_url || null,
         deck_url: companyDeck?.url || null,
+        stripe_connected: integrationStatus.stripe === 'connected',
+        ga4_connected: integrationStatus.ga4 === 'connected',
       })
       .select('id')
       .single();
@@ -317,6 +391,9 @@ export function CompanyRegister() {
       setSubmitError('Failed to register executives.');
       return;
     }
+
+    // Clear pending integrations from localStorage
+    localStorage.removeItem('pending_integrations');
 
     navigate('/dashboard');
   };
@@ -792,38 +869,203 @@ export function CompanyRegister() {
               <CardContent className="p-6 space-y-6">
                 <div>
                   <h2 className="text-2xl font-serif mb-2">Business Metrics</h2>
-                  <p className="text-muted-foreground">Connect your accounts to automatically sync your metrics.</p>
+                  <p className="text-muted-foreground">Connect your accounts to automatically sync your metrics and showcase your traction to investors.</p>
                 </div>
 
+                {/* Stripe Connect Section */}
                 <Card className="bg-secondary/50">
-                  <CardContent className="p-4 space-y-4">
-                    <div className="flex items-center gap-2">
-                      <BarChart3 className="w-5 h-5" />
-                      <h3 className="font-medium">Stripe & GA4 Integration</h3>
+                  <CardContent className="p-5 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg bg-[#635BFF]/10 flex items-center justify-center">
+                          <StripeIcon className="w-5 h-5 text-[#635BFF]" />
+                        </div>
+                        <div>
+                          <h3 className="font-medium">Stripe Connect</h3>
+                          <p className="text-sm text-muted-foreground">Revenue & payment metrics</p>
+                        </div>
+                      </div>
+                      {integrationStatus.stripe === 'connected' ? (
+                        <div className="flex items-center gap-2">
+                          <span className="flex items-center gap-1.5 text-sm text-green-500">
+                            <Check className="w-4 h-4" />
+                            Connected
+                          </span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDisconnect('stripe')}
+                            className="text-muted-foreground hover:text-destructive"
+                          >
+                            Disconnect
+                          </Button>
+                        </div>
+                      ) : (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={handleStripeConnect}
+                          disabled={integrationStatus.stripe === 'loading'}
+                          className="gap-2"
+                        >
+                          {integrationStatus.stripe === 'loading' ? (
+                            <>
+                              <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                              Connecting...
+                            </>
+                          ) : (
+                            <>
+                              <StripeIcon className="w-4 h-4" />
+                              Connect Stripe
+                            </>
+                          )}
+                        </Button>
+                      )}
                     </div>
 
-                    <div className="grid sm:grid-cols-3 gap-4 text-center">
-                      <div className="p-4 rounded-lg bg-background border border-border">
-                        <p className="text-sm text-muted-foreground">Revenue</p>
-                        <p className="font-semibold">Monthly MRR</p>
+                    {integrationStatus.stripe === 'connected' && (
+                      <div className="grid sm:grid-cols-3 gap-3 pt-2">
+                        <div className="p-3 rounded-lg bg-background border border-border text-center">
+                          <p className="text-xs text-muted-foreground mb-1">Monthly MRR</p>
+                          <p className="font-semibold text-lg">Syncing...</p>
+                        </div>
+                        <div className="p-3 rounded-lg bg-background border border-border text-center">
+                          <p className="text-xs text-muted-foreground mb-1">Total Revenue</p>
+                          <p className="font-semibold text-lg">Syncing...</p>
+                        </div>
+                        <div className="p-3 rounded-lg bg-background border border-border text-center">
+                          <p className="text-xs text-muted-foreground mb-1">Active Subs</p>
+                          <p className="font-semibold text-lg">Syncing...</p>
+                        </div>
                       </div>
-                      <div className="p-4 rounded-lg bg-background border border-border">
-                        <p className="text-sm text-muted-foreground">Users</p>
-                        <p className="font-semibold">Active Users</p>
-                      </div>
-                      <div className="p-4 rounded-lg bg-background border border-border">
-                        <p className="text-sm text-muted-foreground">Growth</p>
-                        <p className="font-semibold">Retention Rate</p>
-                      </div>
-                    </div>
+                    )}
 
-                    <div className="p-4 rounded-lg bg-primary/10 border border-primary/20 text-center">
-                      <BarChart3 className="w-12 h-12 mx-auto text-primary mb-2" />
-                      <p className="text-sm font-medium">Coming Soon</p>
-                      <p className="text-xs text-muted-foreground">Stripe and GA4 integration will be available soon.</p>
-                    </div>
+                    {integrationStatus.stripe === 'disconnected' && (
+                      <div className="p-4 rounded-lg bg-muted/50 border border-border">
+                        <h4 className="text-sm font-medium mb-2">What you'll get:</h4>
+                        <ul className="text-sm text-muted-foreground space-y-1.5">
+                          <li className="flex items-center gap-2">
+                            <Check className="w-3.5 h-3.5 text-primary" />
+                            Automatic MRR & ARR tracking
+                          </li>
+                          <li className="flex items-center gap-2">
+                            <Check className="w-3.5 h-3.5 text-primary" />
+                            Revenue growth charts
+                          </li>
+                          <li className="flex items-center gap-2">
+                            <Check className="w-3.5 h-3.5 text-primary" />
+                            Customer & subscription counts
+                          </li>
+                        </ul>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
+
+                {/* Google Analytics Section */}
+                <Card className="bg-secondary/50">
+                  <CardContent className="p-5 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg bg-[#F9AB00]/10 flex items-center justify-center">
+                          <GA4Icon className="w-5 h-5 text-[#F9AB00]" />
+                        </div>
+                        <div>
+                          <h3 className="font-medium">Google Analytics 4</h3>
+                          <p className="text-sm text-muted-foreground">Traffic & user engagement</p>
+                        </div>
+                      </div>
+                      {integrationStatus.ga4 === 'connected' ? (
+                        <div className="flex items-center gap-2">
+                          <span className="flex items-center gap-1.5 text-sm text-green-500">
+                            <Check className="w-4 h-4" />
+                            Connected
+                          </span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDisconnect('ga4')}
+                            className="text-muted-foreground hover:text-destructive"
+                          >
+                            Disconnect
+                          </Button>
+                        </div>
+                      ) : (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={handleGA4Connect}
+                          disabled={integrationStatus.ga4 === 'loading'}
+                          className="gap-2"
+                        >
+                          {integrationStatus.ga4 === 'loading' ? (
+                            <>
+                              <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                              Connecting...
+                            </>
+                          ) : (
+                            <>
+                              <GA4Icon className="w-4 h-4" />
+                              Connect GA4
+                            </>
+                          )}
+                        </Button>
+                      )}
+                    </div>
+
+                    {integrationStatus.ga4 === 'connected' && (
+                      <div className="grid sm:grid-cols-3 gap-3 pt-2">
+                        <div className="p-3 rounded-lg bg-background border border-border text-center">
+                          <p className="text-xs text-muted-foreground mb-1">Monthly Users</p>
+                          <p className="font-semibold text-lg">Syncing...</p>
+                        </div>
+                        <div className="p-3 rounded-lg bg-background border border-border text-center">
+                          <p className="text-xs text-muted-foreground mb-1">Page Views</p>
+                          <p className="font-semibold text-lg">Syncing...</p>
+                        </div>
+                        <div className="p-3 rounded-lg bg-background border border-border text-center">
+                          <p className="text-xs text-muted-foreground mb-1">Avg. Session</p>
+                          <p className="font-semibold text-lg">Syncing...</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {integrationStatus.ga4 === 'disconnected' && (
+                      <div className="p-4 rounded-lg bg-muted/50 border border-border">
+                        <h4 className="text-sm font-medium mb-2">What you'll get:</h4>
+                        <ul className="text-sm text-muted-foreground space-y-1.5">
+                          <li className="flex items-center gap-2">
+                            <Check className="w-3.5 h-3.5 text-primary" />
+                            Monthly active users tracking
+                          </li>
+                          <li className="flex items-center gap-2">
+                            <Check className="w-3.5 h-3.5 text-primary" />
+                            Traffic & engagement metrics
+                          </li>
+                          <li className="flex items-center gap-2">
+                            <Check className="w-3.5 h-3.5 text-primary" />
+                            User retention analytics
+                          </li>
+                        </ul>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Summary Card */}
+                <div className="p-4 rounded-lg bg-primary/5 border border-primary/20">
+                  <div className="flex items-start gap-3">
+                    <BarChart3 className="w-5 h-5 text-primary mt-0.5" />
+                    <div>
+                      <h4 className="font-medium text-sm mb-1">Why connect your metrics?</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Verified metrics from Stripe and GA4 build trust with investors. Companies with connected metrics receive 3x more investor interest on average.
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           )}

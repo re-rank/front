@@ -16,6 +16,7 @@ const CompanyRegister = lazy(() => import('@/pages/company/CompanyRegister').the
 const CompanyList = lazy(() => import('@/pages/investor/CompanyList').then(m => ({ default: m.CompanyList })));
 const CompanyDetail = lazy(() => import('@/pages/investor/CompanyDetail').then(m => ({ default: m.CompanyDetail })));
 const AdminDashboard = lazy(() => import('@/pages/admin/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
+const OAuthCallback = lazy(() => import('@/pages/auth/OAuthCallback').then(m => ({ default: m.OAuthCallback })));
 
 // Loading fallback component
 function PageLoader() {
@@ -65,7 +66,7 @@ function RequireRole({ children }: { children: React.ReactNode }) {
   }, [isLoading, setLoading]);
 
   // Public pages - show immediately
-  const publicPaths = ['/', '/login', '/register/company', '/register/member'];
+  const publicPaths = ['/', '/login', '/register/company', '/register/member', '/oauth/callback'];
   if (publicPaths.includes(location.pathname)) {
     return <>{children}</>;
   }
@@ -169,6 +170,7 @@ function AppContent() {
               <Route path="/register/company" element={<RegisterForm role="startup" />} />
               <Route path="/register/member" element={<RegisterForm role="investor" />} />
               <Route path="/select-role" element={<SelectRole />} />
+              <Route path="/oauth/callback" element={<OAuthCallback />} />
 
             {/* Investor routes */}
             <Route element={<ProtectedRoute allowedRoles={['investor', 'admin']} />}>

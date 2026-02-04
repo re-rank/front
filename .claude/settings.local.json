@@ -45,7 +45,9 @@
       "Bash(git commit:*)",
       "Bash(dir /b \"C:\\\\Users\\\\박호진\\\\OneDrive\\\\Desktop\\\\iv-privacy-policy-extracted\")",
       "Bash(dir /b /s \"C:\\\\Users\\\\박호진\\\\OneDrive\\\\Desktop\\\\iv-privacy-policy-extracted\\\\app\")",
-      "Bash(dir:*)"
+      "Bash(dir:*)",
+      "WebFetch(domain:docs.stripe.com)",
+      "Bash(git pull:*)"
     ]
   }
 }
