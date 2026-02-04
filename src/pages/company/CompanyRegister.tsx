@@ -288,7 +288,9 @@ export function CompanyRegister() {
     'employee_count', 'description', 'category', 'stage',
   ] as const;
 
-  const handleNext = async () => {
+  const handleNext = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     if (step === 1) {
       const valid = await trigger(step1Fields as unknown as (keyof CompanyRegisterForm)[]);
       if (!valid) return;
