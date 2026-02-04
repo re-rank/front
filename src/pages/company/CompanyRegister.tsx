@@ -467,7 +467,7 @@ export function CompanyRegister() {
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit(onSubmit)}>
+        <form onSubmit={handleSubmit(onSubmit, (errors) => console.log('Validation errors:', errors))}>
           {/* Step 1: Basic Info */}
           {step === 1 && (
             <Card className="mb-8">
