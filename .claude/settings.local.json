@@ -52,7 +52,8 @@
       "Bash(cmdkey /delete:git:https://github.com)",
       "mcp__playwright__browser_file_upload",
       "Bash(git branch:*)",
-      "Bash(npx supabase:*)"
+      "Bash(npx supabase:*)",
+      "Bash(gh api:*)"
     ]
   }
 }
