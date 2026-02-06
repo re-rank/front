@@ -26,13 +26,21 @@ const XIcon = ({ className }: { className?: string }) => (
 );
 
 export function StartupDashboard() {
-  const { user } = useAuthStore();
+  const { user, isLoading: authLoading } = useAuthStore();
   const [company, setCompany] = useState<Company | null>(null);
   const [executives, setExecutives] = useState<Executive[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user?.id) return;
+    // Wait for auth to finish loading before deciding
+    if (authLoading) return;
+
+    // If no user after auth is done, stop loading
+    if (!user?.id) {
+      setLoading(false);
+      return;
+    }
+
     let cancelled = false;
 
     (async () => {
@@ -63,7 +71,7 @@ export function StartupDashboard() {
     })();
 
     return () => { cancelled = true; };
-  }, [user?.id]);
+  }, [user?.id, authLoading]);
 
   if (loading) {
     return (
