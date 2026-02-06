@@ -35,7 +35,7 @@ export function getStripeConnectUrl(config: StripeConnectConfig): string {
   const params = new URLSearchParams({
     response_type: 'code',
     client_id: config.clientId,
-    scope: config.scope || 'read_write',
+    scope: config.scope || 'read_only',
     redirect_uri: config.redirectUri,
     state,
   });
@@ -56,7 +56,7 @@ export function initiateStripeConnect(): void {
   const url = getStripeConnectUrl({
     clientId,
     redirectUri,
-    scope: 'read_write',
+    scope: 'read_only',
   });
 
   window.location.href = url;
