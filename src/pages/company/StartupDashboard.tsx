@@ -15,7 +15,6 @@ import {
   Edit,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { useAuthStore } from '@/stores/authStore';
 import { Card, CardContent, Badge, Button } from '@/components/ui';
 import type { Company, Executive } from '@/types/database';
 
@@ -26,7 +25,6 @@ const XIcon = ({ className }: { className?: string }) => (
 );
 
 export function StartupDashboard() {
-  const { user } = useAuthStore();
   const [company, setCompany] = useState<Company | null>(null);
   const [executives, setExecutives] = useState<Executive[]>([]);
   const [loading, setLoading] = useState(true);
@@ -34,15 +32,12 @@ export function StartupDashboard() {
   useEffect(() => {
     let cancelled = false;
 
-    (async () => {
+    async function fetchCompany() {
       try {
-        // Get user from store or fallback to Supabase session
-        let userId = user?.id;
-        if (!userId) {
-          const { data: { session } } = await supabase.auth.getSession();
-          userId = session?.user?.id;
-        }
-        if (!userId) return;
+        // Wait for auth - get user from Supabase directly
+        const { data: { user: authUser } } = await supabase.auth.getUser();
+        const userId = authUser?.id;
+        if (!userId || cancelled) return;
 
         const { data: rows } = await supabase
           .from('companies')
@@ -68,10 +63,11 @@ export function StartupDashboard() {
       } finally {
         if (!cancelled) setLoading(false);
       }
-    })();
+    }
 
+    fetchCompany();
     return () => { cancelled = true; };
-  }, [user]);
+  }, []);
 
   if (loading) {
     return (
