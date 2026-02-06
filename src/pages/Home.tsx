@@ -3,9 +3,9 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui';
 import { useAuthStore } from '@/stores/authStore';
 import {
-  Zap, BarChart3, MessageSquare, Play,
-  GraduationCap, BookOpen, Linkedin, Twitter, ExternalLink,
-  Newspaper, CheckCircle, ArrowRight, Instagram,
+  Zap, BarChart3, MessageSquare, Play, Video,
+  User, BookOpen, Linkedin, ExternalLink,
+  Newspaper, MessageCircle, ArrowRight, Instagram,
 } from 'lucide-react';
 import {
   AreaChart, Area, BarChart as RechartsBarChart, Bar,
@@ -266,7 +266,7 @@ export function Home() {
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div>
               <div className="w-10 h-10 bg-neutral-800 rounded-lg flex items-center justify-center mb-4">
-                <Play className="w-5 h-5 text-neutral-300" />
+                <Video className="w-5 h-5 text-neutral-300" />
               </div>
               <h2 className="text-3xl md:text-4xl font-serif leading-tight text-balance">
                 5-Minute Company<br />
@@ -307,7 +307,7 @@ export function Home() {
         <div className="max-w-6xl mx-auto px-4">
           <div className="text-center mb-12">
             <div className="w-10 h-10 bg-neutral-800 rounded-lg flex items-center justify-center mx-auto mb-4">
-              <GraduationCap className="w-5 h-5 text-neutral-300" />
+              <User className="w-5 h-5 text-neutral-300" />
             </div>
             <h2 className="text-3xl md:text-4xl font-serif leading-tight text-balance">Meet the Leadership Team</h2>
             <p className="text-neutral-400 max-w-2xl mx-auto">
@@ -319,11 +319,6 @@ export function Home() {
             {teamMembers.map((member) => (
               <div key={member.name} className="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
                 <div className="flex items-center gap-4 mb-4">
-                  <img
-                    src={member.photo}
-                    alt={member.name}
-                    className="w-14 h-14 rounded-full object-cover"
-                  />
                   <div>
                     <span className="text-xs text-neutral-500 uppercase tracking-wider">{member.role}</span>
                     <h3 className="font-semibold">{member.name}</h3>
@@ -331,7 +326,7 @@ export function Home() {
                 </div>
                 <div className="space-y-1.5 mb-3">
                   <p className="text-sm text-neutral-400 flex items-center gap-2">
-                    <GraduationCap className="w-3.5 h-3.5" /> {member.school}
+                    <User className="w-3.5 h-3.5" /> {member.school}
                   </p>
                   <p className="text-sm text-neutral-400 flex items-center gap-2">
                     <BookOpen className="w-3.5 h-3.5" /> {member.major}
@@ -340,7 +335,7 @@ export function Home() {
                 <p className="text-sm text-neutral-500 mb-4">{member.bio}</p>
                 <div className="flex gap-3">
                   <Linkedin className="w-4 h-4 text-neutral-500 hover:text-white cursor-pointer transition-colors" />
-                  <Twitter className="w-4 h-4 text-neutral-500 hover:text-white cursor-pointer transition-colors" />
+                  <User className="w-4 h-4 text-neutral-500 hover:text-white cursor-pointer transition-colors" />
                 </div>
               </div>
             ))}
@@ -444,7 +439,7 @@ export function Home() {
                 Standardized Q&A enables fast and accurate comparative analysis across companies.
               </p>
               <div className="flex items-center gap-2 text-sm text-neutral-400 mb-6">
-                <CheckCircle className="w-4 h-4 text-green-500" />
+                <MessageCircle className="w-4 h-4 text-neutral-400" />
                 <span>10 questions available, 5 selected per company</span>
               </div>
               <Link to="/register/member">
