@@ -5,8 +5,6 @@ import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/stores/authStore';
 import { Layout, ProtectedRoute } from '@/components/layout';
 import { Home } from '@/pages';
-import { Button } from '@/components/ui';
-import { Building2 } from 'lucide-react';
 
 // Lazy load pages for better initial load performance
 const Login = lazy(() => import('@/pages/auth/Login').then(m => ({ default: m.Login })));
@@ -16,6 +14,7 @@ const CompanyRegister = lazy(() => import('@/pages/company/CompanyRegister').the
 const CompanyList = lazy(() => import('@/pages/investor/CompanyList').then(m => ({ default: m.CompanyList })));
 const CompanyDetail = lazy(() => import('@/pages/investor/CompanyDetail').then(m => ({ default: m.CompanyDetail })));
 const AdminDashboard = lazy(() => import('@/pages/admin/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
+const StartupDashboard = lazy(() => import('@/pages/company/StartupDashboard').then(m => ({ default: m.StartupDashboard })));
 const OAuthCallback = lazy(() => import('@/pages/auth/OAuthCallback').then(m => ({ default: m.OAuthCallback })));
 
 // Loading fallback component
@@ -185,23 +184,7 @@ function AppContent() {
 
             {/* Startup routes */}
             <Route element={<ProtectedRoute allowedRoles={['startup', 'admin']} />}>
-              <Route
-                path="/dashboard"
-                element={
-                  <div className="min-h-[calc(100vh-64px)] flex flex-col items-center justify-center gap-4 text-center px-4">
-                    <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-2">
-                      <Building2 className="w-8 h-8 text-muted-foreground" />
-                    </div>
-                    <h2 className="text-xl font-semibold text-foreground">No company registered yet</h2>
-                    <p className="text-muted-foreground max-w-md">
-                      You haven't registered a company yet. Get started by creating your company profile to showcase to investors.
-                    </p>
-                    <Link to="/company/register">
-                      <Button size="lg">Register Company</Button>
-                    </Link>
-                  </div>
-                }
-              />
+              <Route path="/dashboard" element={<StartupDashboard />} />
               <Route path="/company/register" element={<CompanyRegister />} />
               <Route path="/company/edit" element={<div className="p-8">Edit Company Info (Coming Soon)</div>} />
             </Route>
