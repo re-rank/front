@@ -46,11 +46,13 @@ export function StartupDashboard() {
         return;
       }
 
-      const { data } = await supabase
+      const { data: rows } = await supabase
         .from('companies')
         .select('*')
         .eq('user_id', userId)
-        .maybeSingle();
+        .order('created_at', { ascending: false })
+        .limit(1);
+      const data = rows?.[0] ?? null;
 
       if (cancelled) return;
 
