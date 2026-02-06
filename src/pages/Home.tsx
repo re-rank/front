@@ -278,13 +278,8 @@ export function Home() {
               </p>
             </div>
             <div className="space-y-4">
-              <div className="relative aspect-video bg-neutral-800 rounded-xl overflow-hidden group cursor-pointer">
-                <img
-                  src="https://images.unsplash.com/photo-1553877522-43269d4ea984?w=600&h=340&fit=crop"
-                  alt="Video thumbnail"
-                  className="w-full h-full object-cover opacity-70 group-hover:opacity-90 transition-opacity"
-                />
-                <div className="absolute inset-0 flex items-center justify-center">
+              <div className="relative aspect-video bg-neutral-800 rounded-xl overflow-hidden group cursor-pointer flex items-center justify-center">
+                <div className="flex items-center justify-center">
                   <div className="w-14 h-14 bg-white/20 backdrop-blur rounded-full flex items-center justify-center">
                     <Play className="w-6 h-6 text-white fill-white" />
                   </div>
