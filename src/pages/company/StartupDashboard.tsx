@@ -15,6 +15,7 @@ import {
   Edit,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { useAuthStore } from '@/stores/authStore';
 import { Card, CardContent, Badge, Button } from '@/components/ui';
 import type { Company, Executive } from '@/types/database';
 
@@ -25,49 +26,41 @@ const XIcon = ({ className }: { className?: string }) => (
 );
 
 export function StartupDashboard() {
+  const { user } = useAuthStore();
   const [company, setCompany] = useState<Company | null>(null);
   const [executives, setExecutives] = useState<Executive[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!user?.id) return;
     let cancelled = false;
 
-    async function fetchCompany() {
-      try {
-        // Wait for auth - get user from Supabase directly
-        const { data: { user: authUser } } = await supabase.auth.getUser();
-        const userId = authUser?.id;
-        if (!userId || cancelled) return;
-
-        const { data: rows } = await supabase
-          .from('companies')
-          .select('*')
-          .eq('user_id', userId)
-          .order('created_at', { ascending: false })
-          .limit(1);
-        const data = rows?.[0] ?? null;
-
+    supabase
+      .from('companies')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .then(({ data: rows }) => {
         if (cancelled) return;
-
+        const data = rows?.[0] ?? null;
         if (data) {
           setCompany(data);
-          const { data: execs } = await supabase
+          return supabase
             .from('executives')
             .select('*')
             .eq('company_id', data.id)
-            .order('created_at');
-          if (!cancelled) setExecutives(execs ?? []);
+            .order('created_at')
+            .then(({ data: execs }) => {
+              if (!cancelled) setExecutives(execs ?? []);
+            });
         }
-      } catch (err) {
-        console.error('Dashboard fetch error:', err);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
+      })
+      .catch((err) => console.error('Dashboard fetch error:', err))
+      .finally(() => { if (!cancelled) setLoading(false); });
 
-    fetchCompany();
     return () => { cancelled = true; };
-  }, []);
+  }, [user?.id]);
 
   if (loading) {
     return (
