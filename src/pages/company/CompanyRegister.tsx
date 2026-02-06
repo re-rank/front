@@ -307,21 +307,40 @@ export function CompanyRegister() {
   // --- Deck upload handler ---
   const handleDeckUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !user) return;
+    if (!file) return;
+
+    if (!user) {
+      setSubmitError('Please log in again to upload files.');
+      return;
+    }
 
     const allowedTypes = ['application/pdf', 'application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation'];
     if (!allowedTypes.includes(file.type)) {
-      alert('Please upload a PDF, PPT, or PPTX file.');
+      setSubmitError('Please upload a PDF, PPT, or PPTX file.');
       return;
     }
 
     if (file.size > 10 * 1024 * 1024) {
-      alert('File size must be less than 10MB.');
+      setSubmitError('File size must be less than 10MB.');
       return;
     }
 
     setDeckUploading(true);
+    setSubmitError(null);
+
     try {
+      // Ensure session is valid before upload
+      let { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        const { data: refreshData } = await supabase.auth.refreshSession();
+        session = refreshData.session;
+      }
+      if (!session) {
+        setSubmitError('Session expired. Please log in again.');
+        setDeckUploading(false);
+        return;
+      }
+
       const fileExt = file.name.split('.').pop();
       const fileName = `${user.id}-${Date.now()}.${fileExt}`;
       const filePath = `decks/${fileName}`;
@@ -339,7 +358,7 @@ export function CompanyRegister() {
       setCompanyDeck({ name: file.name, url: publicUrl });
     } catch (error) {
       console.error('Deck upload failed:', error);
-      alert('Failed to upload deck. Please try again.');
+      setSubmitError(error instanceof Error ? `Upload failed: ${error.message}` : 'Failed to upload deck. Please try again.');
     } finally {
       setDeckUploading(false);
     }
@@ -354,16 +373,25 @@ export function CompanyRegister() {
 
   // --- Submit ---
   const onSubmit = async (data: CompanyRegisterForm) => {
-    console.log('onSubmit called', data);
     if (!user) {
-      console.log('No user found');
+      setSubmitError('Please log in again to submit.');
       return;
     }
-    console.log('User ID:', user.id);
     setSubmitError(null);
 
     try {
-      console.log('Inserting company with user_id:', user.id);
+      // Ensure session is valid
+      let { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        const { data: refreshData } = await supabase.auth.refreshSession();
+        session = refreshData.session;
+      }
+      if (!session) {
+        setSubmitError('Session expired. Please log in again.');
+        return;
+      }
+
+      // Insert company
       const { data: company, error: companyError } = await supabase
         .from('companies')
         .insert({
@@ -383,20 +411,16 @@ export function CompanyRegister() {
           twitter_url: data.twitter_url || null,
           youtube_url: data.youtube_url || null,
           deck_url: companyDeck?.url || null,
-          stripe_connected: integrationStatus.stripe === 'connected',
-          ga4_connected: integrationStatus.ga4 === 'connected',
         })
         .select('id')
         .single();
 
-      console.log('Company insert result:', { company, companyError });
       if (companyError || !company) {
-        console.error('Company insert failed:', companyError);
         setSubmitError(companyError?.message || 'Failed to register company.');
         return;
       }
 
-      console.log('Inserting executives...');
+      // Insert executives
       const executives = data.executives.map((exec) => ({
         company_id: company.id,
         name: exec.name,
@@ -409,20 +433,25 @@ export function CompanyRegister() {
       }));
 
       const { error: execError } = await supabase.from('executives').insert(executives);
-      console.log('Executives insert result:', { execError });
-
       if (execError) {
-        console.error('Executives insert failed:', execError);
         setSubmitError('Failed to register executives.');
         return;
       }
 
+      // Insert intro video if provided
+      if (data.intro_video_url) {
+        await supabase.from('company_videos').insert({
+          company_id: company.id,
+          video_url: data.intro_video_url,
+          description: 'Company Introduction',
+          is_main: true,
+        });
+      }
+
       // Clear pending integrations from localStorage
       localStorage.removeItem('pending_integrations');
-      console.log('Success! Navigating to dashboard...');
       navigate('/dashboard');
     } catch (error) {
-      console.error('Unexpected error during submission:', error);
       setSubmitError(error instanceof Error ? error.message : 'An unexpected error occurred.');
     }
   };
@@ -1141,13 +1170,15 @@ export function CompanyRegister() {
                   })}
                 </div>
 
-                {submitError && (
-                  <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-3 text-sm text-destructive">
-                    {submitError}
-                  </div>
-                )}
               </CardContent>
             </Card>
+          )}
+
+          {/* Error Display */}
+          {submitError && (
+            <div className="mb-4 bg-destructive/10 border border-destructive/30 rounded-lg p-3 text-sm text-destructive">
+              {submitError}
+            </div>
           )}
 
           {/* Navigation */}

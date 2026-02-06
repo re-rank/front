@@ -64,6 +64,7 @@ export interface Database {
           linkedin_url: string | null;
           twitter_url: string | null;
           youtube_url: string | null;
+          deck_url: string | null;
           is_visible: boolean;
           stripe_connected: boolean;
           ga4_connected: boolean;
