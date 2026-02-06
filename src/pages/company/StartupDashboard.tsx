@@ -35,38 +35,39 @@ export function StartupDashboard() {
     let cancelled = false;
 
     (async () => {
-      // Get user from store or fallback to Supabase session
-      let userId = user?.id;
-      if (!userId) {
-        const { data: { session } } = await supabase.auth.getSession();
-        userId = session?.user?.id;
-      }
-      if (!userId) {
-        if (!cancelled) setLoading(false);
-        return;
-      }
+      try {
+        // Get user from store or fallback to Supabase session
+        let userId = user?.id;
+        if (!userId) {
+          const { data: { session } } = await supabase.auth.getSession();
+          userId = session?.user?.id;
+        }
+        if (!userId) return;
 
-      const { data: rows } = await supabase
-        .from('companies')
-        .select('*')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false })
-        .limit(1);
-      const data = rows?.[0] ?? null;
-
-      if (cancelled) return;
-
-      if (data) {
-        setCompany(data);
-        const { data: execs } = await supabase
-          .from('executives')
+        const { data: rows } = await supabase
+          .from('companies')
           .select('*')
-          .eq('company_id', data.id)
-          .order('created_at');
-        if (!cancelled) setExecutives(execs ?? []);
-      }
+          .eq('user_id', userId)
+          .order('created_at', { ascending: false })
+          .limit(1);
+        const data = rows?.[0] ?? null;
 
-      setLoading(false);
+        if (cancelled) return;
+
+        if (data) {
+          setCompany(data);
+          const { data: execs } = await supabase
+            .from('executives')
+            .select('*')
+            .eq('company_id', data.id)
+            .order('created_at');
+          if (!cancelled) setExecutives(execs ?? []);
+        }
+      } catch (err) {
+        console.error('Dashboard fetch error:', err);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     })();
 
     return () => { cancelled = true; };
