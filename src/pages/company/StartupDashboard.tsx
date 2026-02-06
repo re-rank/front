@@ -35,29 +35,32 @@ export function StartupDashboard() {
     if (!user?.id) return;
     let cancelled = false;
 
-    supabase
-      .from('companies')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .then(({ data: rows }) => {
+    (async () => {
+      try {
+        const { data: rows } = await supabase
+          .from('companies')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(1);
+
         if (cancelled) return;
         const data = rows?.[0] ?? null;
         if (data) {
           setCompany(data);
-          return supabase
+          const { data: execs } = await supabase
             .from('executives')
             .select('*')
             .eq('company_id', data.id)
-            .order('created_at')
-            .then(({ data: execs }) => {
-              if (!cancelled) setExecutives(execs ?? []);
-            });
+            .order('created_at');
+          if (!cancelled) setExecutives(execs ?? []);
         }
-      })
-      .catch((err) => console.error('Dashboard fetch error:', err))
-      .finally(() => { if (!cancelled) setLoading(false); });
+      } catch (err) {
+        console.error('Dashboard fetch error:', err);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
 
     return () => { cancelled = true; };
   }, [user?.id]);
