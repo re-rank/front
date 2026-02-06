@@ -243,13 +243,15 @@ export function CompanyRegister() {
     setIntegrationStatus((prev) => ({ ...prev, [provider]: 'disconnected' }));
   };
 
+  const [manualSubmitting, setManualSubmitting] = useState(false);
+
   const {
     register,
     control,
-    handleSubmit,
     trigger,
     watch,
-    formState: { errors, isSubmitting },
+    getValues,
+    formState: { errors },
   } = useForm<CompanyRegisterForm>({
     resolver: zodResolver(companyRegisterSchema),
     defaultValues: {
@@ -457,6 +459,47 @@ export function CompanyRegister() {
     }
   };
 
+  // Manual submit to bypass handleSubmit hang (react-hook-form + zod v4 issue)
+  const handleManualSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setManualSubmitting(true);
+    setValidationErrors([]);
+    setSubmitError(null);
+
+    try {
+      const values = getValues();
+      const result = companyRegisterSchema.safeParse(values);
+
+      if (!result.success) {
+        const messages: string[] = [];
+        const fieldLabels: Record<string, string> = {
+          name: 'Company Name',
+          short_description: 'Tagline',
+          founded_at: 'Founded Date',
+          location: 'Location',
+          employee_count: 'Employee Count',
+          description: 'Company Description',
+          category: 'Category',
+          stage: 'Company Stage',
+          executives: 'Leadership Team',
+        };
+        for (const issue of result.error.issues) {
+          const key = String(issue.path[0] || '');
+          const label = fieldLabels[key] || key;
+          messages.push(`${label}: ${issue.message}`);
+        }
+        setValidationErrors(messages);
+        return;
+      }
+
+      await onSubmit(result.data as CompanyRegisterForm);
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : 'An unexpected error occurred.');
+    } finally {
+      setManualSubmitting(false);
+    }
+  };
+
   const progress = (step / STEPS.length) * 100;
 
   return (
@@ -515,36 +558,7 @@ export function CompanyRegister() {
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit(
-          (data) => {
-            setValidationErrors([]);
-            return onSubmit(data);
-          },
-          (errors) => {
-            const messages: string[] = [];
-            const fieldLabels: Record<string, string> = {
-              name: 'Company Name',
-              short_description: 'Tagline',
-              founded_at: 'Founded Date',
-              location: 'Location',
-              employee_count: 'Employee Count',
-              description: 'Company Description',
-              category: 'Category',
-              stage: 'Company Stage',
-              executives: 'Leadership Team',
-            };
-            for (const [key, value] of Object.entries(errors)) {
-              const label = fieldLabels[key] || key;
-              if (value?.message) {
-                messages.push(`${label}: ${value.message}`);
-              } else if (key === 'executives' && Array.isArray(value)) {
-                messages.push('Leadership Team: Please fill in all required executive fields');
-              }
-            }
-            setValidationErrors(messages);
-            setSubmitError(null);
-          }
-        )}>
+        <form onSubmit={handleManualSubmit}>
           {/* Step 1: Basic Info */}
           {step === 1 && (
             <Card className="mb-8">
@@ -1234,7 +1248,7 @@ export function CompanyRegister() {
                 <ArrowRight className="w-4 h-4" />
               </Button>
             ) : (
-              <Button type="submit" isLoading={isSubmitting} className="gap-2">
+              <Button type="submit" isLoading={manualSubmitting} className="gap-2">
                 Submit for Review
                 <Check className="w-4 h-4" />
               </Button>
