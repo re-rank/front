@@ -11,6 +11,8 @@ import {
   Youtube,
   Clock,
   CheckCircle,
+  XCircle,
+  AlertTriangle,
   FileText,
   Edit,
 } from 'lucide-react';
@@ -100,9 +102,16 @@ export function StartupDashboard() {
   }
 
   // Company exists - show dashboard
-  const statusInfo = company.is_visible
-    ? { label: 'Approved', color: 'bg-green-500/20 text-green-400 border-green-500/30', icon: CheckCircle }
-    : { label: 'Pending Review', color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30', icon: Clock };
+  const getStatusInfo = () => {
+    if (company.approval_status === 'rejected') {
+      return { label: 'Rejected', color: 'bg-red-500/20 text-red-400 border-red-500/30', icon: XCircle };
+    }
+    if (company.approval_status === 'approved') {
+      return { label: 'Approved', color: 'bg-green-500/20 text-green-400 border-green-500/30', icon: CheckCircle };
+    }
+    return { label: 'Pending Review', color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30', icon: Clock };
+  };
+  const statusInfo = getStatusInfo();
 
   const linkButtons = [
     { url: company.website_url, icon: Globe, label: 'Website' },
@@ -131,12 +140,30 @@ export function StartupDashboard() {
         <div>
           <p className="font-medium">{statusInfo.label}</p>
           <p className="text-sm opacity-80">
-            {company.is_visible
+            {company.approval_status === 'approved'
               ? 'Your company is visible to investors.'
+              : company.approval_status === 'rejected'
+              ? 'Your company profile has been rejected by an admin.'
               : 'Your company profile is under review. It will be visible to investors once approved by an admin.'}
           </p>
         </div>
       </div>
+
+      {/* Rejection Reason */}
+      {company.approval_status === 'rejected' && company.rejection_reason && (
+        <div className="flex items-start gap-3 px-4 py-3 rounded-lg border bg-red-500/10 border-red-500/30">
+          <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="font-medium text-red-400">Rejection Reason</p>
+            <p className="text-sm text-red-300 mt-1">{company.rejection_reason}</p>
+            {company.reviewed_at && (
+              <p className="text-xs text-red-400/70 mt-2">
+                {new Date(company.reviewed_at).toLocaleDateString('ko-KR')}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Company Card */}
       <Card>

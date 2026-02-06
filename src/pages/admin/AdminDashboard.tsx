@@ -17,6 +17,8 @@ import {
   ChevronLeft,
   Eye,
   EyeOff,
+  AlertTriangle,
+  X,
 } from 'lucide-react';
 import {
   LineChart,
@@ -28,6 +30,7 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { supabase } from '@/lib/supabase';
+import { useAuthStore } from '@/stores/authStore';
 import type {
   Company,
   Executive,
@@ -35,9 +38,10 @@ import type {
   CompanyNews,
   CompanyVideo,
   CompanyMetric,
+  ApprovalStatus,
 } from '@/types/database';
 
-type TabStatus = 'pending' | 'accepted' | 'paid' | 'rejected';
+type TabStatus = 'pending' | 'approved' | 'paid' | 'rejected';
 
 interface CompanyWithDetails extends Company {
   executives?: Executive[];
@@ -49,28 +53,32 @@ interface CompanyWithDetails extends Company {
 
 const tabConfig: { key: TabStatus; label: string; icon: typeof Clock }[] = [
   { key: 'pending', label: 'Pending', icon: Clock },
-  { key: 'accepted', label: 'Accepted', icon: CheckCircle },
+  { key: 'approved', label: 'Approved', icon: CheckCircle },
   { key: 'paid', label: 'Paid', icon: CreditCard },
   { key: 'rejected', label: 'Rejected', icon: XCircle },
 ];
 
-function getStatus(c: Company): TabStatus {
-  if (c.is_visible && c.stripe_connected) return 'paid';
-  if (c.is_visible) return 'accepted';
-  // If is_visible=false and updated_at differs from created_at, consider it rejected
-  // Simplified: is_visible=false with data means pending, not yet decided
-  // Simple logic here: is_visible=false → pending (local state used to distinguish reject)
+function getTabStatus(c: Company): TabStatus {
+  if (c.approval_status === 'rejected') return 'rejected';
+  if (c.approval_status === 'approved' && c.stripe_connected) return 'paid';
+  if (c.approval_status === 'approved') return 'approved';
   return 'pending';
 }
 
 export function AdminDashboard() {
+  const user = useAuthStore((s) => s.user);
   const [companies, setCompanies] = useState<Company[]>([]);
-  const [rejectedIds, setRejectedIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<TabStatus>('pending');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCompany, setSelectedCompany] = useState<CompanyWithDetails | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
+
+  // Rejection dialog state
+  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [rejectTargetId, setRejectTargetId] = useState<string | null>(null);
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [actionLoading, setActionLoading] = useState(false);
 
   // Fetch all companies
   useEffect(() => {
@@ -87,7 +95,7 @@ export function AdminDashboard() {
   // Filter by tab
   const filteredCompanies = useMemo(() => {
     return companies.filter((c) => {
-      const status = rejectedIds.has(c.id) ? 'rejected' : getStatus(c);
+      const status = getTabStatus(c);
       if (status !== activeTab) return false;
       if (searchQuery) {
         const q = searchQuery.toLowerCase();
@@ -99,17 +107,16 @@ export function AdminDashboard() {
       }
       return true;
     });
-  }, [companies, activeTab, searchQuery, rejectedIds]);
+  }, [companies, activeTab, searchQuery]);
 
   // Count per tab
   const tabCounts = useMemo(() => {
-    const counts: Record<TabStatus, number> = { pending: 0, accepted: 0, paid: 0, rejected: 0 };
+    const counts: Record<TabStatus, number> = { pending: 0, approved: 0, paid: 0, rejected: 0 };
     companies.forEach((c) => {
-      const status = rejectedIds.has(c.id) ? 'rejected' : getStatus(c);
-      counts[status]++;
+      counts[getTabStatus(c)]++;
     });
     return counts;
-  }, [companies, rejectedIds]);
+  }, [companies]);
 
   // Load company detail
   const loadDetail = async (company: Company) => {
@@ -137,22 +144,83 @@ export function AdminDashboard() {
 
   // Accept
   const handleAccept = async (companyId: string) => {
-    await supabase.from('companies').update({ is_visible: true }).eq('id', companyId);
-    setCompanies((prev) => prev.map((c) => (c.id === companyId ? { ...c, is_visible: true } : c)));
-    setRejectedIds((prev) => {
-      const next = new Set(prev);
-      next.delete(companyId);
-      return next;
-    });
+    setActionLoading(true);
+    const now = new Date().toISOString();
+
+    await supabase.from('companies').update({
+      is_visible: true,
+      approval_status: 'approved' as ApprovalStatus,
+      reviewed_at: now,
+      reviewed_by: user?.id ?? null,
+      rejection_reason: null,
+    }).eq('id', companyId);
+
+    // Write audit log
+    if (user?.id) {
+      await supabase.from('audit_logs').insert({
+        user_id: user.id,
+        action: 'approve_company',
+        target_type: 'company',
+        target_id: companyId,
+        metadata: { approved_at: now },
+      });
+    }
+
+    setCompanies((prev) =>
+      prev.map((c) =>
+        c.id === companyId
+          ? { ...c, is_visible: true, approval_status: 'approved' as ApprovalStatus, reviewed_at: now, reviewed_by: user?.id ?? null, rejection_reason: null }
+          : c
+      )
+    );
     setSelectedCompany(null);
+    setActionLoading(false);
   };
 
-  // Reject
-  const handleReject = async (companyId: string) => {
-    await supabase.from('companies').update({ is_visible: false }).eq('id', companyId);
-    setCompanies((prev) => prev.map((c) => (c.id === companyId ? { ...c, is_visible: false } : c)));
-    setRejectedIds((prev) => new Set(prev).add(companyId));
+  // Open rejection dialog
+  const openRejectDialog = (companyId: string) => {
+    setRejectTargetId(companyId);
+    setRejectionReason('');
+    setRejectDialogOpen(true);
+  };
+
+  // Confirm rejection
+  const handleRejectConfirm = async () => {
+    if (!rejectTargetId) return;
+    setActionLoading(true);
+    const now = new Date().toISOString();
+
+    await supabase.from('companies').update({
+      is_visible: false,
+      approval_status: 'rejected' as ApprovalStatus,
+      reviewed_at: now,
+      reviewed_by: user?.id ?? null,
+      rejection_reason: rejectionReason.trim() || null,
+    }).eq('id', rejectTargetId);
+
+    // Write audit log
+    if (user?.id) {
+      await supabase.from('audit_logs').insert({
+        user_id: user.id,
+        action: 'reject_company',
+        target_type: 'company',
+        target_id: rejectTargetId,
+        metadata: { rejected_at: now, reason: rejectionReason.trim() || null },
+      });
+    }
+
+    setCompanies((prev) =>
+      prev.map((c) =>
+        c.id === rejectTargetId
+          ? { ...c, is_visible: false, approval_status: 'rejected' as ApprovalStatus, reviewed_at: now, reviewed_by: user?.id ?? null, rejection_reason: rejectionReason.trim() || null }
+          : c
+      )
+    );
     setSelectedCompany(null);
+    setRejectDialogOpen(false);
+    setRejectTargetId(null);
+    setRejectionReason('');
+    setActionLoading(false);
   };
 
   if (loading) {
@@ -176,17 +244,17 @@ export function AdminDashboard() {
         </div>
 
         {selectedCompany ? (
-          /* ─── Detail View ─── */
+          /* Detail View */
           <CompanyDetailView
             company={selectedCompany}
             loading={detailLoading}
+            actionLoading={actionLoading}
             onBack={() => setSelectedCompany(null)}
             onAccept={handleAccept}
-            onReject={handleReject}
-            isRejected={rejectedIds.has(selectedCompany.id)}
+            onReject={openRejectDialog}
           />
         ) : (
-          /* ─── List View ─── */
+          /* List View */
           <>
             {/* Tabs */}
             <div className="flex gap-2 mb-6 flex-wrap">
@@ -246,12 +314,77 @@ export function AdminDashboard() {
           </>
         )}
       </div>
+
+      {/* Rejection Reason Dialog */}
+      {rejectDialogOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+          <div
+            className="w-full max-w-md rounded-xl p-6 space-y-4"
+            style={{ background: '#262626', border: '1px solid #404040' }}
+          >
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-red-400" />
+                Reject Company
+              </h3>
+              <button
+                onClick={() => { setRejectDialogOpen(false); setRejectTargetId(null); }}
+                className="text-neutral-400 hover:text-white transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <p className="text-sm text-neutral-400">
+              Please provide a reason for rejection. This will be visible to the company.
+            </p>
+
+            <textarea
+              value={rejectionReason}
+              onChange={(e) => setRejectionReason(e.target.value)}
+              placeholder="Enter rejection reason (optional)..."
+              rows={4}
+              className="w-full rounded-lg p-3 text-sm outline-none resize-none"
+              style={{
+                background: '#1a1a1a',
+                border: '1px solid #404040',
+                color: '#e5e5e5',
+              }}
+            />
+
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => { setRejectDialogOpen(false); setRejectTargetId(null); }}
+                className="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                style={{ background: '#404040', color: '#e5e5e5' }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleRejectConfirm}
+                disabled={actionLoading}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                style={{ background: '#dc2626', color: '#fff' }}
+              >
+                {actionLoading ? (
+                  <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+                ) : (
+                  <XCircle className="h-4 w-4" />
+                )}
+                Reject
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 /* ─── Company Card ─── */
 function CompanyCard({ company, onClick }: { company: Company; onClick: () => void }) {
+  const status = getTabStatus(company);
+
   return (
     <button
       onClick={onClick}
@@ -295,7 +428,9 @@ function CompanyCard({ company, onClick }: { company: Company; onClick: () => vo
         <span className="flex items-center gap-1">
           <Users className="h-3 w-3" /> {company.employee_count}
         </span>
-        {company.is_visible ? (
+        {status === 'rejected' ? (
+          <XCircle className="h-3 w-3 text-red-500" />
+        ) : company.is_visible ? (
           <Eye className="h-3 w-3 text-green-500" />
         ) : (
           <EyeOff className="h-3 w-3 text-neutral-600" />
@@ -309,19 +444,19 @@ function CompanyCard({ company, onClick }: { company: Company; onClick: () => vo
 function CompanyDetailView({
   company,
   loading,
+  actionLoading,
   onBack,
   onAccept,
   onReject,
-  isRejected,
 }: {
   company: CompanyWithDetails;
   loading: boolean;
+  actionLoading: boolean;
   onBack: () => void;
   onAccept: (id: string) => void;
   onReject: (id: string) => void;
-  isRejected: boolean;
 }) {
-  const currentStatus = isRejected ? 'rejected' : getStatus(company);
+  const currentStatus = getTabStatus(company);
   const mainVideo = company.videos?.find((v) => v.is_main);
 
   return (
@@ -332,22 +467,34 @@ function CompanyDetailView({
           <ChevronLeft className="h-4 w-4" /> Back to List
         </button>
         <div className="flex gap-2">
-          {currentStatus !== 'accepted' && currentStatus !== 'paid' && (
+          {currentStatus !== 'approved' && currentStatus !== 'paid' && (
             <button
               onClick={() => onAccept(company.id)}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+              disabled={actionLoading}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
               style={{ background: '#16a34a', color: '#fff' }}
             >
-              <CheckCircle className="h-4 w-4" /> Accept
+              <CheckCircle className="h-4 w-4" /> Approve
             </button>
           )}
           {currentStatus !== 'rejected' && (
             <button
               onClick={() => onReject(company.id)}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+              disabled={actionLoading}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
               style={{ background: '#dc2626', color: '#fff' }}
             >
               <XCircle className="h-4 w-4" /> Reject
+            </button>
+          )}
+          {currentStatus === 'rejected' && (
+            <button
+              onClick={() => onAccept(company.id)}
+              disabled={actionLoading}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+              style={{ background: '#16a34a', color: '#fff' }}
+            >
+              <CheckCircle className="h-4 w-4" /> Re-approve
             </button>
           )}
         </div>
@@ -359,6 +506,41 @@ function CompanyDetailView({
         </div>
       ) : (
         <>
+          {/* Rejection Notice */}
+          {currentStatus === 'rejected' && company.rejection_reason && (
+            <div
+              className="flex items-start gap-3 p-4 rounded-xl"
+              style={{ background: '#450a0a', border: '1px solid #7f1d1d' }}
+            >
+              <AlertTriangle className="h-5 w-5 text-red-400 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-red-300">Rejection Reason</p>
+                <p className="text-sm text-red-200 mt-1">{company.rejection_reason}</p>
+                {company.reviewed_at && (
+                  <p className="text-xs text-red-400 mt-2">
+                    Rejected on {new Date(company.reviewed_at).toLocaleDateString('ko-KR')}
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Approval info */}
+          {(currentStatus === 'approved' || currentStatus === 'paid') && company.reviewed_at && (
+            <div
+              className="flex items-start gap-3 p-4 rounded-xl"
+              style={{ background: '#052e16', border: '1px solid #166534' }}
+            >
+              <CheckCircle className="h-5 w-5 text-green-400 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-green-300">Approved</p>
+                <p className="text-xs text-green-400 mt-1">
+                  Approved on {new Date(company.reviewed_at).toLocaleDateString('ko-KR')}
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Company Header */}
           <div className="rounded-xl p-6" style={{ background: '#262626', border: '1px solid #404040' }}>
             <div className="flex items-start gap-4">
@@ -385,8 +567,8 @@ function CompanyDetailView({
                   <span
                     className="text-xs px-2 py-1 rounded"
                     style={{
-                      background: currentStatus === 'paid' ? '#052e16' : currentStatus === 'accepted' ? '#0c4a6e' : currentStatus === 'rejected' ? '#450a0a' : '#422006',
-                      color: currentStatus === 'paid' ? '#4ade80' : currentStatus === 'accepted' ? '#38bdf8' : currentStatus === 'rejected' ? '#f87171' : '#fbbf24',
+                      background: currentStatus === 'paid' ? '#052e16' : currentStatus === 'approved' ? '#0c4a6e' : currentStatus === 'rejected' ? '#450a0a' : '#422006',
+                      color: currentStatus === 'paid' ? '#4ade80' : currentStatus === 'approved' ? '#38bdf8' : currentStatus === 'rejected' ? '#f87171' : '#fbbf24',
                     }}
                   >
                     {currentStatus.toUpperCase()}

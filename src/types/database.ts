@@ -21,6 +21,8 @@ export type CompanyStage =
 
 export type ExecutiveRole = 'CEO' | 'CTO' | 'COO' | 'CFO' | 'CPO';
 
+export type ApprovalStatus = 'pending' | 'approved' | 'rejected';
+
 export type QnACategory =
   | 'Team Cohesion'
   | 'Competitive Advantage'
@@ -66,14 +68,18 @@ export interface Database {
           youtube_url: string | null;
           deck_url: string | null;
           is_visible: boolean;
+          approval_status: ApprovalStatus;
+          reviewed_at: string | null;
+          reviewed_by: string | null;
+          rejection_reason: string | null;
           stripe_connected: boolean;
           ga4_connected: boolean;
           last_data_update: string | null;
           created_at: string;
           updated_at: string;
         };
-        Insert: Omit<Database['public']['Tables']['companies']['Row'], 'id' | 'created_at' | 'updated_at' | 'is_visible' | 'stripe_connected' | 'ga4_connected' | 'last_data_update'>;
-        Update: Partial<Database['public']['Tables']['companies']['Insert']> & { is_visible?: boolean; stripe_connected?: boolean; ga4_connected?: boolean };
+        Insert: Omit<Database['public']['Tables']['companies']['Row'], 'id' | 'created_at' | 'updated_at' | 'is_visible' | 'approval_status' | 'reviewed_at' | 'reviewed_by' | 'rejection_reason' | 'stripe_connected' | 'ga4_connected' | 'last_data_update'>;
+        Update: Partial<Database['public']['Tables']['companies']['Insert']> & { is_visible?: boolean; approval_status?: ApprovalStatus; reviewed_at?: string; reviewed_by?: string | null; rejection_reason?: string | null; stripe_connected?: boolean; ga4_connected?: boolean };
         Relationships: [];
       };
       executives: {
