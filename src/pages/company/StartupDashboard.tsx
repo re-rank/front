@@ -32,14 +32,24 @@ export function StartupDashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) return;
     let cancelled = false;
 
     (async () => {
+      // Get user from store or fallback to Supabase session
+      let userId = user?.id;
+      if (!userId) {
+        const { data: { session } } = await supabase.auth.getSession();
+        userId = session?.user?.id;
+      }
+      if (!userId) {
+        if (!cancelled) setLoading(false);
+        return;
+      }
+
       const { data } = await supabase
         .from('companies')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .maybeSingle();
 
       if (cancelled) return;
