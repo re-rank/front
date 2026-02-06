@@ -1,0 +1,886 @@
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useForm, useFieldArray, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import {
+  Plus, Trash2, Upload, Globe, Github, Linkedin, Youtube, FileText,
+  Check, ArrowLeft, Video, Clock, CheckCircle,
+} from 'lucide-react';
+import { supabase } from '@/lib/supabase';
+import { useAuthStore } from '@/stores/authStore';
+import {
+  Button,
+  Input,
+  Select,
+  Card,
+  CardContent,
+  Textarea,
+  ImageUpload,
+  Label,
+} from '@/components/ui';
+import {
+  companyRegisterSchema,
+  employeeCountOptions,
+  categoryOptions,
+  stageOptions,
+  executiveRoleOptions,
+  defaultExecutive,
+} from './companySchema';
+import type { CompanyRegisterForm } from './companySchema';
+import type { Company, Executive, CompanyVideo } from '@/types/database';
+
+// X Icon
+const XIcon = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+  </svg>
+);
+
+// Stripe Icon
+const StripeIcon = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M13.976 9.15c-2.172-.806-3.356-1.426-3.356-2.409 0-.831.683-1.305 1.901-1.305 2.227 0 4.515.858 6.09 1.631l.89-5.494C18.252.975 15.697 0 12.165 0 9.667 0 7.589.654 6.104 1.872 4.56 3.147 3.757 4.992 3.757 7.218c0 4.039 2.467 5.76 6.476 7.219 2.585.92 3.445 1.574 3.445 2.583 0 .98-.84 1.545-2.354 1.545-1.875 0-4.965-.921-6.99-2.109l-.9 5.555C5.175 22.99 8.385 24 11.714 24c2.641 0 4.843-.624 6.328-1.813 1.664-1.305 2.525-3.236 2.525-5.732 0-4.128-2.524-5.851-6.591-7.305z" />
+  </svg>
+);
+
+// Google Analytics Icon
+const GA4Icon = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M22.84 2.998v17.958c0 1.2-.6 2.1-1.5 2.7-.9.6-2.1.6-3 0l-6.6-3.9v-4.2l6.6 3.9v-12l-6.6 3.9v-4.2l6.6-3.9c.9-.6 2.1-.6 3 0 .9.6 1.5 1.5 1.5 2.7z" />
+    <path d="M8.04 12.898v8.1c0 1.2-.6 2.1-1.5 2.7-.9.6-2.1.6-3 0-.9-.6-1.5-1.5-1.5-2.7v-8.1c0-1.2.6-2.1 1.5-2.7.9-.6 2.1-.6 3 0 .9.6 1.5 1.5 1.5 2.7z" />
+    <circle cx="4.54" cy="4.998" r="3" />
+  </svg>
+);
+
+export function CompanyEdit() {
+  const navigate = useNavigate();
+  const { user, isLoading: authLoading } = useAuthStore();
+
+  const [loading, setLoading] = useState(true);
+  const [company, setCompany] = useState<Company | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [manualSubmitting, setManualSubmitting] = useState(false);
+
+  // Deck state
+  const [companyDeck, setCompanyDeck] = useState<{ name: string; url: string } | null>(null);
+  const [deckUploading, setDeckUploading] = useState(false);
+
+  const {
+    register,
+    control,
+    watch,
+    getValues,
+    reset,
+    formState: { errors },
+  } = useForm<CompanyRegisterForm>({
+    resolver: zodResolver(companyRegisterSchema),
+    defaultValues: {
+      logo_url: '',
+      name: '',
+      short_description: '',
+      founded_at: '',
+      location: '',
+      employee_count: undefined,
+      description: '',
+      category: undefined,
+      stage: undefined,
+      website_url: '',
+      github_url: '',
+      linkedin_url: '',
+      twitter_url: '',
+      youtube_url: '',
+      executives: [defaultExecutive('CEO')],
+      intro_video_url: '',
+    },
+  });
+
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: 'executives',
+  });
+
+  const watchDescription = watch('description');
+  const watchShortDesc = watch('short_description');
+  const watchIntroVideo = watch('intro_video_url');
+
+  // Fetch existing company data
+  useEffect(() => {
+    if (authLoading) return;
+    if (!user?.id) {
+      setLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    (async () => {
+      try {
+        // Fetch company
+        const { data: rows } = await supabase
+          .from('companies')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(1);
+
+        if (cancelled) return;
+        const companyData = rows?.[0] ?? null;
+
+        if (!companyData) {
+          navigate('/company/register', { replace: true });
+          return;
+        }
+
+        setCompany(companyData);
+
+        // Fetch executives
+        const { data: execs } = await supabase
+          .from('executives')
+          .select('*')
+          .eq('company_id', companyData.id)
+          .order('created_at');
+
+        // Fetch main video
+        const { data: videos } = await supabase
+          .from('company_videos')
+          .select('*')
+          .eq('company_id', companyData.id)
+          .eq('is_main', true)
+          .limit(1);
+
+        if (cancelled) return;
+
+        const executives: Executive[] = execs ?? [];
+        const mainVideo: CompanyVideo | null = videos?.[0] ?? null;
+
+        // Set deck
+        if (companyData.deck_url) {
+          setCompanyDeck({ name: 'Current Deck', url: companyData.deck_url });
+        }
+
+        // Reset form with existing data
+        reset({
+          logo_url: companyData.logo_url || '',
+          name: companyData.name,
+          short_description: companyData.short_description,
+          founded_at: companyData.founded_at,
+          location: companyData.location,
+          employee_count: companyData.employee_count,
+          description: companyData.description,
+          category: companyData.category,
+          stage: companyData.stage,
+          website_url: companyData.website_url || '',
+          github_url: companyData.github_url || '',
+          linkedin_url: companyData.linkedin_url || '',
+          twitter_url: companyData.twitter_url || '',
+          youtube_url: companyData.youtube_url || '',
+          executives: executives.length > 0
+            ? executives.map((e) => ({
+                name: e.name,
+                role: e.role as CompanyRegisterForm['executives'][number]['role'],
+                photo_url: e.photo_url || null,
+                bio: e.bio || '',
+                linkedin_url: e.linkedin_url || '',
+                twitter_url: e.twitter_url || '',
+                education: e.education || '',
+              }))
+            : [defaultExecutive('CEO')],
+          intro_video_url: mainVideo?.video_url || '',
+        });
+      } catch (err) {
+        console.error('CompanyEdit fetch error:', err);
+        setSubmitError('Failed to load company data.');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [user?.id, authLoading, navigate, reset]);
+
+  // Deck upload handler
+  const handleDeckUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!user) {
+      setSubmitError('Please log in again to upload files.');
+      return;
+    }
+
+    const allowedTypes = ['application/pdf', 'application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation'];
+    if (!allowedTypes.includes(file.type)) {
+      setSubmitError('Please upload a PDF, PPT, or PPTX file.');
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      setSubmitError('File size must be less than 10MB.');
+      return;
+    }
+
+    setDeckUploading(true);
+    setSubmitError(null);
+
+    try {
+      let { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        const { data: refreshData } = await supabase.auth.refreshSession();
+        session = refreshData.session;
+      }
+      if (!session) {
+        setSubmitError('Session expired. Please log in again.');
+        setDeckUploading(false);
+        return;
+      }
+
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+      const filePath = `decks/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('company-assets')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('company-assets')
+        .getPublicUrl(filePath);
+
+      setCompanyDeck({ name: file.name, url: publicUrl });
+    } catch (error) {
+      console.error('Deck upload failed:', error);
+      setSubmitError(error instanceof Error ? `Upload failed: ${error.message}` : 'Failed to upload deck. Please try again.');
+    } finally {
+      setDeckUploading(false);
+    }
+  };
+
+  // Submit handler
+  const handleManualSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setManualSubmitting(true);
+    setValidationErrors([]);
+    setSubmitError(null);
+
+    try {
+      const values = getValues();
+      const result = companyRegisterSchema.safeParse(values);
+
+      if (!result.success) {
+        const messages: string[] = [];
+        const fieldLabels: Record<string, string> = {
+          name: 'Company Name',
+          short_description: 'Tagline',
+          founded_at: 'Founded Date',
+          location: 'Location',
+          employee_count: 'Employee Count',
+          description: 'Company Description',
+          category: 'Category',
+          stage: 'Company Stage',
+          executives: 'Leadership Team',
+        };
+        for (const issue of result.error.issues) {
+          const key = String(issue.path[0] || '');
+          const label = fieldLabels[key] || key;
+          messages.push(`${label}: ${issue.message}`);
+        }
+        setValidationErrors(messages);
+        return;
+      }
+
+      const data = result.data as CompanyRegisterForm;
+
+      if (!user || !company) {
+        setSubmitError('Please log in again to submit.');
+        return;
+      }
+
+      // Ensure session is valid
+      let { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        const { data: refreshData } = await supabase.auth.refreshSession();
+        session = refreshData.session;
+      }
+      if (!session) {
+        setSubmitError('Session expired. Please log in again.');
+        return;
+      }
+
+      // 1. Update company
+      const { error: companyError } = await supabase
+        .from('companies')
+        .update({
+          name: data.name,
+          logo_url: data.logo_url || null,
+          short_description: data.short_description,
+          description: data.description,
+          founded_at: data.founded_at,
+          location: data.location,
+          employee_count: data.employee_count,
+          category: data.category,
+          stage: data.stage,
+          website_url: data.website_url || null,
+          github_url: data.github_url || null,
+          linkedin_url: data.linkedin_url || null,
+          twitter_url: data.twitter_url || null,
+          youtube_url: data.youtube_url || null,
+          deck_url: companyDeck?.url || null,
+        })
+        .eq('id', company.id);
+
+      if (companyError) {
+        setSubmitError(companyError.message || 'Failed to update company.');
+        return;
+      }
+
+      // 2. Delete-then-insert executives
+      const { error: deleteExecError } = await supabase
+        .from('executives')
+        .delete()
+        .eq('company_id', company.id);
+
+      if (deleteExecError) {
+        setSubmitError('Failed to update executives.');
+        return;
+      }
+
+      const executives = data.executives.map((exec) => ({
+        company_id: company.id,
+        name: exec.name,
+        role: exec.role,
+        photo_url: exec.photo_url || null,
+        bio: exec.bio || null,
+        linkedin_url: exec.linkedin_url || null,
+        twitter_url: exec.twitter_url || null,
+        education: exec.education || null,
+      }));
+
+      const { error: insertExecError } = await supabase.from('executives').insert(executives);
+      if (insertExecError) {
+        setSubmitError('Failed to update executives.');
+        return;
+      }
+
+      // 3. Delete-then-insert main video
+      await supabase
+        .from('company_videos')
+        .delete()
+        .eq('company_id', company.id)
+        .eq('is_main', true);
+
+      if (data.intro_video_url) {
+        await supabase.from('company_videos').insert({
+          company_id: company.id,
+          video_url: data.intro_video_url,
+          description: 'Company Introduction',
+          is_main: true,
+        });
+      }
+
+      navigate('/dashboard');
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : 'An unexpected error occurred.');
+    } finally {
+      setManualSubmitting(false);
+    }
+  };
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="flex justify-center py-20">
+        <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
+      </div>
+    );
+  }
+
+  if (!company) {
+    return null;
+  }
+
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="border-b border-border sticky top-0 bg-background/95 backdrop-blur z-50">
+        <div className="max-w-4xl mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-lg font-serif">Edit Company Info</h1>
+              <p className="text-sm text-muted-foreground">{user?.email}</p>
+            </div>
+            <Button variant="ghost" onClick={() => navigate('/dashboard')}>
+              Cancel
+            </Button>
+          </div>
+        </div>
+      </header>
+
+      <div className="max-w-4xl mx-auto px-4 py-6">
+        <form onSubmit={handleManualSubmit} className="space-y-8">
+
+          {/* Section 1: Basic Info */}
+          <Card>
+            <CardContent className="p-6 space-y-6">
+              <div>
+                <h2 className="text-2xl font-serif mb-2">Basic Information</h2>
+                <p className="text-muted-foreground">Update your company details</p>
+              </div>
+
+              {/* Logo */}
+              <div className="space-y-2">
+                <Label>Company Logo</Label>
+                <Controller
+                  control={control}
+                  name="logo_url"
+                  render={({ field }) => (
+                    <ImageUpload
+                      bucket="company-assets"
+                      path="logos"
+                      value={field.value}
+                      onChange={(url) => field.onChange(url || '')}
+                      error={errors.logo_url?.message}
+                      shape="square"
+                      size="lg"
+                    />
+                  )}
+                />
+              </div>
+
+              <div className="grid sm:grid-cols-2 gap-4">
+                {/* Company Name */}
+                <div className="space-y-2 sm:col-span-2">
+                  <Label required>Company Name</Label>
+                  <Input
+                    placeholder="Enter company name"
+                    error={errors.name?.message}
+                    className="bg-secondary border-border"
+                    {...register('name')}
+                  />
+                </div>
+
+                {/* Tagline */}
+                <div className="space-y-2 sm:col-span-2">
+                  <Label required>Tagline (10-100 characters)</Label>
+                  <Input
+                    placeholder="Brief description of what you do"
+                    maxLength={100}
+                    error={errors.short_description?.message}
+                    className="bg-secondary border-border"
+                    {...register('short_description')}
+                  />
+                  <p className={`text-xs ${(watchShortDesc?.length || 0) < 10 ? 'text-red-400' : 'text-muted-foreground'}`}>
+                    {watchShortDesc?.length || 0}/100 characters {(watchShortDesc?.length || 0) < 10 && '(minimum 10)'}
+                  </p>
+                </div>
+
+                {/* Founded Date */}
+                <div className="space-y-2">
+                  <Label required>Founded Date</Label>
+                  <Input
+                    type="month"
+                    error={errors.founded_at?.message}
+                    className="bg-secondary border-border"
+                    {...register('founded_at')}
+                  />
+                </div>
+
+                {/* Location */}
+                <div className="space-y-2">
+                  <Label required>Location</Label>
+                  <Input
+                    placeholder="e.g. San Francisco, CA"
+                    error={errors.location?.message}
+                    className="bg-secondary border-border"
+                    {...register('location')}
+                  />
+                </div>
+
+                {/* Employee Count */}
+                <div className="space-y-2">
+                  <Label required>Employee Count</Label>
+                  <Select
+                    options={employeeCountOptions}
+                    placeholder="Select range"
+                    error={errors.employee_count?.message}
+                    className="bg-secondary border-border"
+                    {...register('employee_count')}
+                  />
+                </div>
+
+                {/* Category */}
+                <div className="space-y-2">
+                  <Label required>Category</Label>
+                  <Select
+                    options={categoryOptions}
+                    placeholder="Select category"
+                    error={errors.category?.message}
+                    className="bg-secondary border-border"
+                    {...register('category')}
+                  />
+                </div>
+
+                {/* Stage */}
+                <div className="space-y-2 sm:col-span-2">
+                  <Label required>Company Stage</Label>
+                  <Select
+                    options={stageOptions}
+                    placeholder="Select stage"
+                    error={errors.stage?.message}
+                    className="bg-secondary border-border"
+                    {...register('stage')}
+                  />
+                </div>
+              </div>
+
+              {/* Description */}
+              <div className="space-y-2 pt-4 border-t border-border">
+                <Label required>Company Description (100-10,000 characters)</Label>
+                <Controller
+                  control={control}
+                  name="description"
+                  render={({ field }) => (
+                    <Textarea
+                      placeholder="Describe your company, product, vision, market opportunity..."
+                      showCount
+                      maxLength={10000}
+                      value={field.value}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      error={errors.description?.message}
+                      className="bg-secondary border-border min-h-[200px]"
+                    />
+                  )}
+                />
+                <p className={`text-xs ${(watchDescription?.length || 0) < 100 ? 'text-red-400' : 'text-muted-foreground'}`}>
+                  {(watchDescription?.length || 0).toLocaleString()}/10,000 characters {(watchDescription?.length || 0) < 100 && `(minimum 100 - need ${100 - (watchDescription?.length || 0)} more)`}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Section 2: Links */}
+          <Card>
+            <CardContent className="p-6 space-y-4">
+              <div>
+                <h2 className="text-2xl font-serif mb-2">Company Links</h2>
+                <p className="text-muted-foreground">Add your online presence</p>
+              </div>
+
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2"><Globe className="w-4 h-4" /> Website</Label>
+                  <Input placeholder="https://yourcompany.com" className="bg-secondary border-border" {...register('website_url')} />
+                </div>
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2"><Github className="w-4 h-4" /> GitHub</Label>
+                  <Input placeholder="https://github.com/yourcompany" className="bg-secondary border-border" {...register('github_url')} />
+                </div>
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2"><Linkedin className="w-4 h-4" /> LinkedIn</Label>
+                  <Input placeholder="https://linkedin.com/company/..." className="bg-secondary border-border" {...register('linkedin_url')} />
+                </div>
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2"><XIcon className="w-4 h-4" /> X</Label>
+                  <Input placeholder="https://x.com/company" className="bg-secondary border-border" {...register('twitter_url')} />
+                </div>
+                <div className="space-y-2 sm:col-span-2">
+                  <Label className="flex items-center gap-2"><Youtube className="w-4 h-4" /> YouTube</Label>
+                  <Input placeholder="https://youtube.com/@yourcompany" className="bg-secondary border-border" {...register('youtube_url')} />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Section 3: IR Deck */}
+          <Card>
+            <CardContent className="p-6 space-y-4">
+              <div>
+                <h2 className="text-2xl font-serif mb-2">IR Deck</h2>
+                <p className="text-muted-foreground">Upload or replace your pitch deck</p>
+              </div>
+
+              <label className="block">
+                <div
+                  className={`border-2 border-dashed rounded-xl p-6 cursor-pointer transition-colors ${
+                    companyDeck ? 'border-primary bg-primary/5' : 'border-border hover:border-primary'
+                  }`}
+                >
+                  {deckUploading ? (
+                    <div className="text-center py-2">
+                      <div className="animate-spin h-6 w-6 border-4 border-primary border-t-transparent rounded-full mx-auto mb-2" />
+                      <p className="text-sm text-muted-foreground">Uploading...</p>
+                    </div>
+                  ) : companyDeck ? (
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <FileText className="w-10 h-10 text-primary flex-shrink-0" />
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-foreground truncate">{companyDeck.name}</p>
+                          <p className="text-xs text-muted-foreground">Click to replace</p>
+                        </div>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-sm"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setCompanyDeck(null);
+                        }}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="text-center py-2">
+                      <Upload className="w-10 h-10 mx-auto text-muted-foreground mb-2" />
+                      <p className="text-sm font-medium text-foreground">Upload your pitch deck</p>
+                      <p className="text-xs text-muted-foreground mt-1">PDF, PPT, PPTX (Max 10MB)</p>
+                    </div>
+                  )}
+                </div>
+                <input
+                  type="file"
+                  accept=".pdf,.ppt,.pptx"
+                  className="hidden"
+                  onChange={handleDeckUpload}
+                  disabled={deckUploading}
+                />
+              </label>
+            </CardContent>
+          </Card>
+
+          {/* Section 4: Leadership Team */}
+          <Card>
+            <CardContent className="p-6 space-y-6">
+              <div>
+                <h2 className="text-2xl font-serif mb-2">Leadership Team</h2>
+                <p className="text-muted-foreground">Update your C-Level executives. CEO is required.</p>
+              </div>
+
+              {fields.map((field, index) => {
+                const isCEO = index === 0;
+                return (
+                  <Card key={field.id} className="bg-secondary/50">
+                    <CardContent className="p-4 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-lg font-medium flex items-center gap-2">
+                          {isCEO ? 'CEO' : field.role}
+                          {isCEO && <span className="text-red-400 text-sm">*</span>}
+                        </h3>
+                        {!isCEO && (
+                          <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} className="text-muted-foreground hover:text-destructive">
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        )}
+                      </div>
+
+                      <div className="flex items-start gap-4">
+                        <Controller
+                          control={control}
+                          name={`executives.${index}.photo_url`}
+                          render={({ field: f }) => (
+                            <div className="w-20 h-20 rounded-full border-2 border-dashed border-border flex items-center justify-center cursor-pointer hover:border-primary transition-colors overflow-hidden flex-shrink-0 bg-background">
+                              {f.value ? (
+                                <img src={f.value} alt="Profile" className="w-full h-full object-cover" />
+                              ) : (
+                                <div className="text-center">
+                                  <Upload className="w-5 h-5 mx-auto text-muted-foreground" />
+                                  <span className="text-[10px] text-muted-foreground">Photo</span>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        />
+                        <div className="flex-1 grid sm:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label required={isCEO}>Full Name</Label>
+                            <Input
+                              placeholder="Enter full name"
+                              error={errors.executives?.[index]?.name?.message}
+                              className="bg-background border-border"
+                              {...register(`executives.${index}.name`)}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label required>Role</Label>
+                            <Select
+                              options={isCEO ? [{ value: 'CEO', label: 'CEO' }] : executiveRoleOptions}
+                              placeholder="Select"
+                              disabled={isCEO}
+                              error={errors.executives?.[index]?.role?.message}
+                              className="bg-background border-border"
+                              {...register(`executives.${index}.role`)}
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Bio</Label>
+                        <Textarea
+                          placeholder="Brief introduction..."
+                          className="bg-background border-border min-h-[80px]"
+                          {...register(`executives.${index}.bio`)}
+                        />
+                      </div>
+
+                      <div className="grid sm:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>Education</Label>
+                          <Input
+                            placeholder="e.g. Stanford University, CS"
+                            className="bg-background border-border"
+                            {...register(`executives.${index}.education`)}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="flex items-center gap-2"><Linkedin className="w-3 h-3" /> LinkedIn</Label>
+                          <Input
+                            placeholder="LinkedIn profile URL"
+                            className="bg-background border-border"
+                            {...register(`executives.${index}.linkedin_url`)}
+                          />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+
+              {fields.length < 5 && (
+                <div className="space-y-2">
+                  <Label>Add C-Level Executive (Optional)</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {executiveRoleOptions
+                      .filter((opt) => !fields.find((f) => f.role === opt.value))
+                      .map((opt) => (
+                        <Button key={opt.value} type="button" variant="outline" size="sm" onClick={() => append(defaultExecutive(opt.value))} className="gap-1">
+                          <Plus className="w-3 h-3" /> {opt.label}
+                        </Button>
+                      ))}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Section 5: Intro Video */}
+          <Card>
+            <CardContent className="p-6 space-y-4">
+              <div>
+                <h2 className="text-2xl font-serif mb-2">Introduction Video</h2>
+                <p className="text-muted-foreground">Share your company intro video</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2"><Video className="w-4 h-4" /> Video URL (YouTube, Vimeo, or Loom)</Label>
+                <Input
+                  placeholder="https://youtube.com/watch?v=..."
+                  className="bg-secondary border-border"
+                  {...register('intro_video_url')}
+                />
+              </div>
+
+              {watchIntroVideo && (
+                <div className="aspect-video rounded-lg overflow-hidden bg-background">
+                  <iframe
+                    src={
+                      watchIntroVideo.includes('youtube.com')
+                        ? watchIntroVideo.replace('watch?v=', 'embed/')
+                        : watchIntroVideo.includes('vimeo.com')
+                          ? watchIntroVideo.replace('vimeo.com', 'player.vimeo.com/video')
+                          : watchIntroVideo
+                    }
+                    className="w-full h-full"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Section 6: Integrations (read-only) */}
+          <Card>
+            <CardContent className="p-6 space-y-4">
+              <div>
+                <h2 className="text-2xl font-serif mb-2">Integrations</h2>
+                <p className="text-muted-foreground">Current integration status</p>
+              </div>
+
+              <div className="flex flex-wrap gap-4">
+                <div className={`flex items-center gap-3 px-4 py-3 rounded-lg border ${
+                  company.stripe_connected
+                    ? 'bg-green-500/10 border-green-500/30 text-green-400'
+                    : 'bg-secondary border-border text-muted-foreground'
+                }`}>
+                  <StripeIcon className="w-5 h-5" />
+                  <div>
+                    <p className="text-sm font-medium">Stripe</p>
+                    <p className="text-xs opacity-80">
+                      {company.stripe_connected ? 'Connected' : 'Not Connected'}
+                    </p>
+                  </div>
+                  {company.stripe_connected
+                    ? <CheckCircle className="w-4 h-4 ml-2" />
+                    : <Clock className="w-4 h-4 ml-2" />}
+                </div>
+
+                <div className={`flex items-center gap-3 px-4 py-3 rounded-lg border ${
+                  company.ga4_connected
+                    ? 'bg-green-500/10 border-green-500/30 text-green-400'
+                    : 'bg-secondary border-border text-muted-foreground'
+                }`}>
+                  <GA4Icon className="w-5 h-5" />
+                  <div>
+                    <p className="text-sm font-medium">Google Analytics 4</p>
+                    <p className="text-xs opacity-80">
+                      {company.ga4_connected ? 'Connected' : 'Not Connected'}
+                    </p>
+                  </div>
+                  {company.ga4_connected
+                    ? <CheckCircle className="w-4 h-4 ml-2" />
+                    : <Clock className="w-4 h-4 ml-2" />}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Error Display */}
+          {validationErrors.length > 0 && (
+            <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-4 text-sm text-destructive">
+              <p className="font-medium mb-2">Please fix the following errors:</p>
+              <ul className="list-disc list-inside space-y-1">
+                {validationErrors.map((msg, i) => (
+                  <li key={i}>{msg}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {submitError && (
+            <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-3 text-sm text-destructive">
+              {submitError}
+            </div>
+          )}
+
+          {/* Actions */}
+          <div className="flex items-center justify-between pb-8">
+            <Button type="button" variant="outline" onClick={() => navigate('/dashboard')} className="gap-2">
+              <ArrowLeft className="w-4 h-4" />
+              Back to Dashboard
+            </Button>
+            <Button type="submit" isLoading={manualSubmitting} className="gap-2">
+              Save Changes
+              <Check className="w-4 h-4" />
+            </Button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}

@@ -11,6 +11,7 @@ const Login = lazy(() => import('@/pages/auth/Login').then(m => ({ default: m.Lo
 const RegisterForm = lazy(() => import('@/pages/auth/RegisterForm').then(m => ({ default: m.RegisterForm })));
 const SelectRole = lazy(() => import('@/pages/auth/SelectRole').then(m => ({ default: m.SelectRole })));
 const CompanyRegister = lazy(() => import('@/pages/company/CompanyRegister').then(m => ({ default: m.CompanyRegister })));
+const CompanyEdit = lazy(() => import('@/pages/company/CompanyEdit').then(m => ({ default: m.CompanyEdit })));
 const CompanyList = lazy(() => import('@/pages/investor/CompanyList').then(m => ({ default: m.CompanyList })));
 const CompanyDetail = lazy(() => import('@/pages/investor/CompanyDetail').then(m => ({ default: m.CompanyDetail })));
 const AdminDashboard = lazy(() => import('@/pages/admin/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
@@ -186,7 +187,7 @@ function AppContent() {
             <Route element={<ProtectedRoute allowedRoles={['startup', 'admin']} />}>
               <Route path="/dashboard" element={<StartupDashboard />} />
               <Route path="/company/register" element={<CompanyRegister />} />
-              <Route path="/company/edit" element={<div className="p-8">Edit Company Info (Coming Soon)</div>} />
+              <Route path="/company/edit" element={<CompanyEdit />} />
             </Route>
           </Route>
           </Routes>
