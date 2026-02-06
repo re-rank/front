@@ -173,6 +173,7 @@ export function CompanyRegister() {
   const { user } = useAuthStore();
   const [step, setStep] = useState(1);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
   // Step 1: Company Deck
   const [companyDeck, setCompanyDeck] = useState<{ name: string; url: string } | null>(null);
@@ -514,7 +515,36 @@ export function CompanyRegister() {
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit(onSubmit, (errors) => console.log('Validation errors:', errors))}>
+        <form onSubmit={handleSubmit(
+          (data) => {
+            setValidationErrors([]);
+            return onSubmit(data);
+          },
+          (errors) => {
+            const messages: string[] = [];
+            const fieldLabels: Record<string, string> = {
+              name: 'Company Name',
+              short_description: 'Tagline',
+              founded_at: 'Founded Date',
+              location: 'Location',
+              employee_count: 'Employee Count',
+              description: 'Company Description',
+              category: 'Category',
+              stage: 'Company Stage',
+              executives: 'Leadership Team',
+            };
+            for (const [key, value] of Object.entries(errors)) {
+              const label = fieldLabels[key] || key;
+              if (value?.message) {
+                messages.push(`${label}: ${value.message}`);
+              } else if (key === 'executives' && Array.isArray(value)) {
+                messages.push('Leadership Team: Please fill in all required executive fields');
+              }
+            }
+            setValidationErrors(messages);
+            setSubmitError(null);
+          }
+        )}>
           {/* Step 1: Basic Info */}
           {step === 1 && (
             <Card className="mb-8">
@@ -1175,6 +1205,16 @@ export function CompanyRegister() {
           )}
 
           {/* Error Display */}
+          {validationErrors.length > 0 && (
+            <div className="mb-4 bg-destructive/10 border border-destructive/30 rounded-lg p-4 text-sm text-destructive">
+              <p className="font-medium mb-2">Please fix the following errors:</p>
+              <ul className="list-disc list-inside space-y-1">
+                {validationErrors.map((msg, i) => (
+                  <li key={i}>{msg}</li>
+                ))}
+              </ul>
+            </div>
+          )}
           {submitError && (
             <div className="mb-4 bg-destructive/10 border border-destructive/30 rounded-lg p-3 text-sm text-destructive">
               {submitError}
