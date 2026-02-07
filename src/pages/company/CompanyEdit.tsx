@@ -170,8 +170,8 @@ export function CompanyEdit() {
         // Fetch related data in parallel
         const [execRes, videoRes, newsRes] = await Promise.all([
           supabase.from('executives').select('*').eq('company_id', companyData.id).order('created_at'),
-          supabase.from('company_videos').select('*').eq('company_id', companyData.id).eq('is_main', true).limit(1).then(r => r).catch(() => ({ data: null, error: true })),
-          supabase.from('company_news').select('*').eq('company_id', companyData.id).order('published_at', { ascending: false }).then(r => r).catch(() => ({ data: null, error: true })),
+          supabase.from('company_videos').select('*').eq('company_id', companyData.id).eq('is_main', true).limit(1).then(r => r, () => ({ data: null, error: true })),
+          supabase.from('company_news').select('*').eq('company_id', companyData.id).order('published_at', { ascending: false }).then(r => r, () => ({ data: null, error: true })),
         ]);
 
         if (cancelled) return;
