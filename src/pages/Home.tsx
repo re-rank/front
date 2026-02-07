@@ -206,6 +206,11 @@ export function Home() {
                   <Button size="lg">Register</Button>
                 </Link>
               )}
+              {!role && (
+                <Link to="/select-role">
+                  <Button size="lg">Get Started</Button>
+                </Link>
+              )}
             </div>
           ) : (
             <div className="flex gap-4 justify-center flex-wrap">

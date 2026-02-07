@@ -85,6 +85,11 @@ export function Header() {
                 Dashboard
               </Link>
             )}
+            {!role && (
+              <Link to="/select-role" className="text-muted-foreground hover:text-foreground">
+                Complete Setup
+              </Link>
+            )}
             <div className="flex items-center gap-3 ml-4">
               <span className="text-sm text-muted-foreground">{profile?.full_name || user.email}</span>
               <Button variant="ghost" size="sm" onClick={handleLogout}>
