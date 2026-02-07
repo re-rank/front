@@ -150,6 +150,7 @@ export function ImageUpload({
           type="file"
           accept="image/*"
           className="hidden"
+          onClick={(e) => { (e.target as HTMLInputElement).value = ''; }}
           onChange={handleUpload}
           disabled={uploading}
         />

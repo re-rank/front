@@ -632,6 +632,7 @@ export function CompanyRegister() {
                       type="file"
                       accept=".pdf,.ppt,.pptx"
                       className="hidden"
+                      onClick={(e) => { (e.target as HTMLInputElement).value = ''; }}
                       onChange={handleDeckUpload}
                       disabled={deckUploading}
                     />
