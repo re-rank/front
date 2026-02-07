@@ -137,6 +137,31 @@ export function CompanyEdit() {
           return;
         }
 
+        // Check for pending OAuth integrations from localStorage
+        const pendingRaw = localStorage.getItem('pending_integrations');
+        if (pendingRaw) {
+          try {
+            const pending = JSON.parse(pendingRaw);
+            const updates: Record<string, boolean> = {};
+            if (pending.stripe?.status === 'connected' && !companyData.stripe_connected) {
+              updates.stripe_connected = true;
+            }
+            if (pending.ga4?.status === 'connected' && !companyData.ga4_connected) {
+              updates.ga4_connected = true;
+            }
+            if (Object.keys(updates).length > 0) {
+              await supabase
+                .from('companies')
+                .update(updates)
+                .eq('id', companyData.id);
+              Object.assign(companyData, updates);
+            }
+            localStorage.removeItem('pending_integrations');
+          } catch (e) {
+            console.error('Failed to process pending integrations:', e);
+          }
+        }
+
         setCompany(companyData);
 
         // Fetch executives
