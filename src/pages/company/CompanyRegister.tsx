@@ -467,7 +467,7 @@ export function CompanyRegister() {
         {/* Form */}
         <form onSubmit={handleManualSubmit}>
           {/* Step 1: Basic Info */}
-          {step === 1 && (
+          <div style={{ display: step === 1 ? 'block' : 'none' }}>
             <Card className="mb-8">
               <CardContent className="p-6 space-y-6">
                 <div>
@@ -694,10 +694,10 @@ export function CompanyRegister() {
                 </div>
               </CardContent>
             </Card>
-          )}
+          </div>
 
           {/* Step 2: Team */}
-          {step === 2 && (
+          <div style={{ display: step === 2 ? 'block' : 'none' }}>
             <Card className="mb-8">
               <CardContent className="p-6 space-y-6">
                 <div>
@@ -810,10 +810,10 @@ export function CompanyRegister() {
                 )}
               </CardContent>
             </Card>
-          )}
+          </div>
 
           {/* Step 3: Video */}
-          {step === 3 && (
+          <div style={{ display: step === 3 ? 'block' : 'none' }}>
             <Card className="mb-8">
               <CardContent className="p-6 space-y-6">
                 <div>
@@ -869,10 +869,10 @@ export function CompanyRegister() {
                 </Card>
               </CardContent>
             </Card>
-          )}
+          </div>
 
           {/* Step 4: Metrics */}
-          {step === 4 && (
+          <div style={{ display: step === 4 ? 'block' : 'none' }}>
             <Card className="mb-8">
               <CardContent className="p-6 space-y-6">
                 <div>
@@ -1076,10 +1076,10 @@ export function CompanyRegister() {
                 </div>
               </CardContent>
             </Card>
-          )}
+          </div>
 
           {/* Step 5: Q&A */}
-          {step === 5 && (
+          <div style={{ display: step === 5 ? 'block' : 'none' }}>
             <Card className="mb-8">
               <CardContent className="p-6 space-y-6">
                 <div>
@@ -1122,7 +1122,7 @@ export function CompanyRegister() {
 
               </CardContent>
             </Card>
-          )}
+          </div>
 
           {/* Error Display */}
           {validationErrors.length > 0 && (

@@ -55,39 +55,42 @@ export function ImageUpload({
       setUploading(true);
       setUploadError(null);
 
-      // Ensure session is valid before upload
-      let { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      try {
+        // Ensure session is valid before upload
+        let { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
-      // If no session, try to refresh
-      if (!session) {
-        const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
-        session = refreshData.session;
-        sessionError = refreshError;
-      }
+        // If no session, try to refresh
+        if (!session) {
+          const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+          session = refreshData.session;
+          sessionError = refreshError;
+        }
 
-      if (sessionError || !session) {
-        setUploadError('Please log in again to upload.');
+        if (sessionError || !session) {
+          setUploadError('Please log in again to upload.');
+          return;
+        }
+
+        const ext = file.name.split('.').pop();
+        const fileName = `${path}/${crypto.randomUUID()}.${ext}`;
+
+        const { error: uploadErr } = await supabase.storage
+          .from(bucket)
+          .upload(fileName, file, { upsert: true });
+
+        if (uploadErr) {
+          setUploadError(`Upload failed: ${uploadErr.message}`);
+          return;
+        }
+
+        const { data } = supabase.storage.from(bucket).getPublicUrl(fileName);
+        onChange(data.publicUrl);
+      } catch (err) {
+        console.error('Image upload error:', err);
+        setUploadError(err instanceof Error ? err.message : 'Upload failed. Please try again.');
+      } finally {
         setUploading(false);
-        return;
       }
-
-      const ext = file.name.split('.').pop();
-      const fileName = `${path}/${crypto.randomUUID()}.${ext}`;
-
-      const { error: uploadErr } = await supabase.storage
-        .from(bucket)
-        .upload(fileName, file, { upsert: true });
-
-      if (uploadErr) {
-        console.error('Image upload error:', uploadErr);
-        setUploadError(`Upload failed: ${uploadErr.message}`);
-        setUploading(false);
-        return;
-      }
-
-      const { data } = supabase.storage.from(bucket).getPublicUrl(fileName);
-      onChange(data.publicUrl);
-      setUploading(false);
     },
     [bucket, path, onChange]
   );
