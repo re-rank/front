@@ -117,16 +117,30 @@ function AppContent() {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (cancelled) return;
-        setUser(session?.user ?? null);
 
+        // 서버에서 유저 존재 여부를 검증
         if (session?.user) {
+          const { data: { user }, error: userError } = await supabase.auth.getUser();
+          if (cancelled) return;
+
+          if (userError || !user) {
+            // 유저가 삭제됨 → 세션 정리
+            await supabase.auth.signOut();
+            setUser(null);
+            setProfile(null);
+            return;
+          }
+
+          setUser(user);
           const { data } = await supabase
             .from('profiles')
             .select('*')
-            .eq('id', session.user.id)
+            .eq('id', user.id)
             .single();
           if (cancelled) return;
           setProfile(data);
+        } else {
+          setUser(null);
         }
       } catch {
         // session/profile fetch failed
