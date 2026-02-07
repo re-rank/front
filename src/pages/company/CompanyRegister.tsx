@@ -732,6 +732,7 @@ export function CompanyRegister() {
                                 onChange={(url) => f.onChange(url)}
                                 shape="circle"
                                 size="sm"
+                                className="!w-20 flex-shrink-0"
                               />
                             )}
                           />

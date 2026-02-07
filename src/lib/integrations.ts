@@ -52,7 +52,8 @@ export function initiateStripeConnect(): void {
     return;
   }
 
-  const redirectUri = `${window.location.origin}/oauth/callback`;
+  const baseUrl = import.meta.env.VITE_APP_URL || window.location.origin;
+  const redirectUri = `${baseUrl}/oauth/callback`;
   const url = getStripeConnectUrl({
     clientId,
     redirectUri,
@@ -95,7 +96,8 @@ export function initiateGoogleOAuth(): void {
     return;
   }
 
-  const redirectUri = `${window.location.origin}/oauth/callback`;
+  const baseUrl = import.meta.env.VITE_APP_URL || window.location.origin;
+  const redirectUri = `${baseUrl}/oauth/callback`;
   const url = getGoogleOAuthUrl({
     clientId,
     redirectUri,
