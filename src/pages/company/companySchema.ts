@@ -31,16 +31,22 @@ export const stageOptions: SelectOption[] = [
 
 export const executiveRoleOptions: SelectOption[] = [
   { value: 'CEO', label: 'CEO' },
-  { value: 'CTO', label: 'CTO' },
-  { value: 'COO', label: 'COO' },
+  { value: 'CAO', label: 'CAO' },
+  { value: 'CCO', label: 'CCO' },
   { value: 'CFO', label: 'CFO' },
+  { value: 'CIO', label: 'CIO' },
+  { value: 'CKO', label: 'CKO' },
+  { value: 'COO', label: 'COO' },
   { value: 'CPO', label: 'CPO' },
+  { value: 'CRO', label: 'CRO' },
+  { value: 'CSO', label: 'CSO' },
+  { value: 'CTO', label: 'CTO' },
 ];
 
 // --- Schema ---
 export const executiveSchema = z.object({
   name: z.string().min(1, 'Please enter a name'),
-  role: z.enum(['CEO', 'CTO', 'COO', 'CFO', 'CPO'], { message: 'Please select a role' }),
+  role: z.enum(['CEO', 'CAO', 'CCO', 'CFO', 'CIO', 'CKO', 'COO', 'CPO', 'CRO', 'CSO', 'CTO'], { message: 'Please select a role' }),
   photo_url: z.string().nullable().optional(),
   bio: z.string().optional(),
   linkedin_url: z.string().url('Please enter a valid URL').or(z.literal('')).optional(),

@@ -497,10 +497,10 @@ export function Home() {
               </p>
             </div>
             <div className="flex items-center gap-4 text-xs text-neutral-500">
-              <button className="hover:text-white transition-colors">Terms</button>
-              <button className="hover:text-white transition-colors">Privacy</button>
-              <button className="hover:text-white transition-colors">Policies</button>
-              <button className="hover:text-white transition-colors">Contact</button>
+              <a href="/terms" className="hover:text-white transition-colors">Terms</a>
+              <a href="/privacy" className="hover:text-white transition-colors">Privacy</a>
+              <a href="/policies" className="hover:text-white transition-colors">Policies</a>
+              <a href="mailto:contact@ivholdings.com" className="hover:text-white transition-colors">Contact</a>
               <a href="https://instagram.com/IVinsights" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">
                 <Instagram className="w-4 h-4" />
               </a>

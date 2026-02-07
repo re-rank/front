@@ -17,6 +17,9 @@ const CompanyDetail = lazy(() => import('@/pages/investor/CompanyDetail').then(m
 const AdminDashboard = lazy(() => import('@/pages/admin/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
 const StartupDashboard = lazy(() => import('@/pages/company/StartupDashboard').then(m => ({ default: m.StartupDashboard })));
 const OAuthCallback = lazy(() => import('@/pages/auth/OAuthCallback').then(m => ({ default: m.OAuthCallback })));
+const Terms = lazy(() => import('@/pages/legal/Terms').then(m => ({ default: m.Terms })));
+const Privacy = lazy(() => import('@/pages/legal/Privacy').then(m => ({ default: m.Privacy })));
+const Policies = lazy(() => import('@/pages/legal/Policies').then(m => ({ default: m.Policies })));
 
 // Loading fallback component
 function PageLoader() {
@@ -66,7 +69,7 @@ function RequireRole({ children }: { children: React.ReactNode }) {
   }, [isLoading, setLoading]);
 
   // Public pages - show immediately
-  const publicPaths = ['/', '/login', '/register/company', '/register/member', '/oauth/callback'];
+  const publicPaths = ['/', '/login', '/register/company', '/register/member', '/oauth/callback', '/terms', '/privacy', '/policies'];
   if (publicPaths.includes(location.pathname)) {
     return <>{children}</>;
   }
@@ -104,6 +107,11 @@ function AppContent() {
   useEffect(() => {
     let cancelled = false;
 
+    // Safety timeout: force loading to false if auth takes too long
+    const timeout = setTimeout(() => {
+      if (!cancelled) setLoading(false);
+    }, 3000);
+
     // Get initial session
     (async () => {
       try {
@@ -123,6 +131,7 @@ function AppContent() {
       } catch {
         // session/profile fetch failed
       } finally {
+        clearTimeout(timeout);
         if (!cancelled) setLoading(false);
       }
     })();
@@ -154,6 +163,7 @@ function AppContent() {
 
     return () => {
       cancelled = true;
+      clearTimeout(timeout);
       subscription.unsubscribe();
     };
   }, [setUser, setProfile, setLoading]);
@@ -171,6 +181,9 @@ function AppContent() {
               <Route path="/register/member" element={<RegisterForm role="investor" />} />
               <Route path="/select-role" element={<SelectRole />} />
               <Route path="/oauth/callback" element={<OAuthCallback />} />
+              <Route path="/terms" element={<Terms />} />
+              <Route path="/privacy" element={<Privacy />} />
+              <Route path="/policies" element={<Policies />} />
 
             {/* Investor routes */}
             <Route element={<ProtectedRoute allowedRoles={['investor', 'admin']} />}>

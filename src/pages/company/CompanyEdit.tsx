@@ -7,6 +7,7 @@ import {
   Check, ArrowLeft, Video, Clock, CheckCircle,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { initiateStripeConnect, initiateGoogleOAuth } from '@/lib/integrations';
 import { useAuthStore } from '@/stores/authStore';
 import {
   Button,
@@ -27,7 +28,7 @@ import {
   defaultExecutive,
 } from './companySchema';
 import type { CompanyRegisterForm } from './companySchema';
-import type { Company, Executive, CompanyVideo } from '@/types/database';
+import type { Company, Executive, CompanyVideo, CompanyNews } from '@/types/database';
 
 // X Icon
 const XIcon = ({ className }: { className?: string }) => (
@@ -65,6 +66,10 @@ export function CompanyEdit() {
   // Deck state
   const [companyDeck, setCompanyDeck] = useState<{ name: string; url: string } | null>(null);
   const [deckUploading, setDeckUploading] = useState(false);
+
+  // News state
+  const [newsItems, setNewsItems] = useState<CompanyNews[]>([]);
+  const [deletingNewsId, setDeletingNewsId] = useState<string | null>(null);
 
   const {
     register,
@@ -149,10 +154,18 @@ export function CompanyEdit() {
           .eq('is_main', true)
           .limit(1);
 
+        // Fetch news
+        const { data: newsData } = await supabase
+          .from('company_news')
+          .select('*')
+          .eq('company_id', companyData.id)
+          .order('published_at', { ascending: false });
+
         if (cancelled) return;
 
         const executives: Executive[] = execs ?? [];
         const mainVideo: CompanyVideo | null = videos?.[0] ?? null;
+        if (!cancelled) setNewsItems(newsData ?? []);
 
         // Set deck
         if (companyData.deck_url) {
@@ -255,6 +268,39 @@ export function CompanyEdit() {
       setSubmitError(error instanceof Error ? `Upload failed: ${error.message}` : 'Failed to upload deck. Please try again.');
     } finally {
       setDeckUploading(false);
+    }
+  };
+
+  // Delete news item
+  const handleDeleteNews = async (newsId: string) => {
+    if (!company) return;
+    setDeletingNewsId(newsId);
+    try {
+      const { error } = await supabase.from('company_news').delete().eq('id', newsId);
+      if (!error) {
+        setNewsItems((prev) => prev.filter((n) => n.id !== newsId));
+      }
+    } catch (err) {
+      console.error('Failed to delete news:', err);
+    } finally {
+      setDeletingNewsId(null);
+    }
+  };
+
+  // Remove news thumbnail
+  const handleRemoveNewsThumbnail = async (newsId: string) => {
+    try {
+      const { error } = await supabase
+        .from('company_news')
+        .update({ thumbnail_url: null })
+        .eq('id', newsId);
+      if (!error) {
+        setNewsItems((prev) =>
+          prev.map((n) => (n.id === newsId ? { ...n, thumbnail_url: null } : n))
+        );
+      }
+    } catch (err) {
+      console.error('Failed to remove thumbnail:', err);
     }
   };
 
@@ -684,16 +730,14 @@ export function CompanyEdit() {
                           control={control}
                           name={`executives.${index}.photo_url`}
                           render={({ field: f }) => (
-                            <div className="w-20 h-20 rounded-full border-2 border-dashed border-border flex items-center justify-center cursor-pointer hover:border-primary transition-colors overflow-hidden flex-shrink-0 bg-background">
-                              {f.value ? (
-                                <img src={f.value} alt="Profile" className="w-full h-full object-cover" />
-                              ) : (
-                                <div className="text-center">
-                                  <Upload className="w-5 h-5 mx-auto text-muted-foreground" />
-                                  <span className="text-[10px] text-muted-foreground">Photo</span>
-                                </div>
-                              )}
-                            </div>
+                            <ImageUpload
+                              bucket="company-assets"
+                              path="executives"
+                              value={f.value ?? undefined}
+                              onChange={(url) => f.onChange(url)}
+                              shape="circle"
+                              size="sm"
+                            />
                           )}
                         />
                         <div className="flex-1 grid sm:grid-cols-2 gap-4">
@@ -752,7 +796,7 @@ export function CompanyEdit() {
                 );
               })}
 
-              {fields.length < 5 && (
+              {fields.length < 11 && (
                 <div className="space-y-2">
                   <Label>Add C-Level Executive (Optional)</Label>
                   <div className="flex flex-wrap gap-2">
@@ -805,51 +849,117 @@ export function CompanyEdit() {
             </CardContent>
           </Card>
 
-          {/* Section 6: Integrations (read-only) */}
+          {/* Section 6: Integrations */}
           <Card>
             <CardContent className="p-6 space-y-4">
               <div>
                 <h2 className="text-2xl font-serif mb-2">Integrations</h2>
-                <p className="text-muted-foreground">Current integration status</p>
+                <p className="text-muted-foreground">Connect your accounts to sync metrics</p>
               </div>
 
-              <div className="flex flex-wrap gap-4">
-                <div className={`flex items-center gap-3 px-4 py-3 rounded-lg border ${
+              <div className="space-y-4">
+                <div className={`flex items-center justify-between px-4 py-3 rounded-lg border ${
                   company.stripe_connected
                     ? 'bg-green-500/10 border-green-500/30 text-green-400'
                     : 'bg-secondary border-border text-muted-foreground'
                 }`}>
-                  <StripeIcon className="w-5 h-5" />
-                  <div>
-                    <p className="text-sm font-medium">Stripe</p>
-                    <p className="text-xs opacity-80">
-                      {company.stripe_connected ? 'Connected' : 'Not Connected'}
-                    </p>
+                  <div className="flex items-center gap-3">
+                    <StripeIcon className="w-5 h-5" />
+                    <div>
+                      <p className="text-sm font-medium">Stripe</p>
+                      <p className="text-xs opacity-80">
+                        {company.stripe_connected ? 'Connected' : 'Not Connected'}
+                      </p>
+                    </div>
                   </div>
-                  {company.stripe_connected
-                    ? <CheckCircle className="w-4 h-4 ml-2" />
-                    : <Clock className="w-4 h-4 ml-2" />}
+                  {company.stripe_connected ? (
+                    <CheckCircle className="w-4 h-4" />
+                  ) : (
+                    <Button type="button" variant="outline" size="sm" onClick={() => initiateStripeConnect()} className="gap-2">
+                      <StripeIcon className="w-4 h-4" />
+                      Connect Stripe
+                    </Button>
+                  )}
                 </div>
 
-                <div className={`flex items-center gap-3 px-4 py-3 rounded-lg border ${
+                <div className={`flex items-center justify-between px-4 py-3 rounded-lg border ${
                   company.ga4_connected
                     ? 'bg-green-500/10 border-green-500/30 text-green-400'
                     : 'bg-secondary border-border text-muted-foreground'
                 }`}>
-                  <GA4Icon className="w-5 h-5" />
-                  <div>
-                    <p className="text-sm font-medium">Google Analytics 4</p>
-                    <p className="text-xs opacity-80">
-                      {company.ga4_connected ? 'Connected' : 'Not Connected'}
-                    </p>
+                  <div className="flex items-center gap-3">
+                    <GA4Icon className="w-5 h-5" />
+                    <div>
+                      <p className="text-sm font-medium">Google Analytics 4</p>
+                      <p className="text-xs opacity-80">
+                        {company.ga4_connected ? 'Connected' : 'Not Connected'}
+                      </p>
+                    </div>
                   </div>
-                  {company.ga4_connected
-                    ? <CheckCircle className="w-4 h-4 ml-2" />
-                    : <Clock className="w-4 h-4 ml-2" />}
+                  {company.ga4_connected ? (
+                    <CheckCircle className="w-4 h-4" />
+                  ) : (
+                    <Button type="button" variant="outline" size="sm" onClick={() => initiateGoogleOAuth()} className="gap-2">
+                      <GA4Icon className="w-4 h-4" />
+                      Connect GA4
+                    </Button>
+                  )}
                 </div>
               </div>
             </CardContent>
           </Card>
+
+          {/* Section 7: News Management */}
+          {newsItems.length > 0 && (
+            <Card>
+              <CardContent className="p-6 space-y-4">
+                <div>
+                  <h2 className="text-2xl font-serif mb-2">News</h2>
+                  <p className="text-muted-foreground">Manage your company news articles</p>
+                </div>
+
+                <div className="space-y-3">
+                  {newsItems.map((news) => (
+                    <div key={news.id} className="flex items-start gap-3 p-3 rounded-lg bg-secondary/50 border border-border">
+                      {news.thumbnail_url && (
+                        <div className="relative flex-shrink-0">
+                          <img src={news.thumbnail_url} alt="" className="h-16 w-24 rounded object-cover" />
+                          <button
+                            type="button"
+                            className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 hover:bg-red-600"
+                            onClick={() => handleRemoveNewsThumbnail(news.id)}
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm truncate">{news.title}</p>
+                        {news.summary && <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{news.summary}</p>}
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {new Date(news.published_at).toLocaleDateString('ko-KR')}
+                        </p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-sm"
+                        onClick={() => handleDeleteNews(news.id)}
+                        disabled={deletingNewsId === news.id}
+                        className="text-muted-foreground hover:text-destructive flex-shrink-0"
+                      >
+                        {deletingNewsId === news.id ? (
+                          <div className="animate-spin w-4 h-4 border-2 border-current border-t-transparent rounded-full" />
+                        ) : (
+                          <Trash2 className="w-4 h-4" />
+                        )}
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Error Display */}
           {validationErrors.length > 0 && (

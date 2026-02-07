@@ -287,15 +287,46 @@ export function CompanyRegister() {
     );
   };
 
-  // --- Submit ---
-  const onSubmit = async (data: CompanyRegisterForm) => {
-    if (!user) {
-      setSubmitError('Please log in again to submit.');
-      return;
-    }
+  // Manual submit to bypass handleSubmit hang (react-hook-form + zod v4 issue)
+  const handleManualSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setManualSubmitting(true);
+    setValidationErrors([]);
     setSubmitError(null);
 
     try {
+      const values = getValues();
+      const result = companyRegisterSchema.safeParse(values);
+
+      if (!result.success) {
+        const messages: string[] = [];
+        const fieldLabels: Record<string, string> = {
+          name: 'Company Name',
+          short_description: 'Tagline',
+          founded_at: 'Founded Date',
+          location: 'Location',
+          employee_count: 'Employee Count',
+          description: 'Company Description',
+          category: 'Category',
+          stage: 'Company Stage',
+          executives: 'Leadership Team',
+        };
+        for (const issue of result.error.issues) {
+          const key = String(issue.path[0] || '');
+          const label = fieldLabels[key] || key;
+          messages.push(`${label}: ${issue.message}`);
+        }
+        setValidationErrors(messages);
+        return;
+      }
+
+      const data = result.data as CompanyRegisterForm;
+
+      if (!user) {
+        setSubmitError('Please log in again to submit.');
+        return;
+      }
+
       // Ensure session is valid
       let { data: { session } } = await supabase.auth.getSession();
       if (!session) {
@@ -367,45 +398,6 @@ export function CompanyRegister() {
       // Clear pending integrations from localStorage
       localStorage.removeItem('pending_integrations');
       navigate('/dashboard');
-    } catch (error) {
-      setSubmitError(error instanceof Error ? error.message : 'An unexpected error occurred.');
-    }
-  };
-
-  // Manual submit to bypass handleSubmit hang (react-hook-form + zod v4 issue)
-  const handleManualSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setManualSubmitting(true);
-    setValidationErrors([]);
-    setSubmitError(null);
-
-    try {
-      const values = getValues();
-      const result = companyRegisterSchema.safeParse(values);
-
-      if (!result.success) {
-        const messages: string[] = [];
-        const fieldLabels: Record<string, string> = {
-          name: 'Company Name',
-          short_description: 'Tagline',
-          founded_at: 'Founded Date',
-          location: 'Location',
-          employee_count: 'Employee Count',
-          description: 'Company Description',
-          category: 'Category',
-          stage: 'Company Stage',
-          executives: 'Leadership Team',
-        };
-        for (const issue of result.error.issues) {
-          const key = String(issue.path[0] || '');
-          const label = fieldLabels[key] || key;
-          messages.push(`${label}: ${issue.message}`);
-        }
-        setValidationErrors(messages);
-        return;
-      }
-
-      await onSubmit(result.data as CompanyRegisterForm);
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : 'An unexpected error occurred.');
     } finally {
@@ -733,16 +725,14 @@ export function CompanyRegister() {
                             control={control}
                             name={`executives.${index}.photo_url`}
                             render={({ field: f }) => (
-                              <div className="w-20 h-20 rounded-full border-2 border-dashed border-border flex items-center justify-center cursor-pointer hover:border-primary transition-colors overflow-hidden flex-shrink-0 bg-background">
-                                {f.value ? (
-                                  <img src={f.value} alt="Profile" className="w-full h-full object-cover" />
-                                ) : (
-                                  <div className="text-center">
-                                    <Upload className="w-5 h-5 mx-auto text-muted-foreground" />
-                                    <span className="text-[10px] text-muted-foreground">Photo</span>
-                                  </div>
-                                )}
-                              </div>
+                              <ImageUpload
+                                bucket="company-assets"
+                                path="executives"
+                                value={f.value ?? undefined}
+                                onChange={(url) => f.onChange(url)}
+                                shape="circle"
+                                size="sm"
+                              />
                             )}
                           />
                           <div className="flex-1 grid sm:grid-cols-2 gap-4">
@@ -801,7 +791,7 @@ export function CompanyRegister() {
                   );
                 })}
 
-                {fields.length < 5 && (
+                {fields.length < 11 && (
                   <div className="space-y-2">
                     <Label>Add C-Level Executive (Optional)</Label>
                     <div className="flex flex-wrap gap-2">

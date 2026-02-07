@@ -33,6 +33,15 @@ export function StartupDashboard() {
   const [executives, setExecutives] = useState<Executive[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Safety timeout: if auth stays loading for too long, force it to complete
+  useEffect(() => {
+    if (!authLoading) return;
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [authLoading]);
+
   useEffect(() => {
     // Wait for auth to finish loading before deciding
     if (authLoading) return;

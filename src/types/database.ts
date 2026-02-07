@@ -19,7 +19,7 @@ export type CompanyStage =
   | 'Series B'
   | 'Series C+';
 
-export type ExecutiveRole = 'CEO' | 'CTO' | 'COO' | 'CFO' | 'CPO';
+export type ExecutiveRole = 'CEO' | 'CAO' | 'CCO' | 'CFO' | 'CIO' | 'CKO' | 'COO' | 'CPO' | 'CRO' | 'CSO' | 'CTO';
 
 export type ApprovalStatus = 'pending' | 'approved' | 'rejected';
 
