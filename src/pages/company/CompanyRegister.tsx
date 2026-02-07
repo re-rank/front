@@ -102,6 +102,21 @@ export function CompanyRegister() {
     ga4: 'disconnected',
   });
 
+  // Check for existing company and redirect
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      const { data } = await supabase
+        .from('companies')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      if (data) {
+        navigate('/company/edit', { replace: true });
+      }
+    })();
+  }, [user, navigate]);
+
   // Check for existing integrations and restore step on mount
   useEffect(() => {
     // Restore step from localStorage (after OAuth redirect)
@@ -327,40 +342,58 @@ export function CompanyRegister() {
         return;
       }
 
-      // Ensure session is valid
-      let { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        const { data: refreshData } = await supabase.auth.refreshSession();
-        session = refreshData.session;
-      }
-      if (!session) {
+      // 세션 검증 (서버 확인)
+      const { data: { user: verifiedUser }, error: userError } = await supabase.auth.getUser();
+      if (userError || !verifiedUser) {
         setSubmitError('Session expired. Please log in again.');
         return;
       }
 
-      // Insert company
-      const { data: company, error: companyError } = await supabase
+      // 이미 등록된 회사가 있는지 확인
+      const { data: existingCompany } = await supabase
         .from('companies')
-        .insert({
-          user_id: user.id,
-          name: data.name,
-          logo_url: data.logo_url || null,
-          short_description: data.short_description,
-          description: data.description,
-          founded_at: data.founded_at,
-          location: data.location,
-          employee_count: data.employee_count,
-          category: data.category,
-          stage: data.stage,
-          website_url: data.website_url || null,
-          github_url: data.github_url || null,
-          linkedin_url: data.linkedin_url || null,
-          twitter_url: data.twitter_url || null,
-          youtube_url: data.youtube_url || null,
-          deck_url: companyDeck?.url || null,
-        })
         .select('id')
-        .single();
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (existingCompany) {
+        setSubmitError('You already have a registered company. Redirecting to edit page...');
+        setTimeout(() => navigate('/company/edit', { replace: true }), 1500);
+        return;
+      }
+
+      // 타임아웃 래퍼
+      const withTimeout = <T,>(promise: PromiseLike<T>, ms = 15000): Promise<T> =>
+        Promise.race([
+          Promise.resolve(promise),
+          new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Request timed out. Please try again.')), ms)),
+        ]);
+
+      // Insert company
+      const { data: company, error: companyError } = await withTimeout(
+        supabase
+          .from('companies')
+          .insert({
+            user_id: user.id,
+            name: data.name,
+            logo_url: data.logo_url || null,
+            short_description: data.short_description,
+            description: data.description,
+            founded_at: data.founded_at,
+            location: data.location,
+            employee_count: data.employee_count,
+            category: data.category,
+            stage: data.stage,
+            website_url: data.website_url || null,
+            github_url: data.github_url || null,
+            linkedin_url: data.linkedin_url || null,
+            twitter_url: data.twitter_url || null,
+            youtube_url: data.youtube_url || null,
+            deck_url: companyDeck?.url || null,
+          })
+          .select('id')
+          .single()
+      );
 
       if (companyError || !company) {
         setSubmitError(companyError?.message || 'Failed to register company.');
@@ -379,21 +412,25 @@ export function CompanyRegister() {
         education: exec.education || null,
       }));
 
-      const { error: execError } = await supabase.from('executives').insert(executives);
+      const { error: execError } = await withTimeout(
+        supabase.from('executives').insert(executives)
+      );
       if (execError) {
         setSubmitError('Failed to register executives.');
         return;
       }
 
-      // Insert intro video if provided (table may not exist yet)
+      // Insert intro video if provided
       if (data.intro_video_url) {
         try {
-          await supabase.from('company_videos').insert({
-            company_id: company.id,
-            video_url: data.intro_video_url,
-            description: 'Company Introduction',
-            is_main: true,
-          });
+          await withTimeout(
+            supabase.from('company_videos').insert({
+              company_id: company.id,
+              video_url: data.intro_video_url,
+              description: 'Company Introduction',
+              is_main: true,
+            })
+          );
         } catch { /* table may not exist yet */ }
       }
 
