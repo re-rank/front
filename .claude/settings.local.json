@@ -55,7 +55,8 @@
       "Bash(npx supabase:*)",
       "Bash(gh api:*)",
       "Bash(supabase:*)",
-      "Bash(npx vite preview:*)"
+      "Bash(npx vite preview:*)",
+      "mcp__Neon__list_projects"
     ]
   }
 }

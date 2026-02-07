@@ -420,7 +420,8 @@ export function CompanyRegister() {
         supabase.from('executives').insert(executives)
       );
       if (execError) {
-        setSubmitError('Failed to register executives.');
+        console.error('Executive insert error:', execError);
+        setSubmitError(`Failed to register executives: ${execError.message}`);
         return;
       }
 

@@ -153,11 +153,15 @@ export function CompanyEdit() {
               updates.ga4_connected = true;
             }
             if (Object.keys(updates).length > 0) {
-              await supabase
+              const { error: integrationError } = await supabase
                 .from('companies')
                 .update(updates)
                 .eq('id', companyData.id);
-              Object.assign(companyData, updates);
+              if (integrationError) {
+                console.error('Failed to update integration status:', integrationError);
+              } else {
+                Object.assign(companyData, updates);
+              }
             }
             localStorage.removeItem('pending_integrations');
           } catch (e) {
@@ -374,15 +378,15 @@ export function CompanyEdit() {
         return;
       }
 
-      // Ensure session is valid
-      let { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
+      // Ensure session is valid (server-side validation)
+      const { data: { user: validatedUser }, error: userError } = await supabase.auth.getUser();
+      if (userError || !validatedUser) {
+        // Try refreshing session
         const { data: refreshData } = await supabase.auth.refreshSession();
-        session = refreshData.session;
-      }
-      if (!session) {
-        setSubmitError('Session expired. Please log in again.');
-        return;
+        if (!refreshData.session) {
+          setSubmitError('Session expired. Please log in again.');
+          return;
+        }
       }
 
       // 1. Update company
@@ -520,7 +524,7 @@ export function CompanyEdit() {
       </header>
 
       <div className="max-w-4xl mx-auto px-4 py-6">
-        <form onSubmit={handleManualSubmit} className="space-y-8">
+        <form onSubmit={handleManualSubmit} noValidate className="space-y-8">
 
           {/* Section 1: Basic Info */}
           <Card>
