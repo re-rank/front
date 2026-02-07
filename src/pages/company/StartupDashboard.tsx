@@ -38,19 +38,32 @@ export function StartupDashboard() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const handleDeleteCompany = async () => {
-    if (!company) return;
+    if (!company || !user) return;
     setDeleting(true);
     try {
-      // 관련 데이터 삭제 (순서 중요: FK 참조하는 테이블 먼저)
-      await supabase.from('company_videos').delete().eq('company_id', company.id);
-      await supabase.from('company_news').delete().eq('company_id', company.id);
-      await supabase.from('executives').delete().eq('company_id', company.id);
-      await supabase.from('companies').delete().eq('id', company.id);
+      // 관련 데이터 삭제 (테이블이 없을 수 있으므로 개별 에러 무시)
+      await supabase.from('company_videos').delete().eq('company_id', company.id).then(() => {}, () => {});
+      await supabase.from('company_news').delete().eq('company_id', company.id).then(() => {}, () => {});
+      await supabase.from('executives').delete().eq('company_id', company.id).then(() => {}, () => {});
+
+      // 회사 삭제 (핵심)
+      const { error } = await supabase
+        .from('companies')
+        .delete()
+        .eq('id', company.id)
+        .eq('user_id', user.id);
+
+      if (error) {
+        console.error('Delete company failed:', error);
+        alert(`Failed to delete: ${error.message}`);
+        return;
+      }
 
       setShowDeleteConfirm(false);
       navigate('/company/register', { replace: true });
     } catch (err) {
       console.error('Delete failed:', err);
+      alert('Failed to delete company. Please try again.');
     } finally {
       setDeleting(false);
     }
