@@ -302,6 +302,13 @@ export function CompanyRegister() {
     );
   };
 
+  // 타임아웃 래퍼
+  const withTimeout = <T,>(promise: PromiseLike<T> | Promise<T>, ms = 15000): Promise<T> =>
+    Promise.race([
+      Promise.resolve(promise),
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Request timed out. Please try again.')), ms)),
+    ]);
+
   // Manual submit to bypass handleSubmit hang (react-hook-form + zod v4 issue)
   const handleManualSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -342,32 +349,29 @@ export function CompanyRegister() {
         return;
       }
 
-      // 세션 검증 (서버 확인)
-      const { data: { user: verifiedUser }, error: userError } = await supabase.auth.getUser();
+      // 세션 검증 (서버 확인, 타임아웃 적용)
+      const { data: { user: verifiedUser }, error: userError } = await withTimeout(
+        supabase.auth.getUser()
+      );
       if (userError || !verifiedUser) {
         setSubmitError('Session expired. Please log in again.');
         return;
       }
 
       // 이미 등록된 회사가 있는지 확인
-      const { data: existingCompany } = await supabase
-        .from('companies')
-        .select('id')
-        .eq('user_id', user.id)
-        .maybeSingle();
+      const { data: existingCompany } = await withTimeout(
+        supabase
+          .from('companies')
+          .select('id')
+          .eq('user_id', user.id)
+          .maybeSingle()
+      );
 
       if (existingCompany) {
         setSubmitError('You already have a registered company. Redirecting to edit page...');
         setTimeout(() => navigate('/company/edit', { replace: true }), 1500);
         return;
       }
-
-      // 타임아웃 래퍼
-      const withTimeout = <T,>(promise: PromiseLike<T>, ms = 15000): Promise<T> =>
-        Promise.race([
-          Promise.resolve(promise),
-          new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Request timed out. Please try again.')), ms)),
-        ]);
 
       // Insert company
       const { data: company, error: companyError } = await withTimeout(
@@ -502,7 +506,7 @@ export function CompanyRegister() {
         </div>
 
         {/* Form */}
-        <form onSubmit={handleManualSubmit}>
+        <form onSubmit={handleManualSubmit} noValidate>
           {/* Step 1: Basic Info */}
           <div style={{ display: step === 1 ? 'block' : 'none' }}>
             <Card className="mb-8">

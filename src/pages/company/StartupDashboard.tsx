@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   Building2,
   Calendar,
@@ -15,6 +15,7 @@ import {
   AlertTriangle,
   FileText,
   Edit,
+  Trash2,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/stores/authStore';
@@ -28,10 +29,32 @@ const XIcon = ({ className }: { className?: string }) => (
 );
 
 export function StartupDashboard() {
+  const navigate = useNavigate();
   const { user, isLoading: authLoading } = useAuthStore();
   const [company, setCompany] = useState<Company | null>(null);
   const [executives, setExecutives] = useState<Executive[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  const handleDeleteCompany = async () => {
+    if (!company) return;
+    setDeleting(true);
+    try {
+      // 관련 데이터 삭제 (순서 중요: FK 참조하는 테이블 먼저)
+      await supabase.from('company_videos').delete().eq('company_id', company.id);
+      await supabase.from('company_news').delete().eq('company_id', company.id);
+      await supabase.from('executives').delete().eq('company_id', company.id);
+      await supabase.from('companies').delete().eq('id', company.id);
+
+      setShowDeleteConfirm(false);
+      navigate('/company/register', { replace: true });
+    } catch (err) {
+      console.error('Delete failed:', err);
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   // Safety timeout: if auth stays loading for too long, force it to complete
   useEffect(() => {
@@ -135,13 +158,40 @@ export function StartupDashboard() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-serif font-semibold">My Company</h1>
-        <Link to="/company/edit">
-          <Button variant="outline" size="sm">
-            <Edit className="w-4 h-4 mr-2" />
-            Edit
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => setShowDeleteConfirm(true)}>
+            <Trash2 className="w-4 h-4 mr-2" />
+            Delete
           </Button>
-        </Link>
+          <Link to="/company/edit">
+            <Button variant="outline" size="sm">
+              <Edit className="w-4 h-4 mr-2" />
+              Edit
+            </Button>
+          </Link>
+        </div>
       </div>
+
+      {/* Delete Confirmation */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+          <div className="bg-background border border-border rounded-xl p-6 max-w-md w-full mx-4 space-y-4">
+            <h3 className="text-lg font-semibold text-destructive">Delete Company</h3>
+            <p className="text-sm text-muted-foreground">
+              Are you sure you want to delete <strong>{company.name}</strong>? This will permanently remove all company data, team members, videos, and news. This action cannot be undone.
+            </p>
+            <div className="flex justify-end gap-3">
+              <Button variant="outline" size="sm" onClick={() => setShowDeleteConfirm(false)} disabled={deleting}>
+                Cancel
+              </Button>
+              <Button variant="destructive" size="sm" onClick={handleDeleteCompany} isLoading={deleting}>
+                <Trash2 className="w-4 h-4 mr-1" />
+                Delete
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Status Banner */}
       <div className={`flex items-center gap-3 px-4 py-3 rounded-lg border ${statusInfo.color}`}>
