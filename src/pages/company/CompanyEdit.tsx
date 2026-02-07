@@ -4,7 +4,7 @@ import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   Plus, Trash2, Upload, Globe, Github, Linkedin, Youtube, FileText,
-  Check, ArrowLeft, Video, CheckCircle,
+  Check, ArrowLeft, Video,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { initiateStripeConnect, initiateGoogleOAuth } from '@/lib/integrations';
@@ -70,6 +70,9 @@ export function CompanyEdit() {
   // News state
   const [newsItems, setNewsItems] = useState<CompanyNews[]>([]);
   const [deletingNewsId, setDeletingNewsId] = useState<string | null>(null);
+
+  // Integration disconnect state
+  const [disconnectLoading, setDisconnectLoading] = useState<'stripe' | 'ga4' | null>(null);
 
   const {
     register,
@@ -326,6 +329,26 @@ export function CompanyEdit() {
       }
     } catch (err) {
       console.error('Failed to remove thumbnail:', err);
+    }
+  };
+
+  // Disconnect integration
+  const handleDisconnectIntegration = async (provider: 'stripe' | 'ga4') => {
+    if (!company) return;
+    setDisconnectLoading(provider);
+    const field = provider === 'stripe' ? 'stripe_connected' : 'ga4_connected';
+    try {
+      const { error } = await supabase
+        .from('companies')
+        .update({ [field]: false })
+        .eq('id', company.id);
+      if (!error) {
+        setCompany({ ...company, [field]: false });
+      }
+    } catch (err) {
+      console.error(`Failed to disconnect ${provider}:`, err);
+    } finally {
+      setDisconnectLoading(null);
     }
   };
 
@@ -884,6 +907,7 @@ export function CompanyEdit() {
               </div>
 
               <div className="space-y-4">
+                {/* Stripe */}
                 <div className={`flex items-center justify-between px-4 py-3 rounded-lg border ${
                   company.stripe_connected
                     ? 'bg-green-500/10 border-green-500/30 text-green-400'
@@ -899,7 +923,18 @@ export function CompanyEdit() {
                     </div>
                   </div>
                   {company.stripe_connected ? (
-                    <CheckCircle className="w-4 h-4" />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDisconnectIntegration('stripe')}
+                      disabled={disconnectLoading === 'stripe'}
+                      className="text-red-400 hover:text-red-300"
+                    >
+                      {disconnectLoading === 'stripe' ? (
+                        <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                      ) : 'Disconnect'}
+                    </Button>
                   ) : (
                     <Button type="button" variant="outline" size="sm" onClick={() => initiateStripeConnect()} className="gap-2">
                       <StripeIcon className="w-4 h-4" />
@@ -908,6 +943,7 @@ export function CompanyEdit() {
                   )}
                 </div>
 
+                {/* GA4 */}
                 <div className={`flex items-center justify-between px-4 py-3 rounded-lg border ${
                   company.ga4_connected
                     ? 'bg-green-500/10 border-green-500/30 text-green-400'
@@ -923,7 +959,18 @@ export function CompanyEdit() {
                     </div>
                   </div>
                   {company.ga4_connected ? (
-                    <CheckCircle className="w-4 h-4" />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDisconnectIntegration('ga4')}
+                      disabled={disconnectLoading === 'ga4'}
+                      className="text-red-400 hover:text-red-300"
+                    >
+                      {disconnectLoading === 'ga4' ? (
+                        <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                      ) : 'Disconnect'}
+                    </Button>
                   ) : (
                     <Button type="button" variant="outline" size="sm" onClick={() => initiateGoogleOAuth()} className="gap-2">
                       <GA4Icon className="w-4 h-4" />
