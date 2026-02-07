@@ -69,6 +69,7 @@ export function RegisterForm({ role }: { role: UserRole }) {
   };
 
   const handleGoogleLogin = async () => {
+    localStorage.setItem('pending_oauth_role', role);
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: { redirectTo: window.location.origin },
