@@ -45,19 +45,16 @@ const newsItems = [
     title: 'TechFlow AI Raises $25M Series A to Revolutionize Workflow Automation',
     source: 'TechCrunch',
     date: 'Jan 15, 2024',
-    image: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=400&h=250&fit=crop',
   },
   {
     title: 'How GreenBattery is Making EVs More Sustainable with Solid-State Tech',
     source: 'Forbes',
     date: 'Jan 10, 2024',
-    image: 'https://images.unsplash.com/photo-1497435334941-8c899ee9e8e9?w=400&h=250&fit=crop',
   },
   {
     title: 'HealthAI Partners with Mayo Clinic for Remote Diagnostics Trial',
     source: 'Reuters',
     date: 'Jan 5, 2024',
-    image: 'https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=400&h=250&fit=crop',
   },
 ];
 
@@ -349,11 +346,6 @@ export function Home() {
                   key={item.title}
                   className="bg-neutral-900 border border-neutral-800 rounded-xl p-4 flex gap-4 items-start hover:border-neutral-700 transition-colors cursor-pointer group"
                 >
-                  <img
-                    src={item.image}
-                    alt=""
-                    className="w-20 h-20 rounded-lg object-cover flex-shrink-0"
-                  />
                   <div className="min-w-0 flex-1">
                     <h3 className="font-medium text-sm mb-2 line-clamp-2 group-hover:text-white transition-colors">{item.title}</h3>
                     <div className="flex items-center gap-2 text-xs text-neutral-500">
