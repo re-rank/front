@@ -4,7 +4,7 @@ import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   Plus, Trash2, Upload, Globe, Github, Linkedin, Youtube, FileText,
-  Check, ArrowLeft, Video, Clock, CheckCircle,
+  Check, ArrowLeft, Video, CheckCircle,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { initiateStripeConnect, initiateGoogleOAuth } from '@/lib/integrations';
