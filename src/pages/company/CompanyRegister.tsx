@@ -385,14 +385,16 @@ export function CompanyRegister() {
         return;
       }
 
-      // Insert intro video if provided
+      // Insert intro video if provided (table may not exist yet)
       if (data.intro_video_url) {
-        await supabase.from('company_videos').insert({
-          company_id: company.id,
-          video_url: data.intro_video_url,
-          description: 'Company Introduction',
-          is_main: true,
-        });
+        try {
+          await supabase.from('company_videos').insert({
+            company_id: company.id,
+            video_url: data.intro_video_url,
+            description: 'Company Introduction',
+            is_main: true,
+          });
+        } catch { /* table may not exist yet */ }
       }
 
       // Clear pending integrations from localStorage

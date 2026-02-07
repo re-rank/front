@@ -40,14 +40,8 @@ export function ImageUpload({
 
   const handleUpload = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
-      console.log('[ImageUpload] handleUpload triggered');
       const file = e.target.files?.[0];
-      if (!file) {
-        console.log('[ImageUpload] No file selected');
-        return;
-      }
-
-      console.log('[ImageUpload] File selected:', file.name, file.type, file.size);
+      if (!file) return;
 
       if (!file.type.startsWith('image/')) {
         setUploadError('Only image files are allowed.');
@@ -61,18 +55,14 @@ export function ImageUpload({
       setUploading(true);
       setUploadError(null);
 
-      console.log('[ImageUpload] Checking session...');
       // Ensure session is valid before upload
       let { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      console.log('[ImageUpload] Session result:', { session: !!session, error: sessionError });
 
       // If no session, try to refresh
       if (!session) {
-        console.log('[ImageUpload] No session, attempting refresh...');
         const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
         session = refreshData.session;
         sessionError = refreshError;
-        console.log('[ImageUpload] Refresh result:', { session: !!session, error: refreshError });
       }
 
       if (sessionError || !session) {
@@ -80,8 +70,6 @@ export function ImageUpload({
         setUploading(false);
         return;
       }
-
-      console.log('[ImageUpload] Session valid, starting upload...');
 
       const ext = file.name.split('.').pop();
       const fileName = `${path}/${crypto.randomUUID()}.${ext}`;
@@ -126,10 +114,7 @@ export function ImageUpload({
           shape === 'circle' ? 'rounded-full' : 'rounded-lg',
           sizeMap[size]
         )}
-        onClick={() => {
-          console.log('[ImageUpload] Click triggered, uploading:', uploading);
-          inputRef.current?.click();
-        }}
+        onClick={() => inputRef.current?.click()}
       >
         {value ? (
           <>

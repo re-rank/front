@@ -167,33 +167,18 @@ export function CompanyEdit() {
 
         setCompany(companyData);
 
-        // Fetch executives
-        const { data: execs } = await supabase
-          .from('executives')
-          .select('*')
-          .eq('company_id', companyData.id)
-          .order('created_at');
-
-        // Fetch main video
-        const { data: videos } = await supabase
-          .from('company_videos')
-          .select('*')
-          .eq('company_id', companyData.id)
-          .eq('is_main', true)
-          .limit(1);
-
-        // Fetch news
-        const { data: newsData } = await supabase
-          .from('company_news')
-          .select('*')
-          .eq('company_id', companyData.id)
-          .order('published_at', { ascending: false });
+        // Fetch related data in parallel
+        const [execRes, videoRes, newsRes] = await Promise.all([
+          supabase.from('executives').select('*').eq('company_id', companyData.id).order('created_at'),
+          supabase.from('company_videos').select('*').eq('company_id', companyData.id).eq('is_main', true).limit(1).then(r => r).catch(() => ({ data: null, error: true })),
+          supabase.from('company_news').select('*').eq('company_id', companyData.id).order('published_at', { ascending: false }).then(r => r).catch(() => ({ data: null, error: true })),
+        ]);
 
         if (cancelled) return;
 
-        const executives: Executive[] = execs ?? [];
-        const mainVideo: CompanyVideo | null = videos?.[0] ?? null;
-        if (!cancelled) setNewsItems(newsData ?? []);
+        const executives: Executive[] = execRes.data ?? [];
+        const mainVideo: CompanyVideo | null = videoRes.data?.[0] ?? null;
+        if (!cancelled) setNewsItems((newsRes.data as CompanyNews[] | null) ?? []);
 
         // Set deck
         if (companyData.deck_url) {
@@ -304,13 +289,9 @@ export function CompanyEdit() {
     if (!company) return;
     setDeletingNewsId(newsId);
     try {
-      const { error } = await supabase.from('company_news').delete().eq('id', newsId);
-      if (!error) {
-        setNewsItems((prev) => prev.filter((n) => n.id !== newsId));
-      }
-    } catch (err) {
-      console.error('Failed to delete news:', err);
-    } finally {
+      await supabase.from('company_news').delete().eq('id', newsId);
+      setNewsItems((prev) => prev.filter((n) => n.id !== newsId));
+    } catch { /* table may not exist */ } finally {
       setDeletingNewsId(null);
     }
   };
@@ -318,18 +299,11 @@ export function CompanyEdit() {
   // Remove news thumbnail
   const handleRemoveNewsThumbnail = async (newsId: string) => {
     try {
-      const { error } = await supabase
-        .from('company_news')
-        .update({ thumbnail_url: null })
-        .eq('id', newsId);
-      if (!error) {
-        setNewsItems((prev) =>
-          prev.map((n) => (n.id === newsId ? { ...n, thumbnail_url: null } : n))
-        );
-      }
-    } catch (err) {
-      console.error('Failed to remove thumbnail:', err);
-    }
+      await supabase.from('company_news').update({ thumbnail_url: null }).eq('id', newsId);
+      setNewsItems((prev) =>
+        prev.map((n) => (n.id === newsId ? { ...n, thumbnail_url: null } : n))
+      );
+    } catch { /* table may not exist */ }
   };
 
   // Disconnect integration
@@ -359,6 +333,12 @@ export function CompanyEdit() {
     setValidationErrors([]);
     setSubmitError(null);
 
+    // Safety timeout: force stop loading after 15 seconds
+    const timeout = setTimeout(() => {
+      setManualSubmitting(false);
+      setSubmitError('Request timed out. Please try again.');
+    }, 15000);
+
     try {
       const values = getValues();
       const result = companyRegisterSchema.safeParse(values);
@@ -382,6 +362,8 @@ export function CompanyEdit() {
           messages.push(`${label}: ${issue.message}`);
         }
         setValidationErrors(messages);
+        // Scroll to error display
+        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
         return;
       }
 
@@ -426,7 +408,7 @@ export function CompanyEdit() {
         .eq('id', company.id);
 
       if (companyError) {
-        setSubmitError(companyError.message || 'Failed to update company.');
+        setSubmitError(`Failed to update company: ${companyError.message}`);
         return;
       }
 
@@ -437,8 +419,30 @@ export function CompanyEdit() {
         .eq('company_id', company.id);
 
       if (deleteExecError) {
-        setSubmitError('Failed to update executives.');
+        setSubmitError(`Failed to delete executives: ${deleteExecError.message}`);
         return;
+      }
+
+      // Verify deletion actually worked (RLS may silently block it)
+      const { data: remaining } = await supabase
+        .from('executives')
+        .select('id')
+        .eq('company_id', company.id);
+
+      if (remaining && remaining.length > 0) {
+        // RLS blocked deletion — delete individually by ID as fallback
+        for (const row of remaining) {
+          await supabase.from('executives').delete().eq('id', row.id);
+        }
+        // Check again
+        const { data: stillRemaining } = await supabase
+          .from('executives')
+          .select('id')
+          .eq('company_id', company.id);
+        if (stillRemaining && stillRemaining.length > 0) {
+          setSubmitError('Unable to update leadership team. Please check database permissions (RLS DELETE policy on executives table).');
+          return;
+        }
       }
 
       const executives = data.executives.map((exec) => ({
@@ -454,30 +458,33 @@ export function CompanyEdit() {
 
       const { error: insertExecError } = await supabase.from('executives').insert(executives);
       if (insertExecError) {
-        setSubmitError('Failed to update executives.');
+        setSubmitError(`Failed to insert executives: ${insertExecError.message}`);
         return;
       }
 
-      // 3. Delete-then-insert main video
-      await supabase
-        .from('company_videos')
-        .delete()
-        .eq('company_id', company.id)
-        .eq('is_main', true);
+      // 3. Delete-then-insert main video (table may not exist yet)
+      try {
+        await supabase
+          .from('company_videos')
+          .delete()
+          .eq('company_id', company.id)
+          .eq('is_main', true);
 
-      if (data.intro_video_url) {
-        await supabase.from('company_videos').insert({
-          company_id: company.id,
-          video_url: data.intro_video_url,
-          description: 'Company Introduction',
-          is_main: true,
-        });
-      }
+        if (data.intro_video_url) {
+          await supabase.from('company_videos').insert({
+            company_id: company.id,
+            video_url: data.intro_video_url,
+            description: 'Company Introduction',
+            is_main: true,
+          });
+        }
+      } catch { /* table may not exist yet - skip video operations */ }
 
       navigate('/dashboard');
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : 'An unexpected error occurred.');
     } finally {
+      clearTimeout(timeout);
       setManualSubmitting(false);
     }
   };
