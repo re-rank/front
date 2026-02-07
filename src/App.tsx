@@ -132,13 +132,78 @@ function AppContent() {
           }
 
           setUser(user);
-          const { data } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', user.id)
-            .single();
-          if (cancelled) return;
-          setProfile(data);
+
+          // Google OAuth 회원가입 시 저장된 role 자동 적용 (초기 세션에서도 처리)
+          const pendingRole = localStorage.getItem('pending_oauth_role');
+          if (pendingRole && (pendingRole === 'startup' || pendingRole === 'investor')) {
+            localStorage.removeItem('pending_oauth_role');
+
+            const { data: existingProfile } = await supabase
+              .from('profiles')
+              .select('role')
+              .eq('id', user.id)
+              .single();
+            if (cancelled) return;
+
+            if (!existingProfile?.role) {
+              const { data: newProfile } = await supabase
+                .from('profiles')
+                .upsert(
+                  {
+                    id: user.id,
+                    email: user.email!,
+                    role: pendingRole,
+                    full_name: user.user_metadata?.full_name || user.user_metadata?.name || null,
+                    avatar_url: user.user_metadata?.avatar_url || null,
+                  },
+                  { onConflict: 'id' }
+                )
+                .select()
+                .single();
+              if (cancelled) return;
+              await supabase.auth.updateUser({ data: { role: pendingRole } });
+              setProfile(newProfile);
+            } else {
+              // 이미 role이 있으면 전체 프로필 조회
+              const { data: fullProfile } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', user.id)
+                .single();
+              if (cancelled) return;
+              setProfile(fullProfile);
+            }
+          } else {
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', user.id)
+              .single();
+            if (cancelled) return;
+
+            // 이메일 가입 등으로 user_metadata에 role이 있지만 프로필에 role이 없는 경우 동기화
+            const metaRole = user.user_metadata?.role as string | undefined;
+            if (!profile?.role && metaRole && (metaRole === 'startup' || metaRole === 'investor')) {
+              const { data: syncedProfile } = await supabase
+                .from('profiles')
+                .upsert(
+                  {
+                    id: user.id,
+                    email: user.email!,
+                    role: metaRole,
+                    full_name: user.user_metadata?.full_name || user.user_metadata?.name || null,
+                    avatar_url: user.user_metadata?.avatar_url || null,
+                  },
+                  { onConflict: 'id' }
+                )
+                .select()
+                .single();
+              if (cancelled) return;
+              setProfile(syncedProfile);
+            } else {
+              setProfile(profile);
+            }
+          }
         } else {
           setUser(null);
         }
@@ -208,13 +273,35 @@ function AppContent() {
         }
 
         try {
-          const { data } = await supabase
+          const { data: profile } = await supabase
             .from('profiles')
             .select('*')
             .eq('id', user.id)
             .single();
           if (cancelled) return;
-          setProfile(data);
+
+          // 이메일 가입 등으로 user_metadata에 role이 있지만 프로필에 role이 없는 경우 동기화
+          const metaRole = user.user_metadata?.role as string | undefined;
+          if (!profile?.role && metaRole && (metaRole === 'startup' || metaRole === 'investor')) {
+            const { data: syncedProfile } = await supabase
+              .from('profiles')
+              .upsert(
+                {
+                  id: user.id,
+                  email: user.email!,
+                  role: metaRole,
+                  full_name: user.user_metadata?.full_name || user.user_metadata?.name || null,
+                  avatar_url: user.user_metadata?.avatar_url || null,
+                },
+                { onConflict: 'id' }
+              )
+              .select()
+              .single();
+            if (cancelled) return;
+            setProfile(syncedProfile);
+          } else {
+            setProfile(profile);
+          }
         } catch {
           // Continue even if profile fetch fails
         }
