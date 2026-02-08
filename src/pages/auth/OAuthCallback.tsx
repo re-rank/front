@@ -9,7 +9,6 @@ type ProcessingStatus = 'processing' | 'syncing' | 'success' | 'error';
 /** Read Supabase session directly from localStorage to avoid auth API hangs */
 function readSessionFromStorage(): { userId?: string; accessToken?: string } {
   try {
-    // Try the standard Supabase storage key pattern
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
       if (key?.startsWith('sb-') && key.endsWith('-auth-token')) {
@@ -17,7 +16,15 @@ function readSessionFromStorage(): { userId?: string; accessToken?: string } {
         if (!raw) continue;
         const parsed = JSON.parse(raw);
         if (parsed?.user?.id) {
-          return { userId: parsed.user.id, accessToken: parsed.access_token };
+          // Only include access token if it's not expired (with 60s buffer)
+          let validToken: string | undefined;
+          if (parsed.access_token && parsed.expires_at) {
+            const expiresAt = parsed.expires_at * 1000; // convert to ms
+            if (expiresAt > Date.now() + 60000) {
+              validToken = parsed.access_token;
+            }
+          }
+          return { userId: parsed.user.id, accessToken: validToken };
         }
       }
     }
