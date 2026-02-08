@@ -359,6 +359,7 @@ export function CompanyEdit() {
           category: 'Category',
           stage: 'Company Stage',
           executives: 'Leadership Team',
+          intro_video_url: 'Introduction Video',
         };
         for (const issue of result.error.issues) {
           const key = String(issue.path[0] || '');
@@ -883,9 +884,10 @@ export function CompanyEdit() {
               </div>
 
               <div className="space-y-2">
-                <Label className="flex items-center gap-2"><Video className="w-4 h-4" /> Video URL (YouTube, Vimeo, or Loom)</Label>
+                <Label required className="flex items-center gap-2"><Video className="w-4 h-4" /> Video URL (YouTube, Vimeo, or Loom)</Label>
                 <Input
                   placeholder="https://youtube.com/watch?v=..."
+                  error={errors.intro_video_url?.message}
                   className="bg-secondary border-border"
                   {...register('intro_video_url')}
                 />
