@@ -2,10 +2,28 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Check, X, Loader2 } from 'lucide-react';
 import { processOAuthCallback, type OAuthCallbackResult } from '@/lib/integrations';
-import { supabase } from '@/lib/supabase';
 import { Button, Card, CardContent } from '@/components/ui';
 
 type ProcessingStatus = 'processing' | 'syncing' | 'success' | 'error';
+
+/** Read Supabase session directly from localStorage to avoid auth API hangs */
+function readSessionFromStorage(): { userId?: string; accessToken?: string } {
+  try {
+    // Try the standard Supabase storage key pattern
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key?.startsWith('sb-') && key.endsWith('-auth-token')) {
+        const raw = localStorage.getItem(key);
+        if (!raw) continue;
+        const parsed = JSON.parse(raw);
+        if (parsed?.user?.id) {
+          return { userId: parsed.user.id, accessToken: parsed.access_token };
+        }
+      }
+    }
+  } catch { /* ignore parse errors */ }
+  return {};
+}
 
 export function OAuthCallback() {
   const navigate = useNavigate();
@@ -34,70 +52,54 @@ export function OAuthCallback() {
           status: 'connected',
         };
 
-        // Determine redirect path: check if company exists
-        let redirectPath = callbackResult.returnPath || '/company/register';
-        // Try refreshing session (token may be stale after OAuth redirect), but don't block
-        try {
-          await Promise.race([
-            supabase.auth.refreshSession(),
-            new Promise((resolve) => setTimeout(resolve, 3000)),
-          ]);
-        } catch { /* ignore refresh errors */ }
-        const { data: { session } } = await supabase.auth.getSession();
+        // Read session from localStorage directly (avoids Supabase auth API hangs)
+        const { userId, accessToken } = readSessionFromStorage();
+        const redirectPath = userId ? '/company/edit' : (callbackResult.returnPath || '/company/register');
 
-        let companyId: string | undefined;
-        if (session) {
-          const { data: companyRows } = await supabase
-            .from('companies')
-            .select('id')
-            .eq('user_id', session.user.id)
-            .limit(1);
-
-          companyId = companyRows?.[0]?.id;
-          if (companyId) {
-            redirectPath = '/company/edit';
-          }
-        }
-
-        // Always call sync-metrics: with companyId (save mode) or without (preview mode)
+        // Call sync-metrics Edge Function via direct fetch (avoids supabase.functions.invoke hangs)
         setStatus('syncing');
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+        const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
         const baseUrl = import.meta.env.VITE_APP_URL || window.location.origin;
         const redirectUri = `${baseUrl}/oauth/callback`;
-        setSyncDetail(`provider=${callbackResult.provider}, companyId=${companyId || 'none'}, session=${session ? 'yes' : 'no'}`);
-        try {
-          const syncResult = await Promise.race([
-            supabase.functions.invoke('sync-metrics', {
-              body: {
-                ...(companyId ? { companyId } : {}),
-                ...(session?.user?.id ? { userId: session.user.id } : {}),
-                provider: callbackResult.provider,
-                code: callbackResult.code,
-                redirectUri,
-              },
-            }),
-            new Promise<never>((_, reject) =>
-              setTimeout(() => reject(new Error('Sync timed out')), 15000)
-            ),
-          ]);
 
-          // supabase.functions.invoke returns { data, error } — handle both
-          if (syncResult.error) {
-            console.warn('sync-metrics error:', syncResult.error);
-            const errMsg = syncResult.error.message || JSON.stringify(syncResult.error);
+        setSyncDetail(`provider=${callbackResult.provider}, userId=${userId || 'none'}, token=${accessToken ? 'yes' : 'no'}`);
+
+        try {
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 20000);
+
+          const headers: Record<string, string> = {
+            'Content-Type': 'application/json',
+            'apikey': supabaseAnonKey,
+          };
+          if (accessToken) {
+            headers['Authorization'] = `Bearer ${accessToken}`;
+          }
+
+          const res = await fetch(`${supabaseUrl}/functions/v1/sync-metrics`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({
+              ...(userId ? { userId } : {}),
+              provider: callbackResult.provider,
+              code: callbackResult.code,
+              redirectUri,
+            }),
+            signal: controller.signal,
+          });
+
+          clearTimeout(timeout);
+
+          const data = await res.json();
+          setSyncDetail(prev => prev + ` | status=${res.status} data=${JSON.stringify(data).slice(0, 200)}`);
+
+          if (!res.ok || data.error) {
+            const errMsg = data.error || `HTTP ${res.status}`;
             integrations[callbackResult.provider!].syncError = errMsg;
             setSyncDetail(prev => prev + ` | ERROR: ${errMsg}`);
-          } else {
-            // data may be string or object depending on client version
-            const parsed = typeof syncResult.data === 'string'
-              ? JSON.parse(syncResult.data)
-              : syncResult.data;
-            setSyncDetail(prev => prev + ` | data: ${JSON.stringify(parsed).slice(0, 200)}`);
-            if (parsed?.metrics?.length) {
-              integrations[callbackResult.provider!].metrics = parsed.metrics;
-            } else if (parsed?.error) {
-              integrations[callbackResult.provider!].syncError = parsed.error;
-              setSyncDetail(prev => prev + ` | API_ERROR: ${parsed.error}`);
-            }
+          } else if (data.metrics?.length) {
+            integrations[callbackResult.provider!].metrics = data.metrics;
           }
         } catch (syncErr) {
           console.warn('Metrics sync failed (non-blocking):', syncErr);
@@ -125,7 +127,6 @@ export function OAuthCallback() {
 
         setStatus('success');
         setTimeout(() => {
-          // Fallback: check returnPath, default to dashboard
           navigate(callbackResult.returnPath || '/dashboard', { replace: true });
         }, 2000);
       }
