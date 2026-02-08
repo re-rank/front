@@ -540,6 +540,37 @@ export function CompanyRegister() {
         }
       }
 
+      // Sync metrics for connected integrations (now that company exists)
+      const pendingRaw = localStorage.getItem('pending_integrations');
+      if (pendingRaw) {
+        try {
+          const pending = JSON.parse(pendingRaw);
+          const baseUrl = import.meta.env.VITE_APP_URL || window.location.origin;
+          const redirectUri = `${baseUrl}/oauth/callback`;
+
+          const syncProviders = (['stripe', 'ga4'] as const).filter(
+            (p) => pending[p]?.status === 'connected' && pending[p]?.code
+          );
+
+          await Promise.all(
+            syncProviders.map((provider) =>
+              supabase.functions
+                .invoke('sync-metrics', {
+                  body: {
+                    companyId: company.id,
+                    provider,
+                    code: pending[provider].code,
+                    redirectUri,
+                  },
+                })
+                .catch((err) => console.error(`Sync ${provider} failed:`, err))
+            )
+          );
+        } catch (e) {
+          console.error('Post-registration sync failed:', e);
+        }
+      }
+
       // Clear pending integrations from localStorage
       localStorage.removeItem('pending_integrations');
       navigate('/dashboard');
@@ -672,7 +703,7 @@ export function CompanyRegister() {
                       <Input
                         type="month"
                         error={errors.founded_at?.message}
-                        className="bg-secondary border-border [color:transparent] [&::-webkit-datetime-edit]:text-transparent [&::-webkit-calendar-picker-indicator]:invert"
+                        className="bg-secondary border-border [&::-webkit-datetime-edit-fields-wrapper]:opacity-0 [&::-webkit-calendar-picker-indicator]:invert"
                         {...register('founded_at')}
                       />
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm pointer-events-none">
@@ -1095,19 +1126,19 @@ export function CompanyRegister() {
                               <div className="p-3 rounded-lg bg-background border border-border text-center">
                                 <p className="text-xs text-muted-foreground mb-1">Monthly MRR</p>
                                 <p className="font-semibold text-lg">
-                                  {latest?.revenue != null ? `$${latest.revenue.toLocaleString()}` : 'Waiting for data...'}
+                                  {latest?.revenue != null ? `$${latest.revenue.toLocaleString()}` : 'Syncs after submit'}
                                 </p>
                               </div>
                               <div className="p-3 rounded-lg bg-background border border-border text-center">
                                 <p className="text-xs text-muted-foreground mb-1">Total Revenue</p>
                                 <p className="font-semibold text-lg">
-                                  {totalRevenue > 0 ? `$${totalRevenue.toLocaleString()}` : 'Waiting for data...'}
+                                  {totalRevenue > 0 ? `$${totalRevenue.toLocaleString()}` : 'Syncs after submit'}
                                 </p>
                               </div>
                               <div className="p-3 rounded-lg bg-background border border-border text-center">
                                 <p className="text-xs text-muted-foreground mb-1">Months Tracked</p>
                                 <p className="font-semibold text-lg">
-                                  {stripeMetrics.length > 0 ? stripeMetrics.length : 'Waiting for data...'}
+                                  {stripeMetrics.length > 0 ? stripeMetrics.length : 'Syncs after submit'}
                                 </p>
                               </div>
                             </>
@@ -1201,19 +1232,19 @@ export function CompanyRegister() {
                               <div className="p-3 rounded-lg bg-background border border-border text-center">
                                 <p className="text-xs text-muted-foreground mb-1">Monthly Users</p>
                                 <p className="font-semibold text-lg">
-                                  {latest?.mau != null ? latest.mau.toLocaleString() : 'Waiting for data...'}
+                                  {latest?.mau != null ? latest.mau.toLocaleString() : 'Syncs after submit'}
                                 </p>
                               </div>
                               <div className="p-3 rounded-lg bg-background border border-border text-center">
                                 <p className="text-xs text-muted-foreground mb-1">Total Users (6mo)</p>
                                 <p className="font-semibold text-lg">
-                                  {totalMau > 0 ? totalMau.toLocaleString() : 'Waiting for data...'}
+                                  {totalMau > 0 ? totalMau.toLocaleString() : 'Syncs after submit'}
                                 </p>
                               </div>
                               <div className="p-3 rounded-lg bg-background border border-border text-center">
                                 <p className="text-xs text-muted-foreground mb-1">Months Tracked</p>
                                 <p className="font-semibold text-lg">
-                                  {ga4Metrics.length > 0 ? ga4Metrics.length : 'Waiting for data...'}
+                                  {ga4Metrics.length > 0 ? ga4Metrics.length : 'Syncs after submit'}
                                 </p>
                               </div>
                             </>

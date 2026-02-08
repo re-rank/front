@@ -661,7 +661,7 @@ export function CompanyEdit() {
                     <Input
                       type="month"
                       error={errors.founded_at?.message}
-                      className="bg-secondary border-border [color:transparent] [&::-webkit-datetime-edit]:text-transparent [&::-webkit-calendar-picker-indicator]:invert"
+                      className="bg-secondary border-border [&::-webkit-datetime-edit-fields-wrapper]:opacity-0 [&::-webkit-calendar-picker-indicator]:invert"
                       {...register('founded_at')}
                     />
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm pointer-events-none">
