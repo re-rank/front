@@ -706,19 +706,54 @@ export function CompanyRegister() {
                   {/* Founded Date */}
                   <div className="space-y-2">
                     <Label required>Founded Date</Label>
-                    <div className="relative">
-                      <Input
-                        type="month"
-                        error={errors.founded_at?.message}
-                        className="bg-secondary border-border [&::-webkit-datetime-edit-fields-wrapper]:opacity-0 [&::-webkit-calendar-picker-indicator]:invert"
-                        {...register('founded_at')}
-                      />
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm pointer-events-none">
-                        {watch('founded_at')
-                          ? new Date(watch('founded_at') + '-01').toLocaleDateString('en-US', { year: 'numeric', month: 'long' })
-                          : <span className="text-muted-foreground">Select date</span>}
-                      </span>
-                    </div>
+                    <Controller
+                      control={control}
+                      name="founded_at"
+                      render={({ field }) => {
+                        const [y = '', m = ''] = (field.value || '').split('-');
+                        const setMonth = (v: string) => {
+                          const num = v.replace(/\D/g, '').slice(0, 2);
+                          field.onChange(y && num ? `${y}-${num.padStart(2, '0')}` : field.value);
+                        };
+                        const setYear = (v: string) => {
+                          const num = v.replace(/\D/g, '').slice(0, 4);
+                          field.onChange(num && m ? `${num}-${m}` : field.value);
+                        };
+                        return (
+                          <div className="flex items-center gap-1 h-9 w-full rounded-md border border-input bg-secondary px-3 shadow-xs focus-within:border-ring focus-within:ring-ring/50 focus-within:ring-[3px]">
+                            <input
+                              type="text"
+                              inputMode="numeric"
+                              placeholder="MM"
+                              value={m}
+                              onChange={(e) => setMonth(e.target.value)}
+                              onBlur={() => {
+                                if (m && parseInt(m) >= 1 && parseInt(m) <= 12) {
+                                  field.onChange(`${y || '2024'}-${m.padStart(2, '0')}`);
+                                }
+                              }}
+                              className="w-8 bg-transparent text-sm text-center outline-none"
+                              maxLength={2}
+                            />
+                            <span className="text-sm text-muted-foreground">m</span>
+                            <span className="text-sm text-muted-foreground mx-1">/</span>
+                            <input
+                              type="text"
+                              inputMode="numeric"
+                              placeholder="YYYY"
+                              value={y}
+                              onChange={(e) => setYear(e.target.value)}
+                              className="w-12 bg-transparent text-sm text-center outline-none"
+                              maxLength={4}
+                            />
+                            <span className="text-sm text-muted-foreground">y</span>
+                          </div>
+                        );
+                      }}
+                    />
+                    {errors.founded_at?.message && (
+                      <p className="mt-1 text-sm text-red-500">{errors.founded_at.message}</p>
+                    )}
                   </div>
 
                   {/* Location */}
@@ -1123,35 +1158,31 @@ export function CompanyRegister() {
                     </div>
 
                     {integrationStatus.stripe === 'connected' && (
-                      <div className="grid sm:grid-cols-3 gap-3 pt-2">
-                        {(() => {
-                          const stripeMetrics = metricsData.stripe;
-                          const latest = stripeMetrics[0];
-                          const totalRevenue = stripeMetrics.reduce((sum, m) => sum + (m.revenue || 0), 0);
-                          return (
-                            <>
-                              <div className="p-3 rounded-lg bg-background border border-border text-center">
-                                <p className="text-xs text-muted-foreground mb-1">Monthly MRR</p>
-                                <p className="font-semibold text-lg">
-                                  {latest?.revenue != null ? `$${latest.revenue.toLocaleString()}` : 'Syncs after submit'}
-                                </p>
-                              </div>
-                              <div className="p-3 rounded-lg bg-background border border-border text-center">
-                                <p className="text-xs text-muted-foreground mb-1">Total Revenue</p>
-                                <p className="font-semibold text-lg">
-                                  {totalRevenue > 0 ? `$${totalRevenue.toLocaleString()}` : 'Syncs after submit'}
-                                </p>
-                              </div>
-                              <div className="p-3 rounded-lg bg-background border border-border text-center">
-                                <p className="text-xs text-muted-foreground mb-1">Months Tracked</p>
-                                <p className="font-semibold text-lg">
-                                  {stripeMetrics.length > 0 ? stripeMetrics.length : 'Syncs after submit'}
-                                </p>
-                              </div>
-                            </>
-                          );
-                        })()}
-                      </div>
+                      metricsData.stripe.length > 0 ? (
+                        <div className="grid sm:grid-cols-3 gap-3 pt-2">
+                          <div className="p-3 rounded-lg bg-background border border-border text-center">
+                            <p className="text-xs text-muted-foreground mb-1">Monthly MRR</p>
+                            <p className="font-semibold text-lg">
+                              ${(metricsData.stripe[0]?.revenue ?? 0).toLocaleString()}
+                            </p>
+                          </div>
+                          <div className="p-3 rounded-lg bg-background border border-border text-center">
+                            <p className="text-xs text-muted-foreground mb-1">Total Revenue</p>
+                            <p className="font-semibold text-lg">
+                              ${metricsData.stripe.reduce((s, m) => s + (m.revenue || 0), 0).toLocaleString()}
+                            </p>
+                          </div>
+                          <div className="p-3 rounded-lg bg-background border border-border text-center">
+                            <p className="text-xs text-muted-foreground mb-1">Months Tracked</p>
+                            <p className="font-semibold text-lg">{metricsData.stripe.length}</p>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2 p-3 rounded-lg bg-green-500/10 border border-green-500/20 text-sm text-green-400">
+                          <Check className="w-4 h-4 flex-shrink-0" />
+                          Stripe connected successfully. Metrics will be synced automatically after registration.
+                        </div>
+                      )
                     )}
 
                     {integrationStatus.stripe === 'disconnected' && (
@@ -1229,35 +1260,31 @@ export function CompanyRegister() {
                     </div>
 
                     {integrationStatus.ga4 === 'connected' && (
-                      <div className="grid sm:grid-cols-3 gap-3 pt-2">
-                        {(() => {
-                          const ga4Metrics = metricsData.ga4;
-                          const latest = ga4Metrics[0];
-                          const totalMau = ga4Metrics.reduce((sum, m) => sum + (m.mau || 0), 0);
-                          return (
-                            <>
-                              <div className="p-3 rounded-lg bg-background border border-border text-center">
-                                <p className="text-xs text-muted-foreground mb-1">Monthly Users</p>
-                                <p className="font-semibold text-lg">
-                                  {latest?.mau != null ? latest.mau.toLocaleString() : 'Syncs after submit'}
-                                </p>
-                              </div>
-                              <div className="p-3 rounded-lg bg-background border border-border text-center">
-                                <p className="text-xs text-muted-foreground mb-1">Total Users (6mo)</p>
-                                <p className="font-semibold text-lg">
-                                  {totalMau > 0 ? totalMau.toLocaleString() : 'Syncs after submit'}
-                                </p>
-                              </div>
-                              <div className="p-3 rounded-lg bg-background border border-border text-center">
-                                <p className="text-xs text-muted-foreground mb-1">Months Tracked</p>
-                                <p className="font-semibold text-lg">
-                                  {ga4Metrics.length > 0 ? ga4Metrics.length : 'Syncs after submit'}
-                                </p>
-                              </div>
-                            </>
-                          );
-                        })()}
-                      </div>
+                      metricsData.ga4.length > 0 ? (
+                        <div className="grid sm:grid-cols-3 gap-3 pt-2">
+                          <div className="p-3 rounded-lg bg-background border border-border text-center">
+                            <p className="text-xs text-muted-foreground mb-1">Monthly Users</p>
+                            <p className="font-semibold text-lg">
+                              {(metricsData.ga4[0]?.mau ?? 0).toLocaleString()}
+                            </p>
+                          </div>
+                          <div className="p-3 rounded-lg bg-background border border-border text-center">
+                            <p className="text-xs text-muted-foreground mb-1">Total Users (6mo)</p>
+                            <p className="font-semibold text-lg">
+                              {metricsData.ga4.reduce((s, m) => s + (m.mau || 0), 0).toLocaleString()}
+                            </p>
+                          </div>
+                          <div className="p-3 rounded-lg bg-background border border-border text-center">
+                            <p className="text-xs text-muted-foreground mb-1">Months Tracked</p>
+                            <p className="font-semibold text-lg">{metricsData.ga4.length}</p>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2 p-3 rounded-lg bg-green-500/10 border border-green-500/20 text-sm text-green-400">
+                          <Check className="w-4 h-4 flex-shrink-0" />
+                          GA4 connected successfully. Metrics will be synced automatically after registration.
+                        </div>
+                      )
                     )}
 
                     {integrationStatus.ga4 === 'disconnected' && (

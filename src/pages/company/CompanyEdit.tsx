@@ -657,19 +657,54 @@ export function CompanyEdit() {
                 {/* Founded Date */}
                 <div className="space-y-2">
                   <Label required>Founded Date</Label>
-                  <div className="relative">
-                    <Input
-                      type="month"
-                      error={errors.founded_at?.message}
-                      className="bg-secondary border-border [&::-webkit-datetime-edit-fields-wrapper]:opacity-0 [&::-webkit-calendar-picker-indicator]:invert"
-                      {...register('founded_at')}
-                    />
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm pointer-events-none">
-                      {watch('founded_at')
-                        ? new Date(watch('founded_at') + '-01').toLocaleDateString('en-US', { year: 'numeric', month: 'long' })
-                        : <span className="text-muted-foreground">Select date</span>}
-                    </span>
-                  </div>
+                  <Controller
+                    control={control}
+                    name="founded_at"
+                    render={({ field }) => {
+                      const [y = '', m = ''] = (field.value || '').split('-');
+                      const setMonth = (v: string) => {
+                        const num = v.replace(/\D/g, '').slice(0, 2);
+                        field.onChange(y && num ? `${y}-${num.padStart(2, '0')}` : field.value);
+                      };
+                      const setYear = (v: string) => {
+                        const num = v.replace(/\D/g, '').slice(0, 4);
+                        field.onChange(num && m ? `${num}-${m}` : field.value);
+                      };
+                      return (
+                        <div className="flex items-center gap-1 h-9 w-full rounded-md border border-input bg-secondary px-3 shadow-xs focus-within:border-ring focus-within:ring-ring/50 focus-within:ring-[3px]">
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            placeholder="MM"
+                            value={m}
+                            onChange={(e) => setMonth(e.target.value)}
+                            onBlur={() => {
+                              if (m && parseInt(m) >= 1 && parseInt(m) <= 12) {
+                                field.onChange(`${y || '2024'}-${m.padStart(2, '0')}`);
+                              }
+                            }}
+                            className="w-8 bg-transparent text-sm text-center outline-none"
+                            maxLength={2}
+                          />
+                          <span className="text-sm text-muted-foreground">m</span>
+                          <span className="text-sm text-muted-foreground mx-1">/</span>
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            placeholder="YYYY"
+                            value={y}
+                            onChange={(e) => setYear(e.target.value)}
+                            className="w-12 bg-transparent text-sm text-center outline-none"
+                            maxLength={4}
+                          />
+                          <span className="text-sm text-muted-foreground">y</span>
+                        </div>
+                      );
+                    }}
+                  />
+                  {errors.founded_at?.message && (
+                    <p className="mt-1 text-sm text-red-500">{errors.founded_at.message}</p>
+                  )}
                 </div>
 
                 {/* Location */}

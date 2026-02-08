@@ -33,12 +33,11 @@ export function OAuthCallback() {
           status: 'connected',
         };
 
-        // Try to sync metrics via Edge Function
-        setStatus('syncing');
-
+        // Determine redirect path: check if company exists
+        let redirectPath = callbackResult.returnPath || '/company/register';
         const { data: { session } } = await supabase.auth.getSession();
+
         if (session) {
-          // Find user's company
           const { data: companyRows } = await supabase
             .from('companies')
             .select('id')
@@ -47,7 +46,12 @@ export function OAuthCallback() {
 
           const companyId = companyRows?.[0]?.id;
 
+          // If company exists, always go to /company/edit
           if (companyId) {
+            redirectPath = '/company/edit';
+
+            // Try to sync metrics via Edge Function
+            setStatus('syncing');
             const baseUrl = import.meta.env.VITE_APP_URL || window.location.origin;
             const redirectUri = `${baseUrl}/oauth/callback`;
 
@@ -73,7 +77,7 @@ export function OAuthCallback() {
         setStatus('success');
 
         setTimeout(() => {
-          navigate(callbackResult.returnPath || '/company/register', { replace: true });
+          navigate(redirectPath, { replace: true });
         }, 2000);
       } catch (err) {
         console.error('Failed to process OAuth callback:', err);
@@ -88,7 +92,8 @@ export function OAuthCallback() {
 
         setStatus('success');
         setTimeout(() => {
-          navigate(callbackResult.returnPath || '/company/register', { replace: true });
+          // Fallback: check returnPath, default to dashboard
+          navigate(callbackResult.returnPath || '/dashboard', { replace: true });
         }, 2000);
       }
     }
