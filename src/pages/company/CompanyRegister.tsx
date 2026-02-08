@@ -549,32 +549,19 @@ export function CompanyRegister() {
         }
       }
 
-      // Sync metrics for connected integrations (now that company exists)
+      // Fire-and-forget: sync metrics in background (don't block navigation)
       if (Object.keys(pendingIntegrations).length > 0) {
-        try {
-          const baseUrl = import.meta.env.VITE_APP_URL || window.location.origin;
-          const redirectUri = `${baseUrl}/oauth/callback`;
-
-          const syncProviders = (['stripe', 'ga4'] as const).filter(
-            (p) => pendingIntegrations[p]?.status === 'connected' && pendingIntegrations[p]?.code
-          );
-
-          await Promise.all(
-            syncProviders.map((provider) =>
-              supabase.functions
-                .invoke('sync-metrics', {
-                  body: {
-                    companyId: company.id,
-                    provider,
-                    code: pendingIntegrations[provider].code,
-                    redirectUri,
-                  },
-                })
-                .catch((err) => console.error(`Sync ${provider} failed:`, err))
-            )
-          );
-        } catch (e) {
-          console.error('Post-registration sync failed:', e);
+        const baseUrl = import.meta.env.VITE_APP_URL || window.location.origin;
+        const redirectUri = `${baseUrl}/oauth/callback`;
+        const syncProviders = (['stripe', 'ga4'] as const).filter(
+          (p) => pendingIntegrations[p]?.status === 'connected' && pendingIntegrations[p]?.code
+        );
+        for (const provider of syncProviders) {
+          supabase.functions
+            .invoke('sync-metrics', {
+              body: { companyId: company.id, provider, code: pendingIntegrations[provider].code, redirectUri },
+            })
+            .catch(() => {});
         }
       }
 

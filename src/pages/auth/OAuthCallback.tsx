@@ -50,26 +50,23 @@ export function OAuthCallback() {
           if (companyId) {
             redirectPath = '/company/edit';
 
-            // Try to sync metrics via Edge Function
-            setStatus('syncing');
+            // Fire-and-forget: try to sync metrics (don't block redirect)
             const baseUrl = import.meta.env.VITE_APP_URL || window.location.origin;
             const redirectUri = `${baseUrl}/oauth/callback`;
-
-            const { data: syncResult, error: syncError } = await supabase.functions.invoke(
-              'sync-metrics',
-              {
-                body: {
-                  companyId,
-                  provider: callbackResult.provider,
-                  code: callbackResult.code,
-                  redirectUri,
-                },
-              }
-            );
-
-            if (!syncError && syncResult?.metrics) {
-              integrations[callbackResult.provider!].metrics = syncResult.metrics;
-            }
+            supabase.functions
+              .invoke('sync-metrics', {
+                body: { companyId, provider: callbackResult.provider, code: callbackResult.code, redirectUri },
+              })
+              .then(({ data }) => {
+                if (data?.metrics) {
+                  const stored = JSON.parse(localStorage.getItem('pending_integrations') || '{}');
+                  if (stored[callbackResult.provider!]) {
+                    stored[callbackResult.provider!].metrics = data.metrics;
+                    localStorage.setItem('pending_integrations', JSON.stringify(stored));
+                  }
+                }
+              })
+              .catch(() => {});
           }
         }
 

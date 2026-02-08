@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 interface SyncRequest {
-  companyId: string;
+  companyId?: string;   // optional: skip DB save when absent (preview mode)
   provider: 'stripe' | 'ga4';
   code: string;
   redirectUri: string;
@@ -53,39 +53,46 @@ serve(async (req) => {
 
     const { companyId, provider, code, redirectUri }: SyncRequest = await req.json();
 
-    if (!companyId || !provider || !code || !redirectUri) {
+    if (!provider || !code || !redirectUri) {
       return new Response(JSON.stringify({ success: false, error: 'Missing required fields' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // Verify company ownership
-    const { data: company } = await supabase
-      .from('companies')
-      .select('id, user_id')
-      .eq('id', companyId)
-      .eq('user_id', user.id)
-      .single();
+    // If companyId provided, verify ownership
+    if (companyId) {
+      const { data: company } = await supabase
+        .from('companies')
+        .select('id, user_id')
+        .eq('id', companyId)
+        .eq('user_id', user.id)
+        .single();
 
-    if (!company) {
-      return new Response(JSON.stringify({ success: false, error: 'Company not found' }), {
-        status: 404,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      if (!company) {
+        return new Response(JSON.stringify({ success: false, error: 'Company not found' }), {
+          status: 404,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
     }
 
+    // Fetch metrics from external API
+    const placeholder = companyId || 'preview';
     let metrics: MetricRow[] = [];
 
     if (provider === 'stripe') {
-      metrics = await syncStripeMetrics(companyId, code, redirectUri);
+      metrics = await syncStripeMetrics(placeholder, code, redirectUri);
     } else if (provider === 'ga4') {
-      metrics = await syncGA4Metrics(companyId, code, redirectUri);
+      metrics = await syncGA4Metrics(placeholder, code, redirectUri);
     }
 
-    // Upsert metrics into company_metrics
-    if (metrics.length > 0) {
-      for (const metric of metrics) {
+    // Only save to DB if companyId is provided
+    if (companyId && metrics.length > 0) {
+      // Fix company_id in metrics
+      const dbMetrics = metrics.map((m) => ({ ...m, company_id: companyId }));
+
+      for (const metric of dbMetrics) {
         const { error: upsertError } = await supabase
           .from('company_metrics')
           .upsert(metric, { onConflict: 'company_id,month,source' });
@@ -93,17 +100,17 @@ serve(async (req) => {
           console.error('Metric upsert error:', upsertError);
         }
       }
-    }
 
-    // Update company connection status
-    const connectionField = provider === 'stripe' ? 'stripe_connected' : 'ga4_connected';
-    await supabase
-      .from('companies')
-      .update({
-        [connectionField]: true,
-        last_data_update: new Date().toISOString(),
-      })
-      .eq('id', companyId);
+      // Update company connection status
+      const connectionField = provider === 'stripe' ? 'stripe_connected' : 'ga4_connected';
+      await supabase
+        .from('companies')
+        .update({
+          [connectionField]: true,
+          last_data_update: new Date().toISOString(),
+        })
+        .eq('id', companyId);
+    }
 
     return new Response(
       JSON.stringify({ success: true, metrics }),
@@ -122,12 +129,11 @@ serve(async (req) => {
 async function syncStripeMetrics(
   companyId: string,
   code: string,
-  redirectUri: string
+  _redirectUri: string
 ): Promise<MetricRow[]> {
   const stripeSecretKey = Deno.env.get('STRIPE_SECRET_KEY');
   if (!stripeSecretKey) throw new Error('STRIPE_SECRET_KEY not configured');
 
-  // Exchange code for access token
   const tokenRes = await fetch('https://connect.stripe.com/oauth/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -144,24 +150,17 @@ async function syncStripeMetrics(
   }
 
   const accessToken = tokenData.access_token;
-
-  // Fetch balance transactions for last 6 months
   const now = new Date();
   const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
 
   const txRes = await fetch(
     `https://api.stripe.com/v1/balance_transactions?created[gte]=${Math.floor(sixMonthsAgo.getTime() / 1000)}&limit=100&type=charge`,
-    {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    }
+    { headers: { Authorization: `Bearer ${accessToken}` } }
   );
 
   const txData = await txRes.json();
-  if (!txRes.ok) {
-    throw new Error('Failed to fetch Stripe transactions');
-  }
+  if (!txRes.ok) throw new Error('Failed to fetch Stripe transactions');
 
-  // Aggregate by month
   const monthlyRevenue: Record<string, number> = {};
   for (const tx of txData.data || []) {
     const date = new Date(tx.created * 1000);
@@ -191,7 +190,6 @@ async function syncGA4Metrics(
     throw new Error('GOOGLE_CLIENT_SECRET or GOOGLE_CLIENT_ID not configured');
   }
 
-  // Exchange code for access token
   const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -211,26 +209,18 @@ async function syncGA4Metrics(
 
   const accessToken = tokenData.access_token;
 
-  // Get list of GA4 properties
   const accountsRes = await fetch(
     'https://analyticsadmin.googleapis.com/v1beta/accountSummaries',
     { headers: { Authorization: `Bearer ${accessToken}` } }
   );
 
   const accountsData = await accountsRes.json();
-  if (!accountsRes.ok) {
-    throw new Error('Failed to fetch GA4 accounts');
-  }
+  if (!accountsRes.ok) throw new Error('Failed to fetch GA4 accounts');
 
-  // Use first available property
   const firstProperty = accountsData.accountSummaries?.[0]?.propertySummaries?.[0];
-  if (!firstProperty) {
-    throw new Error('No GA4 property found');
-  }
+  if (!firstProperty) throw new Error('No GA4 property found');
 
   const propertyId = firstProperty.property.replace('properties/', '');
-
-  // Fetch monthly active users for last 6 months
   const now = new Date();
   const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
 
@@ -258,9 +248,7 @@ async function syncGA4Metrics(
   );
 
   const reportData = await reportRes.json();
-  if (!reportRes.ok) {
-    throw new Error('Failed to fetch GA4 report');
-  }
+  if (!reportRes.ok) throw new Error('Failed to fetch GA4 report');
 
   const metrics: MetricRow[] = [];
   for (const row of reportData.rows || []) {
