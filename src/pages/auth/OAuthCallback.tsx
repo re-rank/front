@@ -69,11 +69,26 @@ export function OAuthCallback() {
               setTimeout(() => reject(new Error('Sync timed out')), 15000)
             ),
           ]);
-          if (syncResult.data?.metrics) {
-            integrations[callbackResult.provider!].metrics = syncResult.data.metrics;
+
+          // supabase.functions.invoke returns { data, error } — handle both
+          if (syncResult.error) {
+            console.warn('sync-metrics error:', syncResult.error);
+            integrations[callbackResult.provider!].syncError = syncResult.error.message || 'Edge Function error';
+          } else {
+            // data may be string or object depending on client version
+            const parsed = typeof syncResult.data === 'string'
+              ? JSON.parse(syncResult.data)
+              : syncResult.data;
+            if (parsed?.metrics?.length) {
+              integrations[callbackResult.provider!].metrics = parsed.metrics;
+            } else if (parsed?.error) {
+              integrations[callbackResult.provider!].syncError = parsed.error;
+            }
           }
         } catch (syncErr) {
           console.warn('Metrics sync failed (non-blocking):', syncErr);
+          integrations[callbackResult.provider!].syncError =
+            syncErr instanceof Error ? syncErr.message : 'Sync failed';
         }
 
         localStorage.setItem('pending_integrations', JSON.stringify(integrations));

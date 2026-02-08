@@ -320,7 +320,7 @@ export function Home() {
                     {member.photo ? (
                       <img src={member.photo} alt={member.name} className="w-full h-full object-cover" />
                     ) : (
-                      <Users className="w-6 h-6 text-neutral-400" />
+                      <img src="/people.svg" alt="person" className="w-7 h-7 invert opacity-60" />
                     )}
                   </div>
                   <div>

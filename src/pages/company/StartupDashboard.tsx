@@ -19,6 +19,9 @@ import {
   Play,
   MessageSquare,
 } from 'lucide-react';
+import {
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+} from 'recharts';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/stores/authStore';
 import { Card, CardContent, Badge, Button } from '@/components/ui';
@@ -150,7 +153,7 @@ export function StartupDashboard() {
               .then(r => r, () => ({ data: null })),
             withTimeout(supabase.from('company_qna').select('*').eq('company_id', data.id).order('created_at'))
               .then(r => r, () => ({ data: null })),
-            withTimeout(supabase.from('company_metrics').select('*').eq('company_id', data.id).order('month', { ascending: false }).limit(6))
+            withTimeout(supabase.from('company_metrics').select('*').eq('company_id', data.id).order('month', { ascending: true }))
               .then(r => r, () => ({ data: null })),
           ]);
           if (!cancelled) {
@@ -456,59 +459,182 @@ export function StartupDashboard() {
         </Card>
       )}
 
-      {/* Business Metrics */}
-      {metrics.length > 0 && (
-        <Card>
-          <CardContent className="p-6">
-            <h3 className="font-semibold mb-4">Business Metrics</h3>
-            <div className="grid sm:grid-cols-3 gap-4">
-              {(() => {
-                const latest = metrics[0];
-                return (
-                  <>
-                    {latest.revenue != null && (
-                      <div className="p-4 rounded-lg bg-secondary/50 border border-border text-center">
-                        <p className="text-xs text-muted-foreground mb-1">Revenue</p>
-                        <p className="font-semibold text-lg">${latest.revenue.toLocaleString()}</p>
-                        <p className="text-xs text-muted-foreground mt-1">{latest.month}</p>
-                      </div>
-                    )}
-                    {latest.mau != null && (
-                      <div className="p-4 rounded-lg bg-secondary/50 border border-border text-center">
-                        <p className="text-xs text-muted-foreground mb-1">MAU</p>
-                        <p className="font-semibold text-lg">{latest.mau.toLocaleString()}</p>
-                        <p className="text-xs text-muted-foreground mt-1">{latest.month}</p>
-                      </div>
-                    )}
-                    {latest.retention != null && (
-                      <div className="p-4 rounded-lg bg-secondary/50 border border-border text-center">
-                        <p className="text-xs text-muted-foreground mb-1">Retention</p>
-                        <p className="font-semibold text-lg">{latest.retention}%</p>
-                        <p className="text-xs text-muted-foreground mt-1">{latest.month}</p>
-                      </div>
-                    )}
-                  </>
-                );
-              })()}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Integration Status */}
+      {/* Integrations & Metrics */}
       <Card>
-        <CardContent className="p-6">
-          <h3 className="font-semibold mb-3">Integrations</h3>
-          <div className="flex gap-4">
-            <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm ${company.stripe_connected ? 'bg-green-500/10 text-green-400' : 'bg-secondary text-muted-foreground'}`}>
-              {company.stripe_connected ? <CheckCircle className="w-4 h-4" /> : <Clock className="w-4 h-4" />}
-              Stripe {company.stripe_connected ? 'Connected' : 'Not Connected'}
-            </div>
-            <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm ${company.ga4_connected ? 'bg-green-500/10 text-green-400' : 'bg-secondary text-muted-foreground'}`}>
-              {company.ga4_connected ? <CheckCircle className="w-4 h-4" /> : <Clock className="w-4 h-4" />}
-              GA4 {company.ga4_connected ? 'Connected' : 'Not Connected'}
+        <CardContent className="p-6 space-y-6">
+          <div className="flex items-center justify-between">
+            <h3 className="font-semibold">Integrations</h3>
+            <div className="flex gap-3">
+              <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${company.stripe_connected ? 'bg-green-500/10 text-green-400' : 'bg-secondary text-muted-foreground'}`}>
+                {company.stripe_connected ? <CheckCircle className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
+                Stripe
+              </div>
+              <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${company.ga4_connected ? 'bg-green-500/10 text-green-400' : 'bg-secondary text-muted-foreground'}`}>
+                {company.ga4_connected ? <CheckCircle className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
+                GA4
+              </div>
             </div>
           </div>
+
+          {(() => {
+            const stripeMetrics = metrics.filter((m) => m.source === 'stripe' && m.revenue != null);
+            const ga4Metrics = metrics.filter((m) => m.source === 'ga4' && m.mau != null);
+            const hasCharts = stripeMetrics.length > 0 || ga4Metrics.length > 0;
+
+            if (!hasCharts) {
+              if (!company.stripe_connected && !company.ga4_connected) {
+                return (
+                  <p className="text-sm text-muted-foreground">
+                    Connect Stripe or Google Analytics to view your business metrics here.
+                  </p>
+                );
+              }
+              return (
+                <p className="text-sm text-muted-foreground">
+                  Connected but no metrics data yet. Metrics will appear once synced.
+                </p>
+              );
+            }
+
+            const latestStripe = stripeMetrics[stripeMetrics.length - 1];
+            const latestGA4 = ga4Metrics[ga4Metrics.length - 1];
+
+            return (
+              <div className="space-y-6">
+                {/* Summary Cards */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {latestStripe && (
+                    <>
+                      <div className="p-3 rounded-lg bg-secondary/50 border border-border">
+                        <p className="text-xs text-muted-foreground mb-0.5">Latest MRR</p>
+                        <p className="font-semibold text-lg">${latestStripe.revenue!.toLocaleString()}</p>
+                        <p className="text-xs text-muted-foreground">{latestStripe.month}</p>
+                      </div>
+                      <div className="p-3 rounded-lg bg-secondary/50 border border-border">
+                        <p className="text-xs text-muted-foreground mb-0.5">Total Revenue</p>
+                        <p className="font-semibold text-lg">
+                          ${stripeMetrics.reduce((s, m) => s + (m.revenue || 0), 0).toLocaleString()}
+                        </p>
+                        <p className="text-xs text-muted-foreground">{stripeMetrics.length} months</p>
+                      </div>
+                    </>
+                  )}
+                  {latestGA4 && (
+                    <>
+                      <div className="p-3 rounded-lg bg-secondary/50 border border-border">
+                        <p className="text-xs text-muted-foreground mb-0.5">Latest MAU</p>
+                        <p className="font-semibold text-lg">{latestGA4.mau!.toLocaleString()}</p>
+                        <p className="text-xs text-muted-foreground">{latestGA4.month}</p>
+                      </div>
+                      <div className="p-3 rounded-lg bg-secondary/50 border border-border">
+                        <p className="text-xs text-muted-foreground mb-0.5">Avg MAU</p>
+                        <p className="font-semibold text-lg">
+                          {Math.round(ga4Metrics.reduce((s, m) => s + (m.mau || 0), 0) / ga4Metrics.length).toLocaleString()}
+                        </p>
+                        <p className="text-xs text-muted-foreground">{ga4Metrics.length} months</p>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {/* Revenue Chart */}
+                {stripeMetrics.length > 1 && (
+                  <div>
+                    <p className="text-sm font-medium mb-3">Revenue Trend</p>
+                    <div className="h-52">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={stripeMetrics.map((m) => ({ month: m.month, revenue: m.revenue }))} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+                          <defs>
+                            <linearGradient id="revenueGrad" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#635BFF" stopOpacity={0.3} />
+                              <stop offset="95%" stopColor="#635BFF" stopOpacity={0} />
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                          <XAxis
+                            dataKey="month"
+                            tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                            axisLine={{ stroke: 'hsl(var(--border))' }}
+                            tickLine={false}
+                          />
+                          <YAxis
+                            tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                            axisLine={false}
+                            tickLine={false}
+                            tickFormatter={(v: number) => `$${v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}`}
+                          />
+                          <Tooltip
+                            contentStyle={{
+                              backgroundColor: 'hsl(var(--card))',
+                              border: '1px solid hsl(var(--border))',
+                              borderRadius: '8px',
+                              fontSize: '12px',
+                            }}
+                            formatter={(value: number) => [`$${value.toLocaleString()}`, 'Revenue']}
+                          />
+                          <Area
+                            type="monotone"
+                            dataKey="revenue"
+                            stroke="#635BFF"
+                            strokeWidth={2}
+                            fill="url(#revenueGrad)"
+                          />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                )}
+
+                {/* MAU Chart */}
+                {ga4Metrics.length > 1 && (
+                  <div>
+                    <p className="text-sm font-medium mb-3">Monthly Active Users</p>
+                    <div className="h-52">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={ga4Metrics.map((m) => ({ month: m.month, mau: m.mau }))} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+                          <defs>
+                            <linearGradient id="mauGrad" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#F9AB00" stopOpacity={0.3} />
+                              <stop offset="95%" stopColor="#F9AB00" stopOpacity={0} />
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                          <XAxis
+                            dataKey="month"
+                            tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                            axisLine={{ stroke: 'hsl(var(--border))' }}
+                            tickLine={false}
+                          />
+                          <YAxis
+                            tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                            axisLine={false}
+                            tickLine={false}
+                            tickFormatter={(v: number) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : `${v}`}
+                          />
+                          <Tooltip
+                            contentStyle={{
+                              backgroundColor: 'hsl(var(--card))',
+                              border: '1px solid hsl(var(--border))',
+                              borderRadius: '8px',
+                              fontSize: '12px',
+                            }}
+                            formatter={(value: number) => [value.toLocaleString(), 'MAU']}
+                          />
+                          <Area
+                            type="monotone"
+                            dataKey="mau"
+                            stroke="#F9AB00"
+                            strokeWidth={2}
+                            fill="url(#mauGrad)"
+                          />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
         </CardContent>
       </Card>
     </div>

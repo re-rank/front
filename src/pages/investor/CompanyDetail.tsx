@@ -15,12 +15,8 @@ import {
   GraduationCap,
 } from 'lucide-react';
 import {
-  LineChart,
-  Line,
   AreaChart,
   Area,
-  BarChart,
-  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -298,48 +294,165 @@ export function CompanyDetail() {
       )}
 
       {/* Business Metrics */}
-      {metrics.length > 0 && (
-        <section>
-          <h2 className="text-2xl font-serif mb-2 flex items-center gap-3">
-            <BarChart3 className="w-6 h-6" /> Business Metrics
-          </h2>
-          <p className="text-sm text-muted-foreground mb-6 flex items-center gap-2">
-            Verified Data
-            {company.stripe_connected && <Badge variant="secondary">Stripe</Badge>}
-            {company.ga4_connected && <Badge variant="secondary">GA4</Badge>}
-            {company.last_data_update && (
-              <span className="ml-2">Last updated: {company.last_data_update}</span>
-            )}
-          </p>
+      {metrics.length > 0 && (() => {
+        const stripeMetrics = metrics.filter((m) => m.source === 'stripe' && m.revenue != null);
+        const ga4Metrics = metrics.filter((m) => m.source === 'ga4' && m.mau != null);
+        if (stripeMetrics.length === 0 && ga4Metrics.length === 0) return null;
 
-          <div className="grid md:grid-cols-3 gap-6">
-            <MetricChart
-              title="Monthly Revenue"
-              data={metrics}
-              dataKey="revenue"
-              color="oklch(0.75 0.15 160)"
-              format={(v) => `$${(v / 1000).toFixed(0)}K`}
-              type="area"
-            />
-            <MetricChart
-              title="Active Users"
-              data={metrics}
-              dataKey="mau"
-              color="oklch(0.65 0.2 250)"
-              format={(v) => v.toLocaleString()}
-              type="line"
-            />
-            <MetricChart
-              title="Retention Rate"
-              data={metrics}
-              dataKey="retention"
-              color="oklch(0.7 0.18 30)"
-              format={(v) => `${v}%`}
-              type="bar"
-            />
-          </div>
-        </section>
-      )}
+        const latestStripe = stripeMetrics[stripeMetrics.length - 1];
+        const latestGA4 = ga4Metrics[ga4Metrics.length - 1];
+
+        return (
+          <section>
+            <h2 className="text-2xl font-serif mb-2 flex items-center gap-3">
+              <BarChart3 className="w-6 h-6" /> Business Metrics
+            </h2>
+            <p className="text-sm text-muted-foreground mb-6 flex items-center gap-2">
+              Verified Data
+              {company.stripe_connected && <Badge variant="secondary">Stripe</Badge>}
+              {company.ga4_connected && <Badge variant="secondary">GA4</Badge>}
+              {company.last_data_update && (
+                <span className="ml-2">Last updated: {new Date(company.last_data_update).toLocaleDateString()}</span>
+              )}
+            </p>
+
+            {/* Summary Cards */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+              {latestStripe && (
+                <>
+                  <Card>
+                    <CardContent className="p-4">
+                      <p className="text-xs text-muted-foreground mb-1">Latest MRR</p>
+                      <p className="font-semibold text-2xl">${latestStripe.revenue!.toLocaleString()}</p>
+                      <p className="text-xs text-muted-foreground mt-1">{latestStripe.month}</p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="p-4">
+                      <p className="text-xs text-muted-foreground mb-1">Total Revenue</p>
+                      <p className="font-semibold text-2xl">
+                        ${stripeMetrics.reduce((s, m) => s + (m.revenue || 0), 0).toLocaleString()}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">{stripeMetrics.length} months</p>
+                    </CardContent>
+                  </Card>
+                </>
+              )}
+              {latestGA4 && (
+                <>
+                  <Card>
+                    <CardContent className="p-4">
+                      <p className="text-xs text-muted-foreground mb-1">Latest MAU</p>
+                      <p className="font-semibold text-2xl">{latestGA4.mau!.toLocaleString()}</p>
+                      <p className="text-xs text-muted-foreground mt-1">{latestGA4.month}</p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="p-4">
+                      <p className="text-xs text-muted-foreground mb-1">Avg MAU</p>
+                      <p className="font-semibold text-2xl">
+                        {Math.round(ga4Metrics.reduce((s, m) => s + (m.mau || 0), 0) / ga4Metrics.length).toLocaleString()}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">{ga4Metrics.length} months</p>
+                    </CardContent>
+                  </Card>
+                </>
+              )}
+            </div>
+
+            {/* Charts */}
+            <div className="grid md:grid-cols-2 gap-6">
+              {/* Revenue Chart */}
+              {stripeMetrics.length > 1 && (
+                <Card>
+                  <CardContent className="p-6">
+                    <p className="text-sm font-medium mb-4">Revenue Trend</p>
+                    <div className="h-56">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={stripeMetrics.map((m) => ({ month: m.month, revenue: m.revenue }))} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+                          <defs>
+                            <linearGradient id="detailRevenueGrad" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#635BFF" stopOpacity={0.3} />
+                              <stop offset="95%" stopColor="#635BFF" stopOpacity={0} />
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                          <XAxis
+                            dataKey="month"
+                            tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                            axisLine={{ stroke: 'hsl(var(--border))' }}
+                            tickLine={false}
+                          />
+                          <YAxis
+                            tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                            axisLine={false}
+                            tickLine={false}
+                            tickFormatter={(v: number) => `$${v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}`}
+                          />
+                          <Tooltip
+                            contentStyle={{
+                              backgroundColor: 'hsl(var(--card))',
+                              border: '1px solid hsl(var(--border))',
+                              borderRadius: '8px',
+                              fontSize: '12px',
+                            }}
+                            formatter={(value: number) => [`$${value.toLocaleString()}`, 'Revenue']}
+                          />
+                          <Area type="monotone" dataKey="revenue" stroke="#635BFF" strokeWidth={2} fill="url(#detailRevenueGrad)" />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* MAU Chart */}
+              {ga4Metrics.length > 1 && (
+                <Card>
+                  <CardContent className="p-6">
+                    <p className="text-sm font-medium mb-4">Monthly Active Users</p>
+                    <div className="h-56">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={ga4Metrics.map((m) => ({ month: m.month, mau: m.mau }))} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+                          <defs>
+                            <linearGradient id="detailMauGrad" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#F9AB00" stopOpacity={0.3} />
+                              <stop offset="95%" stopColor="#F9AB00" stopOpacity={0} />
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                          <XAxis
+                            dataKey="month"
+                            tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                            axisLine={{ stroke: 'hsl(var(--border))' }}
+                            tickLine={false}
+                          />
+                          <YAxis
+                            tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                            axisLine={false}
+                            tickLine={false}
+                            tickFormatter={(v: number) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : `${v}`}
+                          />
+                          <Tooltip
+                            contentStyle={{
+                              backgroundColor: 'hsl(var(--card))',
+                              border: '1px solid hsl(var(--border))',
+                              borderRadius: '8px',
+                              fontSize: '12px',
+                            }}
+                            formatter={(value: number) => [value.toLocaleString(), 'MAU']}
+                          />
+                          <Area type="monotone" dataKey="mau" stroke="#F9AB00" strokeWidth={2} fill="url(#detailMauGrad)" />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          </section>
+        );
+      })()}
 
       {/* Q&A */}
       {qna.length > 0 && (
@@ -365,117 +478,3 @@ export function CompanyDetail() {
   );
 }
 
-/* Chart Component */
-function MetricChart({
-  title,
-  data,
-  dataKey,
-  color,
-  format,
-  type = 'line',
-}: {
-  title: string;
-  data: CompanyMetric[];
-  dataKey: 'revenue' | 'mau' | 'retention';
-  color: string;
-  format: (v: number) => string;
-  type?: 'line' | 'area' | 'bar';
-}) {
-  const filtered = data.filter((d) => d[dataKey] != null);
-  if (filtered.length === 0) return null;
-
-  const latestValue = filtered[filtered.length - 1]?.[dataKey];
-
-  const chartStyle = {
-    grid: 'oklch(0.28 0 0)',
-    text: 'oklch(0.65 0 0)',
-    tooltip: {
-      backgroundColor: 'oklch(0.16 0 0)',
-      border: '1px solid oklch(0.28 0 0)',
-      borderRadius: '8px',
-      color: 'oklch(0.98 0 0)',
-    },
-  };
-
-  return (
-    <Card>
-      <CardContent className="p-6">
-        <h3 className="text-sm text-muted-foreground mb-2">{title}</h3>
-        <p className="text-2xl font-semibold mb-4">
-          {latestValue != null ? format(latestValue) : '-'}
-        </p>
-        <div className="h-40">
-          <ResponsiveContainer width="100%" height="100%">
-            {type === 'area' ? (
-              <AreaChart data={filtered}>
-                <defs>
-                  <linearGradient id={`gradient-${dataKey}`} x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor={color} stopOpacity={0.3} />
-                    <stop offset="95%" stopColor={color} stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke={chartStyle.grid} />
-                <XAxis
-                  dataKey="month"
-                  tick={{ fill: chartStyle.text, fontSize: 10 }}
-                  axisLine={{ stroke: chartStyle.grid }}
-                  tickLine={false}
-                />
-                <YAxis
-                  tick={{ fill: chartStyle.text, fontSize: 10 }}
-                  axisLine={{ stroke: chartStyle.grid }}
-                  tickLine={false}
-                  tickFormatter={(v) => format(v)}
-                />
-                <Tooltip contentStyle={chartStyle.tooltip} formatter={(v) => format(v as number)} />
-                <Area
-                  type="monotone"
-                  dataKey={dataKey}
-                  stroke={color}
-                  fill={`url(#gradient-${dataKey})`}
-                  strokeWidth={2}
-                />
-              </AreaChart>
-            ) : type === 'bar' ? (
-              <BarChart data={filtered}>
-                <CartesianGrid strokeDasharray="3 3" stroke={chartStyle.grid} />
-                <XAxis
-                  dataKey="month"
-                  tick={{ fill: chartStyle.text, fontSize: 10 }}
-                  axisLine={{ stroke: chartStyle.grid }}
-                  tickLine={false}
-                />
-                <YAxis
-                  tick={{ fill: chartStyle.text, fontSize: 10 }}
-                  axisLine={{ stroke: chartStyle.grid }}
-                  tickLine={false}
-                  tickFormatter={(v) => format(v)}
-                />
-                <Tooltip contentStyle={chartStyle.tooltip} formatter={(v) => format(v as number)} />
-                <Bar dataKey={dataKey} fill={color} radius={[4, 4, 0, 0]} />
-              </BarChart>
-            ) : (
-              <LineChart data={filtered}>
-                <CartesianGrid strokeDasharray="3 3" stroke={chartStyle.grid} />
-                <XAxis
-                  dataKey="month"
-                  tick={{ fill: chartStyle.text, fontSize: 10 }}
-                  axisLine={{ stroke: chartStyle.grid }}
-                  tickLine={false}
-                />
-                <YAxis
-                  tick={{ fill: chartStyle.text, fontSize: 10 }}
-                  axisLine={{ stroke: chartStyle.grid }}
-                  tickLine={false}
-                  tickFormatter={(v) => format(v)}
-                />
-                <Tooltip contentStyle={chartStyle.tooltip} formatter={(v) => format(v as number)} />
-                <Line type="monotone" dataKey={dataKey} stroke={color} strokeWidth={2} dot={false} />
-              </LineChart>
-            )}
-          </ResponsiveContainer>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}

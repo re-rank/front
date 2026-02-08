@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
-  Plus, Trash2, Building2, Users, Video, BarChart3, MessageSquare,
+  Plus, Trash2, Building2, Users, Video, BarChart3, MessageSquare, Newspaper,
   Check, ArrowLeft, ArrowRight, Upload, Globe, Github, Linkedin, Youtube, FileText,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
@@ -93,6 +93,9 @@ export function CompanyRegister() {
   const [companyDeck, setCompanyDeck] = useState<{ name: string; url: string } | null>(null);
   const [deckUploading, setDeckUploading] = useState(false);
 
+  // Step 1: Company News
+  const [newsItems, setNewsItems] = useState<{ title: string; url: string; source: string; date: string }[]>([]);
+
   // Step 5: Questions
   const [selectedQuestions, setSelectedQuestions] = useState<string[]>([]);
   const [questionAnswers, setQuestionAnswers] = useState<Record<string, string>>({});
@@ -106,6 +109,7 @@ export function CompanyRegister() {
     stripe: CompanyMetric[];
     ga4: CompanyMetric[];
   }>({ stripe: [], ga4: [] });
+  const [syncErrors, setSyncErrors] = useState<{ stripe?: string; ga4?: string }>({});
 
   // Check for existing company and redirect
   useEffect(() => {
@@ -178,6 +182,17 @@ export function CompanyRegister() {
       localStorage.removeItem('company_register_deck');
     }
 
+    // Restore news items
+    const savedNews = localStorage.getItem('company_register_news');
+    if (savedNews) {
+      try {
+        setNewsItems(JSON.parse(savedNews));
+      } catch (e) {
+        console.error('Failed to restore news:', e);
+      }
+      localStorage.removeItem('company_register_news');
+    }
+
     // Check localStorage for pending integrations (connected via OAuth)
     const pendingIntegrations = localStorage.getItem('pending_integrations');
     if (pendingIntegrations) {
@@ -191,6 +206,11 @@ export function CompanyRegister() {
         setMetricsData({
           stripe: integrations.stripe?.metrics || [],
           ga4: integrations.ga4?.metrics || [],
+        });
+        // Restore sync errors if any
+        setSyncErrors({
+          stripe: integrations.stripe?.syncError,
+          ga4: integrations.ga4?.syncError,
         });
       } catch (e) {
         console.error('Failed to parse integrations:', e);
@@ -207,6 +227,9 @@ export function CompanyRegister() {
     localStorage.setItem('company_register_answers', JSON.stringify(questionAnswers));
     if (companyDeck) {
       localStorage.setItem('company_register_deck', JSON.stringify(companyDeck));
+    }
+    if (newsItems.length > 0) {
+      localStorage.setItem('company_register_news', JSON.stringify(newsItems));
     }
   };
 
@@ -570,6 +593,21 @@ export function CompanyRegister() {
         }
       }
 
+      // Insert company news
+      const validNews = newsItems.filter((n) => n.title.trim() && n.date);
+      if (validNews.length > 0) {
+        const newsRows = validNews.map((n) => ({
+          company_id: company.id,
+          title: n.title.trim(),
+          external_link: n.url.trim() || null,
+          summary: n.source.trim() || null,
+          published_at: n.date,
+        }));
+        try {
+          await withTimeout(supabase.from('company_news').insert(newsRows));
+        } catch { /* table may not exist yet */ }
+      }
+
       // Clear pending integrations from localStorage
       localStorage.removeItem('pending_integrations');
       navigate('/dashboard');
@@ -917,6 +955,85 @@ export function CompanyRegister() {
                     {(watchDescription?.length || 0).toLocaleString()}/10,000 characters {(watchDescription?.length || 0) < 100 && `(minimum 100 - need ${100 - (watchDescription?.length || 0)} more)`}
                   </p>
                 </div>
+
+                {/* Company News */}
+                <div className="space-y-4 pt-4 border-t border-border">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-lg font-medium flex items-center gap-2">
+                        <Newspaper className="w-4 h-4" /> Company News
+                      </h3>
+                      <p className="text-sm text-muted-foreground">Add links to news articles about your company</p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setNewsItems((prev) => [...prev, { title: '', url: '', source: '', date: '' }])}
+                      className="gap-1"
+                    >
+                      <Plus className="w-3 h-3" /> Add News
+                    </Button>
+                  </div>
+
+                  {newsItems.map((item, idx) => (
+                    <Card key={idx} className="bg-secondary/50">
+                      <CardContent className="p-4 space-y-4">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1 space-y-4">
+                            <div className="space-y-2">
+                              <Label>Article Title</Label>
+                              <Input
+                                placeholder="Company raises $10M Series A"
+                                value={item.title}
+                                onChange={(e) => setNewsItems((prev) => prev.map((n, i) => i === idx ? { ...n, title: e.target.value } : n))}
+                                className="bg-background border-border"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label>Article URL</Label>
+                              <Input
+                                placeholder="https://techcrunch.com/..."
+                                value={item.url}
+                                onChange={(e) => setNewsItems((prev) => prev.map((n, i) => i === idx ? { ...n, url: e.target.value } : n))}
+                                className="bg-background border-border"
+                              />
+                            </div>
+                            <div className="grid sm:grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                <Label>Source (e.g. TechCrunch)</Label>
+                                <Input
+                                  placeholder="TechCrunch"
+                                  value={item.source}
+                                  onChange={(e) => setNewsItems((prev) => prev.map((n, i) => i === idx ? { ...n, source: e.target.value } : n))}
+                                  className="bg-background border-border"
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label>Date</Label>
+                                <Input
+                                  type="date"
+                                  value={item.date}
+                                  onChange={(e) => setNewsItems((prev) => prev.map((n, i) => i === idx ? { ...n, date: e.target.value } : n))}
+                                  className="bg-background border-border"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setNewsItems((prev) => prev.filter((_, i) => i !== idx))}
+                            className="text-muted-foreground hover:text-destructive flex-shrink-0 mt-6"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -1178,6 +1295,12 @@ export function CompanyRegister() {
                             <p className="font-semibold text-lg">{metricsData.stripe.length}</p>
                           </div>
                         </div>
+                      ) : syncErrors.stripe ? (
+                        <div className="p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20 text-sm text-yellow-500">
+                          <p className="font-medium mb-1">Connected, but failed to fetch metrics:</p>
+                          <p className="text-xs">{syncErrors.stripe}</p>
+                          <p className="text-xs mt-1 text-muted-foreground">Metrics will be synced after registration if Edge Function is deployed.</p>
+                        </div>
                       ) : (
                         <div className="flex items-center gap-2 p-3 rounded-lg bg-green-500/10 border border-green-500/20 text-sm text-green-400">
                           <Check className="w-4 h-4 flex-shrink-0" />
@@ -1279,6 +1402,12 @@ export function CompanyRegister() {
                             <p className="text-xs text-muted-foreground mb-1">Months Tracked</p>
                             <p className="font-semibold text-lg">{metricsData.ga4.length}</p>
                           </div>
+                        </div>
+                      ) : syncErrors.ga4 ? (
+                        <div className="p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20 text-sm text-yellow-500">
+                          <p className="font-medium mb-1">Connected, but failed to fetch metrics:</p>
+                          <p className="text-xs">{syncErrors.ga4}</p>
+                          <p className="text-xs mt-1 text-muted-foreground">Metrics will be synced after registration if Edge Function is deployed.</p>
                         </div>
                       ) : (
                         <div className="flex items-center gap-2 p-3 rounded-lg bg-green-500/10 border border-green-500/20 text-sm text-green-400">

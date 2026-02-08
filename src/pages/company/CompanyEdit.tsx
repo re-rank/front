@@ -4,7 +4,7 @@ import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   Plus, Trash2, Upload, Globe, Github, Linkedin, Youtube, FileText,
-  Check, ArrowLeft, Video, MessageSquare,
+  Check, ArrowLeft, Video, MessageSquare, Newspaper,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { initiateStripeConnect, initiateGoogleOAuth } from '@/lib/integrations';
@@ -92,6 +92,7 @@ export function CompanyEdit() {
   // News state
   const [newsItems, setNewsItems] = useState<CompanyNews[]>([]);
   const [deletingNewsId, setDeletingNewsId] = useState<string | null>(null);
+  const [newNewsItems, setNewNewsItems] = useState<{ title: string; url: string; source: string; date: string }[]>([]);
 
   // Q&A state
   const [selectedQuestions, setSelectedQuestions] = useState<string[]>([]);
@@ -557,6 +558,21 @@ export function CompanyEdit() {
           );
         }
       } catch { /* table may not exist yet */ }
+
+      // 5. Insert new news items
+      const validNewNews = newNewsItems.filter((n) => n.title.trim() && n.date);
+      if (validNewNews.length > 0) {
+        try {
+          const newsRows = validNewNews.map((n) => ({
+            company_id: company.id,
+            title: n.title.trim(),
+            external_link: n.url.trim() || null,
+            summary: n.source.trim() || null,
+            published_at: n.date,
+          }));
+          await withTimeout(supabase.from('company_news').insert(newsRows));
+        } catch { /* table may not exist yet */ }
+      }
 
       navigate('/dashboard');
     } catch (error) {
@@ -1203,14 +1219,28 @@ export function CompanyEdit() {
           </Card>
 
           {/* Section 8: News Management */}
-          {newsItems.length > 0 && (
-            <Card>
-              <CardContent className="p-6 space-y-4">
+          <Card>
+            <CardContent className="p-6 space-y-4">
+              <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-2xl font-serif mb-2">News</h2>
-                  <p className="text-muted-foreground">Manage your company news articles</p>
+                  <h2 className="text-2xl font-serif mb-1 flex items-center gap-2">
+                    <Newspaper className="w-5 h-5" /> Company News
+                  </h2>
+                  <p className="text-muted-foreground">Add links to news articles about your company</p>
                 </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setNewNewsItems((prev) => [...prev, { title: '', url: '', source: '', date: '' }])}
+                  className="gap-1"
+                >
+                  <Plus className="w-3 h-3" /> Add News
+                </Button>
+              </div>
 
+              {/* Existing news */}
+              {newsItems.length > 0 && (
                 <div className="space-y-3">
                   {newsItems.map((news) => (
                     <div key={news.id} className="flex items-start gap-3 p-3 rounded-lg bg-secondary/50 border border-border">
@@ -1228,9 +1258,12 @@ export function CompanyEdit() {
                       )}
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-sm truncate">{news.title}</p>
-                        {news.summary && <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{news.summary}</p>}
+                        {news.summary && <p className="text-xs text-muted-foreground mt-1">{news.summary}</p>}
+                        {news.external_link && (
+                          <a href={news.external_link} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline mt-1 block truncate">{news.external_link}</a>
+                        )}
                         <p className="text-xs text-muted-foreground mt-1">
-                          {new Date(news.published_at).toLocaleDateString('ko-KR')}
+                          {new Date(news.published_at).toLocaleDateString()}
                         </p>
                       </div>
                       <Button
@@ -1250,9 +1283,68 @@ export function CompanyEdit() {
                     </div>
                   ))}
                 </div>
-              </CardContent>
-            </Card>
-          )}
+              )}
+
+              {/* New news form */}
+              {newNewsItems.map((item, idx) => (
+                <Card key={`new-${idx}`} className="bg-secondary/50">
+                  <CardContent className="p-4 space-y-4">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 space-y-4">
+                        <div className="space-y-2">
+                          <Label>Article Title</Label>
+                          <Input
+                            placeholder="Company raises $10M Series A"
+                            value={item.title}
+                            onChange={(e) => setNewNewsItems((prev) => prev.map((n, i) => i === idx ? { ...n, title: e.target.value } : n))}
+                            className="bg-background border-border"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Article URL</Label>
+                          <Input
+                            placeholder="https://techcrunch.com/..."
+                            value={item.url}
+                            onChange={(e) => setNewNewsItems((prev) => prev.map((n, i) => i === idx ? { ...n, url: e.target.value } : n))}
+                            className="bg-background border-border"
+                          />
+                        </div>
+                        <div className="grid sm:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label>Source (e.g. TechCrunch)</Label>
+                            <Input
+                              placeholder="TechCrunch"
+                              value={item.source}
+                              onChange={(e) => setNewNewsItems((prev) => prev.map((n, i) => i === idx ? { ...n, source: e.target.value } : n))}
+                              className="bg-background border-border"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Date</Label>
+                            <Input
+                              type="date"
+                              value={item.date}
+                              onChange={(e) => setNewNewsItems((prev) => prev.map((n, i) => i === idx ? { ...n, date: e.target.value } : n))}
+                              className="bg-background border-border"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setNewNewsItems((prev) => prev.filter((_, i) => i !== idx))}
+                        className="text-muted-foreground hover:text-destructive flex-shrink-0 mt-6"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </CardContent>
+          </Card>
 
           {/* Error Display */}
           {validationErrors.length > 0 && (
