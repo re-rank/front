@@ -12,6 +12,7 @@ export function OAuthCallback() {
   const [status, setStatus] = useState<ProcessingStatus>('processing');
   const [result, setResult] = useState<OAuthCallbackResult | null>(null);
   const [errorMessage, setErrorMessage] = useState<string>('');
+  const [syncDetail, setSyncDetail] = useState<string>('');
 
   useEffect(() => {
     async function handleCallback() {
@@ -55,6 +56,7 @@ export function OAuthCallback() {
         setStatus('syncing');
         const baseUrl = import.meta.env.VITE_APP_URL || window.location.origin;
         const redirectUri = `${baseUrl}/oauth/callback`;
+        setSyncDetail(`provider=${callbackResult.provider}, companyId=${companyId || 'none'}, session=${session ? 'yes' : 'no'}`);
         try {
           const syncResult = await Promise.race([
             supabase.functions.invoke('sync-metrics', {
@@ -73,22 +75,27 @@ export function OAuthCallback() {
           // supabase.functions.invoke returns { data, error } — handle both
           if (syncResult.error) {
             console.warn('sync-metrics error:', syncResult.error);
-            integrations[callbackResult.provider!].syncError = syncResult.error.message || 'Edge Function error';
+            const errMsg = syncResult.error.message || JSON.stringify(syncResult.error);
+            integrations[callbackResult.provider!].syncError = errMsg;
+            setSyncDetail(prev => prev + ` | ERROR: ${errMsg}`);
           } else {
             // data may be string or object depending on client version
             const parsed = typeof syncResult.data === 'string'
               ? JSON.parse(syncResult.data)
               : syncResult.data;
+            setSyncDetail(prev => prev + ` | data: ${JSON.stringify(parsed).slice(0, 200)}`);
             if (parsed?.metrics?.length) {
               integrations[callbackResult.provider!].metrics = parsed.metrics;
             } else if (parsed?.error) {
               integrations[callbackResult.provider!].syncError = parsed.error;
+              setSyncDetail(prev => prev + ` | API_ERROR: ${parsed.error}`);
             }
           }
         } catch (syncErr) {
           console.warn('Metrics sync failed (non-blocking):', syncErr);
-          integrations[callbackResult.provider!].syncError =
-            syncErr instanceof Error ? syncErr.message : 'Sync failed';
+          const errMsg = syncErr instanceof Error ? syncErr.message : 'Sync failed';
+          integrations[callbackResult.provider!].syncError = errMsg;
+          setSyncDetail(prev => prev + ` | CATCH: ${errMsg}`);
         }
 
         localStorage.setItem('pending_integrations', JSON.stringify(integrations));
@@ -96,7 +103,7 @@ export function OAuthCallback() {
 
         setTimeout(() => {
           navigate(redirectPath, { replace: true });
-        }, 2000);
+        }, 5000);
       } catch (err) {
         console.error('Failed to process OAuth callback:', err);
         // Still mark as connected even if sync fails
@@ -150,6 +157,11 @@ export function OAuthCallback() {
               <p className="text-muted-foreground mb-4">
                 {providerName} has been successfully connected.
               </p>
+              {syncDetail && (
+                <p className="text-xs text-muted-foreground bg-secondary p-2 rounded mb-3 text-left break-all">
+                  {syncDetail}
+                </p>
+              )}
               <p className="text-sm text-muted-foreground">
                 Redirecting you back...
               </p>

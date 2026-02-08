@@ -57,7 +57,7 @@ export function initiateStripeConnect(): void {
   const url = getStripeConnectUrl({
     clientId,
     redirectUri,
-    scope: 'read_only',
+    scope: 'read_write',
   });
 
   window.location.href = url;
