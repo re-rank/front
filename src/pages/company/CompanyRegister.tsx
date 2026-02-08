@@ -117,7 +117,7 @@ export function CompanyRegister() {
     })();
   }, [user, navigate]);
 
-  // Check for existing integrations and restore step on mount
+  // Check for existing integrations and restore step/form data on mount
   useEffect(() => {
     // Restore step from localStorage (after OAuth redirect)
     const savedStep = localStorage.getItem('company_register_step');
@@ -127,6 +127,50 @@ export function CompanyRegister() {
         setStep(stepNum);
       }
       localStorage.removeItem('company_register_step');
+    }
+
+    // Restore form data from localStorage (after OAuth redirect)
+    const savedForm = localStorage.getItem('company_register_form');
+    if (savedForm) {
+      try {
+        const formData = JSON.parse(savedForm);
+        reset(formData);
+      } catch (e) {
+        console.error('Failed to restore form data:', e);
+      }
+      localStorage.removeItem('company_register_form');
+    }
+
+    // Restore selected questions & answers
+    const savedQuestions = localStorage.getItem('company_register_questions');
+    if (savedQuestions) {
+      try {
+        setSelectedQuestions(JSON.parse(savedQuestions));
+      } catch (e) {
+        console.error('Failed to restore questions:', e);
+      }
+      localStorage.removeItem('company_register_questions');
+    }
+
+    const savedAnswers = localStorage.getItem('company_register_answers');
+    if (savedAnswers) {
+      try {
+        setQuestionAnswers(JSON.parse(savedAnswers));
+      } catch (e) {
+        console.error('Failed to restore answers:', e);
+      }
+      localStorage.removeItem('company_register_answers');
+    }
+
+    // Restore deck info
+    const savedDeck = localStorage.getItem('company_register_deck');
+    if (savedDeck) {
+      try {
+        setCompanyDeck(JSON.parse(savedDeck));
+      } catch (e) {
+        console.error('Failed to restore deck:', e);
+      }
+      localStorage.removeItem('company_register_deck');
     }
 
     // Check localStorage for pending integrations (connected via OAuth)
@@ -142,20 +186,30 @@ export function CompanyRegister() {
         console.error('Failed to parse integrations:', e);
       }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // OAuth 리다이렉트 전 폼 데이터 전체를 localStorage에 저장
+  const saveFormBeforeRedirect = () => {
+    localStorage.setItem('company_register_step', String(step));
+    localStorage.setItem('company_register_form', JSON.stringify(getValues()));
+    localStorage.setItem('company_register_questions', JSON.stringify(selectedQuestions));
+    localStorage.setItem('company_register_answers', JSON.stringify(questionAnswers));
+    if (companyDeck) {
+      localStorage.setItem('company_register_deck', JSON.stringify(companyDeck));
+    }
+  };
 
   // Handle Stripe Connect
   const handleStripeConnect = () => {
-    // Save current step before OAuth redirect
-    localStorage.setItem('company_register_step', String(step));
+    saveFormBeforeRedirect();
     setIntegrationStatus((prev) => ({ ...prev, stripe: 'loading' }));
     initiateStripeConnect();
   };
 
   // Handle GA4 Connect
   const handleGA4Connect = () => {
-    // Save current step before OAuth redirect
-    localStorage.setItem('company_register_step', String(step));
+    saveFormBeforeRedirect();
     setIntegrationStatus((prev) => ({ ...prev, ga4: 'loading' }));
     initiateGoogleOAuth();
   };
@@ -179,6 +233,7 @@ export function CompanyRegister() {
     trigger,
     watch,
     getValues,
+    reset,
     formState: { errors },
   } = useForm<CompanyRegisterForm>({
     resolver: zodResolver(companyRegisterSchema),
