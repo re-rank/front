@@ -28,7 +28,7 @@ import {
   defaultExecutive,
 } from './companySchema';
 import type { CompanyRegisterForm } from './companySchema';
-import type { Company, Executive, CompanyVideo, CompanyNews, CompanyQnA } from '@/types/database';
+import type { Company, Executive, CompanyVideo, CompanyNews, CompanyQnA, QnACategory } from '@/types/database';
 
 // X Icon
 const XIcon = ({ className }: { className?: string }) => (
@@ -539,7 +539,7 @@ export function CompanyEdit() {
           .filter((q) => questionAnswers[q]?.trim())
           .map((q) => ({
             company_id: company.id,
-            category: questionCategoryMap[q] || 'Competitive Advantage',
+            category: (questionCategoryMap[q] || 'Competitive Advantage') as QnACategory,
             question: q,
             answer: questionAnswers[q].trim(),
           }));

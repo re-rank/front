@@ -29,6 +29,7 @@ import {
   defaultExecutive,
 } from './companySchema';
 import type { CompanyRegisterForm } from './companySchema';
+import type { QnACategory } from '@/types/database';
 
 // X Icon
 const XIcon = ({ className }: { className?: string }) => (
@@ -516,7 +517,7 @@ export function CompanyRegister() {
           .filter((q) => questionAnswers[q]?.trim())
           .map((q) => ({
             company_id: company.id,
-            category: questionCategoryMap[q] || 'Competitive Advantage',
+            category: (questionCategoryMap[q] || 'Competitive Advantage') as QnACategory,
             question: q,
             answer: questionAnswers[q].trim(),
           }));
