@@ -116,15 +116,15 @@ function generateState(data: IntegrationState): string {
   const stateString = JSON.stringify(stateData);
   const encodedState = btoa(stateString);
 
-  // Store in sessionStorage for CSRF protection
-  sessionStorage.setItem('oauth_state', encodedState);
+  // Store in localStorage (sessionStorage is lost after cross-origin OAuth redirects)
+  localStorage.setItem('oauth_state', encodedState);
 
   return encodedState;
 }
 
 export function parseOAuthState(state: string): IntegrationState | null {
   try {
-    const storedState = sessionStorage.getItem('oauth_state');
+    const storedState = localStorage.getItem('oauth_state');
 
     // CSRF protection: verify state matches
     if (storedState !== state) {
@@ -143,7 +143,7 @@ export function parseOAuthState(state: string): IntegrationState | null {
     }
 
     // Clear stored state
-    sessionStorage.removeItem('oauth_state');
+    localStorage.removeItem('oauth_state');
 
     return {
       provider: parsed.provider,
