@@ -79,10 +79,10 @@ export function OAuthCallback() {
           const headers: Record<string, string> = {
             'Content-Type': 'application/json',
             'apikey': supabaseAnonKey,
+            // Supabase Functions gateway requires Authorization header;
+            // use valid access token if available, otherwise fall back to anon key
+            'Authorization': `Bearer ${accessToken || supabaseAnonKey}`,
           };
-          if (accessToken) {
-            headers['Authorization'] = `Bearer ${accessToken}`;
-          }
 
           const res = await fetch(`${supabaseUrl}/functions/v1/sync-metrics`, {
             method: 'POST',
