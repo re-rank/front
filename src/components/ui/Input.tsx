@@ -8,11 +8,11 @@ export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
 }
 
 const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ className, label, error, helperText, id, type, ...props }, ref) => {
+  ({ className, label, error, helperText, id, type, lang, ...props }, ref) => {
     const inputId = id || label?.toLowerCase().replace(/\s/g, '-');
 
     return (
-      <div className="w-full">
+      <div className="w-full" lang={lang}>
         {label && (
           <label htmlFor={inputId} className="block text-sm font-medium text-foreground mb-1">
             {label}

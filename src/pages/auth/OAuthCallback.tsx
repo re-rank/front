@@ -2,9 +2,10 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Check, X, Loader2 } from 'lucide-react';
 import { processOAuthCallback, type OAuthCallbackResult } from '@/lib/integrations';
+import { supabase } from '@/lib/supabase';
 import { Button, Card, CardContent } from '@/components/ui';
 
-type ProcessingStatus = 'processing' | 'success' | 'error';
+type ProcessingStatus = 'processing' | 'syncing' | 'success' | 'error';
 
 export function OAuthCallback() {
   const navigate = useNavigate();
@@ -14,7 +15,6 @@ export function OAuthCallback() {
 
   useEffect(() => {
     async function handleCallback() {
-      // Process OAuth callback
       const callbackResult = processOAuthCallback();
       setResult(callbackResult);
 
@@ -25,8 +25,59 @@ export function OAuthCallback() {
       }
 
       try {
-        // Store integration info in localStorage temporarily
-        // The actual connection status will be saved when the company is registered
+        // Store basic integration info
+        const integrations = JSON.parse(localStorage.getItem('pending_integrations') || '{}');
+        integrations[callbackResult.provider!] = {
+          code: callbackResult.code,
+          timestamp: Date.now(),
+          status: 'connected',
+        };
+
+        // Try to sync metrics via Edge Function
+        setStatus('syncing');
+
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          // Find user's company
+          const { data: companyRows } = await supabase
+            .from('companies')
+            .select('id')
+            .eq('user_id', session.user.id)
+            .limit(1);
+
+          const companyId = companyRows?.[0]?.id;
+
+          if (companyId) {
+            const baseUrl = import.meta.env.VITE_APP_URL || window.location.origin;
+            const redirectUri = `${baseUrl}/oauth/callback`;
+
+            const { data: syncResult, error: syncError } = await supabase.functions.invoke(
+              'sync-metrics',
+              {
+                body: {
+                  companyId,
+                  provider: callbackResult.provider,
+                  code: callbackResult.code,
+                  redirectUri,
+                },
+              }
+            );
+
+            if (!syncError && syncResult?.metrics) {
+              integrations[callbackResult.provider!].metrics = syncResult.metrics;
+            }
+          }
+        }
+
+        localStorage.setItem('pending_integrations', JSON.stringify(integrations));
+        setStatus('success');
+
+        setTimeout(() => {
+          navigate(callbackResult.returnPath || '/company/register', { replace: true });
+        }, 2000);
+      } catch (err) {
+        console.error('Failed to process OAuth callback:', err);
+        // Still mark as connected even if sync fails
         const integrations = JSON.parse(localStorage.getItem('pending_integrations') || '{}');
         integrations[callbackResult.provider!] = {
           code: callbackResult.code,
@@ -36,15 +87,9 @@ export function OAuthCallback() {
         localStorage.setItem('pending_integrations', JSON.stringify(integrations));
 
         setStatus('success');
-
-        // Redirect back after a short delay
         setTimeout(() => {
           navigate(callbackResult.returnPath || '/company/register', { replace: true });
         }, 2000);
-      } catch (err) {
-        console.error('Failed to process OAuth callback:', err);
-        setStatus('error');
-        setErrorMessage('Failed to save integration data');
       }
     }
 
@@ -57,14 +102,18 @@ export function OAuthCallback() {
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardContent className="p-8 text-center">
-          {status === 'processing' && (
+          {(status === 'processing' || status === 'syncing') && (
             <>
               <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
                 <Loader2 className="w-8 h-8 text-primary animate-spin" />
               </div>
-              <h2 className="text-xl font-semibold mb-2">Processing</h2>
+              <h2 className="text-xl font-semibold mb-2">
+                {status === 'processing' ? 'Processing' : 'Syncing Metrics'}
+              </h2>
               <p className="text-muted-foreground">
-                Connecting your account...
+                {status === 'processing'
+                  ? 'Connecting your account...'
+                  : `Fetching your ${providerName} data...`}
               </p>
             </>
           )}

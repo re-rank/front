@@ -28,7 +28,7 @@ import {
   defaultExecutive,
 } from './companySchema';
 import type { CompanyRegisterForm } from './companySchema';
-import type { Company, Executive, CompanyVideo, CompanyNews, CompanyQnA, QnACategory } from '@/types/database';
+import type { Company, Executive, CompanyVideo, CompanyNews, CompanyQnA, CompanyMetric, QnACategory } from '@/types/database';
 
 // X Icon
 const XIcon = ({ className }: { className?: string }) => (
@@ -96,6 +96,9 @@ export function CompanyEdit() {
   // Q&A state
   const [selectedQuestions, setSelectedQuestions] = useState<string[]>([]);
   const [questionAnswers, setQuestionAnswers] = useState<Record<string, string>>({});
+
+  // Metrics state
+  const [metrics, setMetrics] = useState<CompanyMetric[]>([]);
 
   // Integration disconnect state
   const [disconnectLoading, setDisconnectLoading] = useState<'stripe' | 'ga4' | null>(null);
@@ -211,11 +214,14 @@ export function CompanyEdit() {
         setCompany(companyData);
 
         // Fetch related data in parallel
-        const [execRes, videoRes, newsRes, qnaRes] = await Promise.all([
-          supabase.from('executives').select('*').eq('company_id', companyData.id).order('created_at'),
+        const [execRes, videoRes, newsRes, qnaRes, metricsRes] = await Promise.all([
+          supabase.from('executives').select('*').eq('company_id', companyData.id).order('created_at')
+            .then(r => r, () => ({ data: null, error: true })),
           supabase.from('company_videos').select('*').eq('company_id', companyData.id).eq('is_main', true).limit(1).then(r => r, () => ({ data: null, error: true })),
           supabase.from('company_news').select('*').eq('company_id', companyData.id).order('published_at', { ascending: false }).then(r => r, () => ({ data: null, error: true })),
           supabase.from('company_qna').select('*').eq('company_id', companyData.id).order('created_at').then(r => r, () => ({ data: null, error: true })),
+          supabase.from('company_metrics').select('*').eq('company_id', companyData.id).order('month', { ascending: false }).limit(6)
+            .then(r => r, () => ({ data: null, error: true })),
         ]);
 
         if (cancelled) return;
@@ -223,6 +229,7 @@ export function CompanyEdit() {
         const executives: Executive[] = execRes.data ?? [];
         const mainVideo: CompanyVideo | null = videoRes.data?.[0] ?? null;
         if (!cancelled) setNewsItems((newsRes.data as CompanyNews[] | null) ?? []);
+        if (!cancelled) setMetrics((metricsRes.data as CompanyMetric[] | null) ?? []);
 
         // Restore Q&A state
         const qnaItems = (qnaRes.data as CompanyQnA[] | null) ?? [];
@@ -1059,6 +1066,43 @@ export function CompanyEdit() {
                   )}
                 </div>
               </div>
+
+              {/* Metrics Summary */}
+              {metrics.length > 0 && (
+                <div className="pt-4 border-t border-border">
+                  <h3 className="text-sm font-medium mb-3">Latest Metrics</h3>
+                  <div className="grid sm:grid-cols-3 gap-3">
+                    {(() => {
+                      const latest = metrics[0];
+                      return (
+                        <>
+                          {latest.revenue != null && (
+                            <div className="p-3 rounded-lg bg-background border border-border text-center">
+                              <p className="text-xs text-muted-foreground mb-1">Revenue</p>
+                              <p className="font-semibold">${latest.revenue.toLocaleString()}</p>
+                              <p className="text-xs text-muted-foreground mt-1">{latest.month}</p>
+                            </div>
+                          )}
+                          {latest.mau != null && (
+                            <div className="p-3 rounded-lg bg-background border border-border text-center">
+                              <p className="text-xs text-muted-foreground mb-1">MAU</p>
+                              <p className="font-semibold">{latest.mau.toLocaleString()}</p>
+                              <p className="text-xs text-muted-foreground mt-1">{latest.month}</p>
+                            </div>
+                          )}
+                          {latest.retention != null && (
+                            <div className="p-3 rounded-lg bg-background border border-border text-center">
+                              <p className="text-xs text-muted-foreground mb-1">Retention</p>
+                              <p className="font-semibold">{latest.retention}%</p>
+                              <p className="text-xs text-muted-foreground mt-1">{latest.month}</p>
+                            </div>
+                          )}
+                        </>
+                      );
+                    })()}
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 

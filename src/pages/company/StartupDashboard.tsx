@@ -22,7 +22,7 @@ import {
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/stores/authStore';
 import { Card, CardContent, Badge, Button } from '@/components/ui';
-import type { Company, Executive, CompanyVideo, CompanyQnA } from '@/types/database';
+import type { Company, Executive, CompanyVideo, CompanyQnA, CompanyMetric } from '@/types/database';
 
 const XIcon = ({ className }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="currentColor">
@@ -37,6 +37,7 @@ export function StartupDashboard() {
   const [executives, setExecutives] = useState<Executive[]>([]);
   const [videos, setVideos] = useState<CompanyVideo[]>([]);
   const [qna, setQna] = useState<CompanyQnA[]>([]);
+  const [metrics, setMetrics] = useState<CompanyMetric[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -95,6 +96,10 @@ export function StartupDashboard() {
 
     let cancelled = false;
 
+    const fetchTimeout = setTimeout(() => {
+      if (!cancelled) setLoading(false);
+    }, 15000);
+
     (async () => {
       try {
         const { data: rows } = await supabase
@@ -108,25 +113,32 @@ export function StartupDashboard() {
         const data = rows?.[0] ?? null;
         if (data) {
           setCompany(data);
-          const [execRes, videoRes, qnaRes] = await Promise.all([
-            supabase.from('executives').select('*').eq('company_id', data.id).order('created_at'),
-            supabase.from('company_videos').select('*').eq('company_id', data.id).eq('is_main', true).limit(1).then(r => r, () => ({ data: null })),
-            supabase.from('company_qna').select('*').eq('company_id', data.id).order('created_at').then(r => r, () => ({ data: null })),
+          const [execRes, videoRes, qnaRes, metricsRes] = await Promise.all([
+            supabase.from('executives').select('*').eq('company_id', data.id).order('created_at')
+              .then(r => r, () => ({ data: null })),
+            supabase.from('company_videos').select('*').eq('company_id', data.id).eq('is_main', true).limit(1)
+              .then(r => r, () => ({ data: null })),
+            supabase.from('company_qna').select('*').eq('company_id', data.id).order('created_at')
+              .then(r => r, () => ({ data: null })),
+            supabase.from('company_metrics').select('*').eq('company_id', data.id).order('month', { ascending: false }).limit(6)
+              .then(r => r, () => ({ data: null })),
           ]);
           if (!cancelled) {
             setExecutives(execRes.data ?? []);
             setVideos((videoRes.data as CompanyVideo[] | null) ?? []);
             setQna((qnaRes.data as CompanyQnA[] | null) ?? []);
+            setMetrics((metricsRes.data as CompanyMetric[] | null) ?? []);
           }
         }
       } catch (err) {
         console.error('Dashboard fetch error:', err);
       } finally {
+        clearTimeout(fetchTimeout);
         if (!cancelled) setLoading(false);
       }
     })();
 
-    return () => { cancelled = true; };
+    return () => { cancelled = true; clearTimeout(fetchTimeout); };
   }, [user?.id, authLoading]);
 
   if (loading) {
@@ -291,7 +303,7 @@ export function StartupDashboard() {
         <Card>
           <CardContent className="p-6">
             <h3 className="font-semibold mb-3">About</h3>
-            <p className="text-muted-foreground whitespace-pre-wrap leading-relaxed">
+            <p className="text-muted-foreground whitespace-pre-wrap break-words leading-relaxed">
               {company.description}
             </p>
           </CardContent>
@@ -409,6 +421,45 @@ export function StartupDashboard() {
                   <p className="text-sm text-muted-foreground whitespace-pre-wrap">{item.answer}</p>
                 </div>
               ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Business Metrics */}
+      {metrics.length > 0 && (
+        <Card>
+          <CardContent className="p-6">
+            <h3 className="font-semibold mb-4">Business Metrics</h3>
+            <div className="grid sm:grid-cols-3 gap-4">
+              {(() => {
+                const latest = metrics[0];
+                return (
+                  <>
+                    {latest.revenue != null && (
+                      <div className="p-4 rounded-lg bg-secondary/50 border border-border text-center">
+                        <p className="text-xs text-muted-foreground mb-1">Revenue</p>
+                        <p className="font-semibold text-lg">${latest.revenue.toLocaleString()}</p>
+                        <p className="text-xs text-muted-foreground mt-1">{latest.month}</p>
+                      </div>
+                    )}
+                    {latest.mau != null && (
+                      <div className="p-4 rounded-lg bg-secondary/50 border border-border text-center">
+                        <p className="text-xs text-muted-foreground mb-1">MAU</p>
+                        <p className="font-semibold text-lg">{latest.mau.toLocaleString()}</p>
+                        <p className="text-xs text-muted-foreground mt-1">{latest.month}</p>
+                      </div>
+                    )}
+                    {latest.retention != null && (
+                      <div className="p-4 rounded-lg bg-secondary/50 border border-border text-center">
+                        <p className="text-xs text-muted-foreground mb-1">Retention</p>
+                        <p className="font-semibold text-lg">{latest.retention}%</p>
+                        <p className="text-xs text-muted-foreground mt-1">{latest.month}</p>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
             </div>
           </CardContent>
         </Card>

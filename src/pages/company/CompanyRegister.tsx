@@ -29,7 +29,7 @@ import {
   defaultExecutive,
 } from './companySchema';
 import type { CompanyRegisterForm } from './companySchema';
-import type { QnACategory } from '@/types/database';
+import type { QnACategory, CompanyMetric } from '@/types/database';
 
 // X Icon
 const XIcon = ({ className }: { className?: string }) => (
@@ -102,6 +102,10 @@ export function CompanyRegister() {
     stripe: 'disconnected',
     ga4: 'disconnected',
   });
+  const [metricsData, setMetricsData] = useState<{
+    stripe: CompanyMetric[];
+    ga4: CompanyMetric[];
+  }>({ stripe: [], ga4: [] });
 
   // Check for existing company and redirect
   useEffect(() => {
@@ -183,6 +187,11 @@ export function CompanyRegister() {
           stripe: integrations.stripe?.status === 'connected' ? 'connected' : prev.stripe,
           ga4: integrations.ga4?.status === 'connected' ? 'connected' : prev.ga4,
         }));
+        // Restore metrics data from sync
+        setMetricsData({
+          stripe: integrations.stripe?.metrics || [],
+          ga4: integrations.ga4?.metrics || [],
+        });
       } catch (e) {
         console.error('Failed to parse integrations:', e);
       }
@@ -1071,18 +1080,33 @@ export function CompanyRegister() {
 
                     {integrationStatus.stripe === 'connected' && (
                       <div className="grid sm:grid-cols-3 gap-3 pt-2">
-                        <div className="p-3 rounded-lg bg-background border border-border text-center">
-                          <p className="text-xs text-muted-foreground mb-1">Monthly MRR</p>
-                          <p className="font-semibold text-lg">Syncing...</p>
-                        </div>
-                        <div className="p-3 rounded-lg bg-background border border-border text-center">
-                          <p className="text-xs text-muted-foreground mb-1">Total Revenue</p>
-                          <p className="font-semibold text-lg">Syncing...</p>
-                        </div>
-                        <div className="p-3 rounded-lg bg-background border border-border text-center">
-                          <p className="text-xs text-muted-foreground mb-1">Active Subs</p>
-                          <p className="font-semibold text-lg">Syncing...</p>
-                        </div>
+                        {(() => {
+                          const stripeMetrics = metricsData.stripe;
+                          const latest = stripeMetrics[0];
+                          const totalRevenue = stripeMetrics.reduce((sum, m) => sum + (m.revenue || 0), 0);
+                          return (
+                            <>
+                              <div className="p-3 rounded-lg bg-background border border-border text-center">
+                                <p className="text-xs text-muted-foreground mb-1">Monthly MRR</p>
+                                <p className="font-semibold text-lg">
+                                  {latest?.revenue != null ? `$${latest.revenue.toLocaleString()}` : 'Waiting for data...'}
+                                </p>
+                              </div>
+                              <div className="p-3 rounded-lg bg-background border border-border text-center">
+                                <p className="text-xs text-muted-foreground mb-1">Total Revenue</p>
+                                <p className="font-semibold text-lg">
+                                  {totalRevenue > 0 ? `$${totalRevenue.toLocaleString()}` : 'Waiting for data...'}
+                                </p>
+                              </div>
+                              <div className="p-3 rounded-lg bg-background border border-border text-center">
+                                <p className="text-xs text-muted-foreground mb-1">Months Tracked</p>
+                                <p className="font-semibold text-lg">
+                                  {stripeMetrics.length > 0 ? stripeMetrics.length : 'Waiting for data...'}
+                                </p>
+                              </div>
+                            </>
+                          );
+                        })()}
                       </div>
                     )}
 
@@ -1162,18 +1186,33 @@ export function CompanyRegister() {
 
                     {integrationStatus.ga4 === 'connected' && (
                       <div className="grid sm:grid-cols-3 gap-3 pt-2">
-                        <div className="p-3 rounded-lg bg-background border border-border text-center">
-                          <p className="text-xs text-muted-foreground mb-1">Monthly Users</p>
-                          <p className="font-semibold text-lg">Syncing...</p>
-                        </div>
-                        <div className="p-3 rounded-lg bg-background border border-border text-center">
-                          <p className="text-xs text-muted-foreground mb-1">Page Views</p>
-                          <p className="font-semibold text-lg">Syncing...</p>
-                        </div>
-                        <div className="p-3 rounded-lg bg-background border border-border text-center">
-                          <p className="text-xs text-muted-foreground mb-1">Avg. Session</p>
-                          <p className="font-semibold text-lg">Syncing...</p>
-                        </div>
+                        {(() => {
+                          const ga4Metrics = metricsData.ga4;
+                          const latest = ga4Metrics[0];
+                          const totalMau = ga4Metrics.reduce((sum, m) => sum + (m.mau || 0), 0);
+                          return (
+                            <>
+                              <div className="p-3 rounded-lg bg-background border border-border text-center">
+                                <p className="text-xs text-muted-foreground mb-1">Monthly Users</p>
+                                <p className="font-semibold text-lg">
+                                  {latest?.mau != null ? latest.mau.toLocaleString() : 'Waiting for data...'}
+                                </p>
+                              </div>
+                              <div className="p-3 rounded-lg bg-background border border-border text-center">
+                                <p className="text-xs text-muted-foreground mb-1">Total Users (6mo)</p>
+                                <p className="font-semibold text-lg">
+                                  {totalMau > 0 ? totalMau.toLocaleString() : 'Waiting for data...'}
+                                </p>
+                              </div>
+                              <div className="p-3 rounded-lg bg-background border border-border text-center">
+                                <p className="text-xs text-muted-foreground mb-1">Months Tracked</p>
+                                <p className="font-semibold text-lg">
+                                  {ga4Metrics.length > 0 ? ga4Metrics.length : 'Waiting for data...'}
+                                </p>
+                              </div>
+                            </>
+                          );
+                        })()}
                       </div>
                     )}
 
