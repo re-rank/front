@@ -36,8 +36,13 @@ export function OAuthCallback() {
 
         // Determine redirect path: check if company exists
         let redirectPath = callbackResult.returnPath || '/company/register';
-        // Refresh session first — token may be stale after OAuth redirect
-        await supabase.auth.refreshSession();
+        // Try refreshing session (token may be stale after OAuth redirect), but don't block
+        try {
+          await Promise.race([
+            supabase.auth.refreshSession(),
+            new Promise((resolve) => setTimeout(resolve, 3000)),
+          ]);
+        } catch { /* ignore refresh errors */ }
         const { data: { session } } = await supabase.auth.getSession();
 
         let companyId: string | undefined;
