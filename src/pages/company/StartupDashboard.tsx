@@ -75,15 +75,6 @@ export function StartupDashboard() {
     }
   };
 
-  // Safety timeout: if auth stays loading for too long, force it to complete
-  useEffect(() => {
-    if (!authLoading) return;
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 3000);
-    return () => clearTimeout(timer);
-  }, [authLoading]);
-
   useEffect(() => {
     // Wait for auth to finish loading before deciding
     if (authLoading) return;
@@ -96,31 +87,46 @@ export function StartupDashboard() {
 
     let cancelled = false;
 
+    // Safety timeout: guarantee loading ends no matter what
     const fetchTimeout = setTimeout(() => {
-      if (!cancelled) setLoading(false);
-    }, 15000);
+      if (!cancelled) {
+        console.warn('Dashboard fetch timed out after 10s');
+        setLoading(false);
+      }
+    }, 10000);
+
+    // Per-query timeout wrapper
+    const withTimeout = <T,>(promise: PromiseLike<T>, ms = 8000): Promise<T> =>
+      Promise.race([
+        Promise.resolve(promise),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Query timed out')), ms)
+        ),
+      ]);
 
     (async () => {
       try {
-        const { data: rows } = await supabase
-          .from('companies')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false })
-          .limit(1);
+        const { data: rows } = await withTimeout(
+          supabase
+            .from('companies')
+            .select('*')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false })
+            .limit(1)
+        );
 
         if (cancelled) return;
         const data = rows?.[0] ?? null;
         if (data) {
           setCompany(data);
           const [execRes, videoRes, qnaRes, metricsRes] = await Promise.all([
-            supabase.from('executives').select('*').eq('company_id', data.id).order('created_at')
+            withTimeout(supabase.from('executives').select('*').eq('company_id', data.id).order('created_at'))
               .then(r => r, () => ({ data: null })),
-            supabase.from('company_videos').select('*').eq('company_id', data.id).eq('is_main', true).limit(1)
+            withTimeout(supabase.from('company_videos').select('*').eq('company_id', data.id).eq('is_main', true).limit(1))
               .then(r => r, () => ({ data: null })),
-            supabase.from('company_qna').select('*').eq('company_id', data.id).order('created_at')
+            withTimeout(supabase.from('company_qna').select('*').eq('company_id', data.id).order('created_at'))
               .then(r => r, () => ({ data: null })),
-            supabase.from('company_metrics').select('*').eq('company_id', data.id).order('month', { ascending: false }).limit(6)
+            withTimeout(supabase.from('company_metrics').select('*').eq('company_id', data.id).order('month', { ascending: false }).limit(6))
               .then(r => r, () => ({ data: null })),
           ]);
           if (!cancelled) {
