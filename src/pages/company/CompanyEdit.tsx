@@ -337,11 +337,11 @@ export function CompanyEdit() {
     setValidationErrors([]);
     setSubmitError(null);
 
-    // Safety timeout: force stop loading after 15 seconds
+    // Safety timeout: force stop loading after 30 seconds (Supabase 콜드 스타트 대비)
     const timeout = setTimeout(() => {
       setManualSubmitting(false);
       setSubmitError('Request timed out. Please try again.');
-    }, 15000);
+    }, 30000);
 
     try {
       const values = getValues();

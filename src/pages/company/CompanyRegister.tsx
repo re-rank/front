@@ -361,8 +361,8 @@ export function CompanyRegister() {
     );
   };
 
-  // 타임아웃 래퍼
-  const withTimeout = <T,>(promise: PromiseLike<T> | Promise<T>, ms = 15000): Promise<T> =>
+  // 타임아웃 래퍼 (Supabase 콜드 스타트 대비 30초)
+  const withTimeout = <T,>(promise: PromiseLike<T> | Promise<T>, ms = 30000): Promise<T> =>
     Promise.race([
       Promise.resolve(promise),
       new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Request timed out. Please try again.')), ms)),
