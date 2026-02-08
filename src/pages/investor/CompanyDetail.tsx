@@ -201,7 +201,7 @@ export function CompanyDetail() {
       <section>
         <h2 className="text-2xl font-serif mb-6">About</h2>
         <div className="prose prose-invert prose-lg max-w-none">
-          <p className="text-muted-foreground whitespace-pre-wrap leading-relaxed">
+          <p className="text-muted-foreground whitespace-pre-wrap break-words leading-relaxed">
             {company.description}
           </p>
         </div>
