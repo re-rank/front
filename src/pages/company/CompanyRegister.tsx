@@ -668,13 +668,41 @@ export function CompanyRegister() {
                   {/* Founded Date */}
                   <div className="space-y-2">
                     <Label required>Founded Date</Label>
-                    <Input
-                      type="month"
-                      lang="en"
-                      error={errors.founded_at?.message}
-                      className="bg-secondary border-border [&::-webkit-calendar-picker-indicator]:invert"
-                      {...register('founded_at')}
+                    <Controller
+                      control={control}
+                      name="founded_at"
+                      render={({ field }) => {
+                        const [y, m] = (field.value || '').split('-');
+                        const currentYear = new Date().getFullYear();
+                        return (
+                          <div className="flex gap-2">
+                            <select
+                              value={y || ''}
+                              onChange={(e) => field.onChange(e.target.value && m ? `${e.target.value}-${m}` : '')}
+                              className="flex-1 h-9 rounded-md border border-input bg-secondary px-3 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+                            >
+                              <option value="" disabled>Year</option>
+                              {Array.from({ length: currentYear - 1989 }, (_, i) => currentYear - i).map((yr) => (
+                                <option key={yr} value={String(yr)}>{yr}</option>
+                              ))}
+                            </select>
+                            <select
+                              value={m || ''}
+                              onChange={(e) => field.onChange(y && e.target.value ? `${y}-${e.target.value}` : '')}
+                              className="flex-1 h-9 rounded-md border border-input bg-secondary px-3 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+                            >
+                              <option value="" disabled>Month</option>
+                              {['January','February','March','April','May','June','July','August','September','October','November','December'].map((name, i) => (
+                                <option key={i} value={String(i + 1).padStart(2, '0')}>{name}</option>
+                              ))}
+                            </select>
+                          </div>
+                        );
+                      }}
                     />
+                    {errors.founded_at?.message && (
+                      <p className="mt-1 text-sm text-red-500">{errors.founded_at.message}</p>
+                    )}
                   </div>
 
                   {/* Location */}
