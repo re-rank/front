@@ -4,7 +4,7 @@ import { Button } from '@/components/ui';
 import { useAuthStore } from '@/stores/authStore';
 import {
   Zap, BarChart3, MessageSquare, Play, Video,
-  User, Users, BookOpen, Linkedin, ExternalLink,
+  User, BookOpen, Linkedin, ExternalLink,
   Newspaper, MessageCircle, ArrowRight, Instagram,
 } from 'lucide-react';
 import {

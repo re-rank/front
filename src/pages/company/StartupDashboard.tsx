@@ -570,7 +570,7 @@ export function StartupDashboard() {
                               borderRadius: '8px',
                               fontSize: '12px',
                             }}
-                            formatter={(value: number) => [`$${value.toLocaleString()}`, 'Revenue']}
+                            formatter={(value) => [`$${Number(value).toLocaleString()}`, 'Revenue']}
                           />
                           <Area
                             type="monotone"
@@ -618,7 +618,7 @@ export function StartupDashboard() {
                               borderRadius: '8px',
                               fontSize: '12px',
                             }}
-                            formatter={(value: number) => [value.toLocaleString(), 'MAU']}
+                            formatter={(value) => [Number(value).toLocaleString(), 'MAU']}
                           />
                           <Area
                             type="monotone"

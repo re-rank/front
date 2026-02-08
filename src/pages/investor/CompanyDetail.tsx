@@ -396,7 +396,7 @@ export function CompanyDetail() {
                               borderRadius: '8px',
                               fontSize: '12px',
                             }}
-                            formatter={(value: number) => [`$${value.toLocaleString()}`, 'Revenue']}
+                            formatter={(value) => [`$${Number(value).toLocaleString()}`, 'Revenue']}
                           />
                           <Area type="monotone" dataKey="revenue" stroke="#635BFF" strokeWidth={2} fill="url(#detailRevenueGrad)" />
                         </AreaChart>
@@ -440,7 +440,7 @@ export function CompanyDetail() {
                               borderRadius: '8px',
                               fontSize: '12px',
                             }}
-                            formatter={(value: number) => [value.toLocaleString(), 'MAU']}
+                            formatter={(value) => [Number(value).toLocaleString(), 'MAU']}
                           />
                           <Area type="monotone" dataKey="mau" stroke="#F9AB00" strokeWidth={2} fill="url(#detailMauGrad)" />
                         </AreaChart>

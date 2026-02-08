@@ -601,6 +601,7 @@ export function CompanyRegister() {
           title: n.title.trim(),
           external_link: n.url.trim() || null,
           summary: n.source.trim() || null,
+          thumbnail_url: null,
           published_at: n.date,
         }));
         try {
