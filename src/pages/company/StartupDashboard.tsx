@@ -18,11 +18,13 @@ import {
   Trash2,
   Play,
   MessageSquare,
+  RefreshCw,
 } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
 import { supabase } from '@/lib/supabase';
+import { initiateStripeConnect, initiateGoogleOAuth } from '@/lib/integrations';
 import { useAuthStore } from '@/stores/authStore';
 import { Card, CardContent, Badge, Button } from '@/components/ui';
 import type { Company, Executive, CompanyVideo, CompanyQnA, CompanyMetric } from '@/types/database';
@@ -484,15 +486,39 @@ export function StartupDashboard() {
             if (!hasCharts) {
               if (!company.stripe_connected && !company.ga4_connected) {
                 return (
-                  <p className="text-sm text-muted-foreground">
-                    Connect Stripe or Google Analytics to view your business metrics here.
-                  </p>
+                  <div className="space-y-3">
+                    <p className="text-sm text-muted-foreground">
+                      Connect Stripe or Google Analytics to view your business metrics here.
+                    </p>
+                    <div className="flex gap-2">
+                      <Button type="button" variant="outline" size="sm" onClick={initiateStripeConnect} className="gap-1.5">
+                        Connect Stripe
+                      </Button>
+                      <Button type="button" variant="outline" size="sm" onClick={initiateGoogleOAuth} className="gap-1.5">
+                        Connect GA4
+                      </Button>
+                    </div>
+                  </div>
                 );
               }
               return (
-                <p className="text-sm text-muted-foreground">
-                  Connected but no metrics data yet. Metrics will appear once synced.
-                </p>
+                <div className="space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    Connected but no metrics data yet. Reconnect to sync your data.
+                  </p>
+                  <div className="flex gap-2">
+                    {company.stripe_connected && (
+                      <Button type="button" variant="outline" size="sm" onClick={initiateStripeConnect} className="gap-1.5">
+                        <RefreshCw className="w-3.5 h-3.5" /> Resync Stripe
+                      </Button>
+                    )}
+                    {company.ga4_connected && (
+                      <Button type="button" variant="outline" size="sm" onClick={initiateGoogleOAuth} className="gap-1.5">
+                        <RefreshCw className="w-3.5 h-3.5" /> Resync GA4
+                      </Button>
+                    )}
+                  </div>
+                </div>
               );
             }
 
