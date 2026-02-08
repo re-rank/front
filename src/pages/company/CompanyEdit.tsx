@@ -4,7 +4,7 @@ import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   Plus, Trash2, Upload, Globe, Github, Linkedin, Youtube, FileText,
-  Check, ArrowLeft, Video,
+  Check, ArrowLeft, Video, MessageSquare,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { initiateStripeConnect, initiateGoogleOAuth } from '@/lib/integrations';
@@ -28,7 +28,7 @@ import {
   defaultExecutive,
 } from './companySchema';
 import type { CompanyRegisterForm } from './companySchema';
-import type { Company, Executive, CompanyVideo, CompanyNews } from '@/types/database';
+import type { Company, Executive, CompanyVideo, CompanyNews, CompanyQnA } from '@/types/database';
 
 // X Icon
 const XIcon = ({ className }: { className?: string }) => (
@@ -53,6 +53,28 @@ const GA4Icon = ({ className }: { className?: string }) => (
   </svg>
 );
 
+const investorQuestionOptions = [
+  'What is your current revenue scale?',
+  'What differentiates you from competitors?',
+  'What is your funding plan for the next 12 months?',
+  'What are the barriers to entry for your core technology?',
+  'Do you have key customers or partners?',
+  "What are your team's core competencies?",
+  'What is your biggest challenge right now?',
+  'Do you have an exit strategy?',
+];
+
+const questionCategoryMap: Record<string, string> = {
+  'What is your current revenue scale?': 'Competitive Advantage',
+  'What differentiates you from competitors?': 'Competitive Landscape',
+  'What is your funding plan for the next 12 months?': 'Basis of Conviction',
+  'What are the barriers to entry for your core technology?': 'Competitive Advantage',
+  'Do you have key customers or partners?': 'Competitive Advantage',
+  "What are your team's core competencies?": 'Team Cohesion',
+  'What is your biggest challenge right now?': 'Capability Gap',
+  'Do you have an exit strategy?': 'Acquisition Offer',
+};
+
 export function CompanyEdit() {
   const navigate = useNavigate();
   const { user, isLoading: authLoading } = useAuthStore();
@@ -71,8 +93,19 @@ export function CompanyEdit() {
   const [newsItems, setNewsItems] = useState<CompanyNews[]>([]);
   const [deletingNewsId, setDeletingNewsId] = useState<string | null>(null);
 
+  // Q&A state
+  const [selectedQuestions, setSelectedQuestions] = useState<string[]>([]);
+  const [questionAnswers, setQuestionAnswers] = useState<Record<string, string>>({});
+
   // Integration disconnect state
   const [disconnectLoading, setDisconnectLoading] = useState<'stripe' | 'ga4' | null>(null);
+
+  // 타임아웃 래퍼 (Supabase 콜드 스타트 대비 30초)
+  const withTimeout = <T,>(promise: PromiseLike<T> | Promise<T>, ms = 30000): Promise<T> =>
+    Promise.race([
+      Promise.resolve(promise),
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Request timed out. Please try again.')), ms)),
+    ]);
 
   const {
     register,
@@ -111,6 +144,12 @@ export function CompanyEdit() {
   const watchDescription = watch('description');
   const watchShortDesc = watch('short_description');
   const watchIntroVideo = watch('intro_video_url');
+
+  const toggleQuestion = (q: string) => {
+    setSelectedQuestions((prev) =>
+      prev.includes(q) ? prev.filter((x) => x !== q) : prev.length < 5 ? [...prev, q] : prev
+    );
+  };
 
   // Fetch existing company data
   useEffect(() => {
@@ -172,10 +211,11 @@ export function CompanyEdit() {
         setCompany(companyData);
 
         // Fetch related data in parallel
-        const [execRes, videoRes, newsRes] = await Promise.all([
+        const [execRes, videoRes, newsRes, qnaRes] = await Promise.all([
           supabase.from('executives').select('*').eq('company_id', companyData.id).order('created_at'),
           supabase.from('company_videos').select('*').eq('company_id', companyData.id).eq('is_main', true).limit(1).then(r => r, () => ({ data: null, error: true })),
           supabase.from('company_news').select('*').eq('company_id', companyData.id).order('published_at', { ascending: false }).then(r => r, () => ({ data: null, error: true })),
+          supabase.from('company_qna').select('*').eq('company_id', companyData.id).order('created_at').then(r => r, () => ({ data: null, error: true })),
         ]);
 
         if (cancelled) return;
@@ -183,6 +223,17 @@ export function CompanyEdit() {
         const executives: Executive[] = execRes.data ?? [];
         const mainVideo: CompanyVideo | null = videoRes.data?.[0] ?? null;
         if (!cancelled) setNewsItems((newsRes.data as CompanyNews[] | null) ?? []);
+
+        // Restore Q&A state
+        const qnaItems = (qnaRes.data as CompanyQnA[] | null) ?? [];
+        if (!cancelled && qnaItems.length > 0) {
+          setSelectedQuestions(qnaItems.map((q) => q.question));
+          const answers: Record<string, string> = {};
+          for (const q of qnaItems) {
+            answers[q.question] = q.answer;
+          }
+          setQuestionAnswers(answers);
+        }
 
         // Set deck
         if (companyData.deck_url) {
@@ -337,12 +388,6 @@ export function CompanyEdit() {
     setValidationErrors([]);
     setSubmitError(null);
 
-    // Safety timeout: force stop loading after 30 seconds (Supabase 콜드 스타트 대비)
-    const timeout = setTimeout(() => {
-      setManualSubmitting(false);
-      setSubmitError('Request timed out. Please try again.');
-    }, 30000);
-
     try {
       const values = getValues();
       const result = companyRegisterSchema.safeParse(values);
@@ -367,7 +412,6 @@ export function CompanyEdit() {
           messages.push(`${label}: ${issue.message}`);
         }
         setValidationErrors(messages);
-        // Scroll to error display
         window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
         return;
       }
@@ -380,10 +424,11 @@ export function CompanyEdit() {
       }
 
       // Ensure session is valid (server-side validation)
-      const { data: { user: validatedUser }, error: userError } = await supabase.auth.getUser();
+      const { data: { user: validatedUser }, error: userError } = await withTimeout(
+        supabase.auth.getUser()
+      );
       if (userError || !validatedUser) {
-        // Try refreshing session
-        const { data: refreshData } = await supabase.auth.refreshSession();
+        const { data: refreshData } = await withTimeout(supabase.auth.refreshSession());
         if (!refreshData.session) {
           setSubmitError('Session expired. Please log in again.');
           return;
@@ -391,26 +436,28 @@ export function CompanyEdit() {
       }
 
       // 1. Update company
-      const { error: companyError } = await supabase
-        .from('companies')
-        .update({
-          name: data.name,
-          logo_url: data.logo_url || null,
-          short_description: data.short_description,
-          description: data.description,
-          founded_at: data.founded_at,
-          location: data.location,
-          employee_count: data.employee_count,
-          category: data.category,
-          stage: data.stage,
-          website_url: data.website_url || null,
-          github_url: data.github_url || null,
-          linkedin_url: data.linkedin_url || null,
-          twitter_url: data.twitter_url || null,
-          youtube_url: data.youtube_url || null,
-          deck_url: companyDeck?.url || null,
-        })
-        .eq('id', company.id);
+      const { error: companyError } = await withTimeout(
+        supabase
+          .from('companies')
+          .update({
+            name: data.name,
+            logo_url: data.logo_url || null,
+            short_description: data.short_description,
+            description: data.description,
+            founded_at: data.founded_at,
+            location: data.location,
+            employee_count: data.employee_count,
+            category: data.category,
+            stage: data.stage,
+            website_url: data.website_url || null,
+            github_url: data.github_url || null,
+            linkedin_url: data.linkedin_url || null,
+            twitter_url: data.twitter_url || null,
+            youtube_url: data.youtube_url || null,
+            deck_url: companyDeck?.url || null,
+          })
+          .eq('id', company.id)
+      );
 
       if (companyError) {
         setSubmitError(`Failed to update company: ${companyError.message}`);
@@ -418,10 +465,9 @@ export function CompanyEdit() {
       }
 
       // 2. Delete-then-insert executives
-      const { error: deleteExecError } = await supabase
-        .from('executives')
-        .delete()
-        .eq('company_id', company.id);
+      const { error: deleteExecError } = await withTimeout(
+        supabase.from('executives').delete().eq('company_id', company.id)
+      );
 
       if (deleteExecError) {
         setSubmitError(`Failed to delete executives: ${deleteExecError.message}`);
@@ -429,21 +475,17 @@ export function CompanyEdit() {
       }
 
       // Verify deletion actually worked (RLS may silently block it)
-      const { data: remaining } = await supabase
-        .from('executives')
-        .select('id')
-        .eq('company_id', company.id);
+      const { data: remaining } = await withTimeout(
+        supabase.from('executives').select('id').eq('company_id', company.id)
+      );
 
       if (remaining && remaining.length > 0) {
-        // RLS blocked deletion — delete individually by ID as fallback
         for (const row of remaining) {
-          await supabase.from('executives').delete().eq('id', row.id);
+          await withTimeout(supabase.from('executives').delete().eq('id', row.id));
         }
-        // Check again
-        const { data: stillRemaining } = await supabase
-          .from('executives')
-          .select('id')
-          .eq('company_id', company.id);
+        const { data: stillRemaining } = await withTimeout(
+          supabase.from('executives').select('id').eq('company_id', company.id)
+        );
         if (stillRemaining && stillRemaining.length > 0) {
           setSubmitError('Unable to update leadership team. Please check database permissions (RLS DELETE policy on executives table).');
           return;
@@ -461,35 +503,58 @@ export function CompanyEdit() {
         education: exec.education || null,
       }));
 
-      const { error: insertExecError } = await supabase.from('executives').insert(executives);
+      const { error: insertExecError } = await withTimeout(
+        supabase.from('executives').insert(executives)
+      );
       if (insertExecError) {
         setSubmitError(`Failed to insert executives: ${insertExecError.message}`);
         return;
       }
 
-      // 3. Delete-then-insert main video (table may not exist yet)
+      // 3. Delete-then-insert main video
       try {
-        await supabase
-          .from('company_videos')
-          .delete()
-          .eq('company_id', company.id)
-          .eq('is_main', true);
+        await withTimeout(
+          supabase.from('company_videos').delete().eq('company_id', company.id).eq('is_main', true)
+        );
 
         if (data.intro_video_url) {
-          await supabase.from('company_videos').insert({
-            company_id: company.id,
-            video_url: data.intro_video_url,
-            description: 'Company Introduction',
-            is_main: true,
-          });
+          await withTimeout(
+            supabase.from('company_videos').insert({
+              company_id: company.id,
+              video_url: data.intro_video_url,
+              description: 'Company Introduction',
+              is_main: true,
+            })
+          );
         }
-      } catch { /* table may not exist yet - skip video operations */ }
+      } catch { /* table may not exist yet */ }
+
+      // 4. Delete-then-insert Q&A
+      try {
+        await withTimeout(
+          supabase.from('company_qna').delete().eq('company_id', company.id)
+        );
+
+        const qnaRows = selectedQuestions
+          .filter((q) => questionAnswers[q]?.trim())
+          .map((q) => ({
+            company_id: company.id,
+            category: questionCategoryMap[q] || 'Competitive Advantage',
+            question: q,
+            answer: questionAnswers[q].trim(),
+          }));
+
+        if (qnaRows.length > 0) {
+          await withTimeout(
+            supabase.from('company_qna').insert(qnaRows)
+          );
+        }
+      } catch { /* table may not exist yet */ }
 
       navigate('/dashboard');
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : 'An unexpected error occurred.');
     } finally {
-      clearTimeout(timeout);
       setManualSubmitting(false);
     }
   };
@@ -587,8 +652,9 @@ export function CompanyEdit() {
                   <Label required>Founded Date</Label>
                   <Input
                     type="month"
+                    lang="en"
                     error={errors.founded_at?.message}
-                    className="bg-secondary border-border"
+                    className="bg-secondary border-border [&::-webkit-calendar-picker-indicator]:invert"
                     {...register('founded_at')}
                   />
                 </div>
@@ -996,7 +1062,53 @@ export function CompanyEdit() {
             </CardContent>
           </Card>
 
-          {/* Section 7: News Management */}
+          {/* Section 7: Investor Q&A */}
+          <Card>
+            <CardContent className="p-6 space-y-6">
+              <div>
+                <h2 className="text-2xl font-serif mb-2 flex items-center gap-2">
+                  <MessageSquare className="w-6 h-6" />
+                  Investor Q&A
+                </h2>
+                <p className="text-muted-foreground">Select up to 5 questions and provide thoughtful answers.</p>
+                <p className="text-sm text-muted-foreground mt-1">Selected: {selectedQuestions.length}/5</p>
+              </div>
+
+              <div className="space-y-4">
+                {investorQuestionOptions.map((q) => {
+                  const isSelected = selectedQuestions.includes(q);
+                  return (
+                    <Card key={q} className={`transition-colors ${isSelected ? 'bg-primary/10 border-primary/50' : 'bg-secondary/50'}`}>
+                      <CardContent className="p-4">
+                        <div className="flex items-start gap-3">
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => toggleQuestion(q)}
+                            disabled={!isSelected && selectedQuestions.length >= 5}
+                            className="mt-1 h-4 w-4 rounded border-border"
+                          />
+                          <div className="flex-1 space-y-3">
+                            <p className="font-medium leading-relaxed">{q}</p>
+                            {isSelected && (
+                              <Textarea
+                                placeholder="Write your answer here..."
+                                value={questionAnswers[q] || ''}
+                                onChange={(e) => setQuestionAnswers((prev) => ({ ...prev, [q]: e.target.value }))}
+                                className="bg-background border-border min-h-[120px]"
+                              />
+                            )}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Section 8: News Management */}
           {newsItems.length > 0 && (
             <Card>
               <CardContent className="p-6 space-y-4">

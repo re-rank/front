@@ -16,11 +16,13 @@ import {
   FileText,
   Edit,
   Trash2,
+  Play,
+  MessageSquare,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/stores/authStore';
 import { Card, CardContent, Badge, Button } from '@/components/ui';
-import type { Company, Executive } from '@/types/database';
+import type { Company, Executive, CompanyVideo, CompanyQnA } from '@/types/database';
 
 const XIcon = ({ className }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="currentColor">
@@ -33,6 +35,8 @@ export function StartupDashboard() {
   const { user, isLoading: authLoading } = useAuthStore();
   const [company, setCompany] = useState<Company | null>(null);
   const [executives, setExecutives] = useState<Executive[]>([]);
+  const [videos, setVideos] = useState<CompanyVideo[]>([]);
+  const [qna, setQna] = useState<CompanyQnA[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -42,6 +46,7 @@ export function StartupDashboard() {
     setDeleting(true);
     try {
       // 관련 데이터 삭제 (테이블이 없을 수 있으므로 개별 에러 무시)
+      await supabase.from('company_qna').delete().eq('company_id', company.id).then(() => {}, () => {});
       await supabase.from('company_videos').delete().eq('company_id', company.id).then(() => {}, () => {});
       await supabase.from('company_news').delete().eq('company_id', company.id).then(() => {}, () => {});
       await supabase.from('executives').delete().eq('company_id', company.id).then(() => {}, () => {});
@@ -103,12 +108,16 @@ export function StartupDashboard() {
         const data = rows?.[0] ?? null;
         if (data) {
           setCompany(data);
-          const { data: execs } = await supabase
-            .from('executives')
-            .select('*')
-            .eq('company_id', data.id)
-            .order('created_at');
-          if (!cancelled) setExecutives(execs ?? []);
+          const [execRes, videoRes, qnaRes] = await Promise.all([
+            supabase.from('executives').select('*').eq('company_id', data.id).order('created_at'),
+            supabase.from('company_videos').select('*').eq('company_id', data.id).eq('is_main', true).limit(1).then(r => r, () => ({ data: null })),
+            supabase.from('company_qna').select('*').eq('company_id', data.id).order('created_at').then(r => r, () => ({ data: null })),
+          ]);
+          if (!cancelled) {
+            setExecutives(execRes.data ?? []);
+            setVideos((videoRes.data as CompanyVideo[] | null) ?? []);
+            setQna((qnaRes.data as CompanyQnA[] | null) ?? []);
+          }
         }
       } catch (err) {
         console.error('Dashboard fetch error:', err);
@@ -289,6 +298,32 @@ export function StartupDashboard() {
         </Card>
       )}
 
+      {/* Intro Video */}
+      {videos.length > 0 && videos[0].video_url && (
+        <Card>
+          <CardContent className="p-6">
+            <h3 className="font-semibold mb-3 flex items-center gap-2">
+              <Play className="w-4 h-4" />
+              Introduction Video
+            </h3>
+            <div className="aspect-video rounded-lg overflow-hidden bg-secondary">
+              <iframe
+                src={
+                  videos[0].video_url.includes('youtube.com')
+                    ? videos[0].video_url.replace('watch?v=', 'embed/')
+                    : videos[0].video_url.includes('vimeo.com')
+                      ? videos[0].video_url.replace('vimeo.com', 'player.vimeo.com/video')
+                      : videos[0].video_url
+                }
+                className="w-full h-full"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Links */}
       {linkButtons.length > 0 && (
         <Card>
@@ -349,6 +384,29 @@ export function StartupDashboard() {
                     <p className="font-medium text-sm">{exec.name}</p>
                     <p className="text-xs text-muted-foreground">{exec.role}</p>
                   </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Q&A */}
+      {qna.length > 0 && (
+        <Card>
+          <CardContent className="p-6">
+            <h3 className="font-semibold mb-4 flex items-center gap-2">
+              <MessageSquare className="w-4 h-4" />
+              Investor Q&A
+            </h3>
+            <div className="space-y-4">
+              {qna.map((item) => (
+                <div key={item.id} className="p-4 rounded-lg bg-secondary/50 border border-border">
+                  <div className="flex items-start gap-2 mb-2">
+                    <Badge variant="outline" className="text-xs flex-shrink-0">{item.category}</Badge>
+                  </div>
+                  <p className="font-medium text-sm mb-2">{item.question}</p>
+                  <p className="text-sm text-muted-foreground whitespace-pre-wrap">{item.answer}</p>
                 </div>
               ))}
             </div>

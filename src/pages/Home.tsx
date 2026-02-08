@@ -4,7 +4,7 @@ import { Button } from '@/components/ui';
 import { useAuthStore } from '@/stores/authStore';
 import {
   Zap, BarChart3, MessageSquare, Play, Video,
-  User, BookOpen, Linkedin, ExternalLink,
+  User, Users, BookOpen, Linkedin, ExternalLink,
   Newspaper, MessageCircle, ArrowRight, Instagram,
 } from 'lucide-react';
 import {
@@ -316,6 +316,13 @@ export function Home() {
             {teamMembers.map((member) => (
               <div key={member.name} className="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
                 <div className="flex items-center gap-4 mb-4">
+                  <div className="w-12 h-12 rounded-full bg-neutral-700 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                    {member.photo ? (
+                      <img src={member.photo} alt={member.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <Users className="w-6 h-6 text-neutral-400" />
+                    )}
+                  </div>
                   <div>
                     <span className="text-xs text-neutral-500 uppercase tracking-wider">{member.role}</span>
                     <h3 className="font-semibold">{member.name}</h3>

@@ -499,6 +499,37 @@ export function CompanyRegister() {
         } catch { /* table may not exist yet */ }
       }
 
+      // Insert Q&A if any questions selected
+      if (selectedQuestions.length > 0) {
+        const questionCategoryMap: Record<string, string> = {
+          'What is your current revenue scale?': 'Competitive Advantage',
+          'What differentiates you from competitors?': 'Competitive Landscape',
+          'What is your funding plan for the next 12 months?': 'Basis of Conviction',
+          'What are the barriers to entry for your core technology?': 'Competitive Advantage',
+          'Do you have key customers or partners?': 'Competitive Advantage',
+          "What are your team's core competencies?": 'Team Cohesion',
+          'What is your biggest challenge right now?': 'Capability Gap',
+          'Do you have an exit strategy?': 'Acquisition Offer',
+        };
+
+        const qnaRows = selectedQuestions
+          .filter((q) => questionAnswers[q]?.trim())
+          .map((q) => ({
+            company_id: company.id,
+            category: questionCategoryMap[q] || 'Competitive Advantage',
+            question: q,
+            answer: questionAnswers[q].trim(),
+          }));
+
+        if (qnaRows.length > 0) {
+          try {
+            await withTimeout(
+              supabase.from('company_qna').insert(qnaRows)
+            );
+          } catch { /* table may not exist yet */ }
+        }
+      }
+
       // Clear pending integrations from localStorage
       localStorage.removeItem('pending_integrations');
       navigate('/dashboard');
@@ -629,8 +660,9 @@ export function CompanyRegister() {
                     <Label required>Founded Date</Label>
                     <Input
                       type="month"
+                      lang="en"
                       error={errors.founded_at?.message}
-                      className="bg-secondary border-border"
+                      className="bg-secondary border-border [&::-webkit-calendar-picker-indicator]:invert"
                       {...register('founded_at')}
                     />
                   </div>
