@@ -4,8 +4,20 @@ import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   Plus, Trash2, Upload, Globe, Github, Linkedin, Youtube, FileText,
-  Check, ArrowLeft, Video, MessageSquare, Newspaper,
+  Check, ArrowLeft, Video, MessageSquare, Newspaper, RefreshCw,
 } from 'lucide-react';
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+} from 'recharts';
 import { supabase } from '@/lib/supabase';
 import { initiateStripeConnect, initiateGoogleOAuth } from '@/lib/integrations';
 import { useAuthStore } from '@/stores/authStore';
@@ -1134,42 +1146,177 @@ export function CompanyEdit() {
                 </div>
               </div>
 
-              {/* Metrics Summary */}
-              {metrics.length > 0 && (
-                <div className="pt-4 border-t border-border">
-                  <h3 className="text-sm font-medium mb-3">Latest Metrics</h3>
-                  <div className="grid sm:grid-cols-3 gap-3">
-                    {(() => {
-                      const latest = metrics[0];
-                      return (
+              {/* Metrics Charts */}
+              {(() => {
+                const stripeMetrics = metrics
+                  .filter((m) => m.source === 'stripe' && m.revenue != null)
+                  .sort((a, b) => a.month.localeCompare(b.month));
+                const ga4Metrics = metrics
+                  .filter((m) => m.source === 'ga4' && m.mau != null)
+                  .sort((a, b) => a.month.localeCompare(b.month));
+                const hasData = stripeMetrics.length > 0 || ga4Metrics.length > 0;
+
+                if (!hasData && (company.stripe_connected || company.ga4_connected)) {
+                  return (
+                    <div className="pt-4 border-t border-border space-y-3">
+                      <p className="text-sm text-muted-foreground">
+                        Connected but no metrics data yet. Reconnect to sync your data.
+                      </p>
+                      <div className="flex gap-2">
+                        {company.stripe_connected && (
+                          <Button type="button" variant="outline" size="sm" onClick={() => initiateStripeConnect()} className="gap-1.5">
+                            <RefreshCw className="w-3.5 h-3.5" /> Resync Stripe
+                          </Button>
+                        )}
+                        {company.ga4_connected && (
+                          <Button type="button" variant="outline" size="sm" onClick={() => initiateGoogleOAuth()} className="gap-1.5">
+                            <RefreshCw className="w-3.5 h-3.5" /> Resync GA4
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                }
+
+                if (!hasData) return null;
+
+                const latestStripe = stripeMetrics[stripeMetrics.length - 1];
+                const latestGA4 = ga4Metrics[ga4Metrics.length - 1];
+
+                return (
+                  <div className="pt-4 border-t border-border space-y-6">
+                    {/* Summary Cards */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      {latestStripe && (
                         <>
-                          {latest.revenue != null && (
-                            <div className="p-3 rounded-lg bg-background border border-border text-center">
-                              <p className="text-xs text-muted-foreground mb-1">Revenue</p>
-                              <p className="font-semibold">${latest.revenue.toLocaleString()}</p>
-                              <p className="text-xs text-muted-foreground mt-1">{latest.month}</p>
-                            </div>
-                          )}
-                          {latest.mau != null && (
-                            <div className="p-3 rounded-lg bg-background border border-border text-center">
-                              <p className="text-xs text-muted-foreground mb-1">MAU</p>
-                              <p className="font-semibold">{latest.mau.toLocaleString()}</p>
-                              <p className="text-xs text-muted-foreground mt-1">{latest.month}</p>
-                            </div>
-                          )}
-                          {latest.retention != null && (
-                            <div className="p-3 rounded-lg bg-background border border-border text-center">
-                              <p className="text-xs text-muted-foreground mb-1">Retention</p>
-                              <p className="font-semibold">{latest.retention}%</p>
-                              <p className="text-xs text-muted-foreground mt-1">{latest.month}</p>
-                            </div>
-                          )}
+                          <div className="p-3 rounded-lg bg-background border border-border">
+                            <p className="text-xs text-muted-foreground mb-0.5">Latest MRR</p>
+                            <p className="font-semibold text-lg">${latestStripe.revenue!.toLocaleString()}</p>
+                            <p className="text-xs text-muted-foreground">{latestStripe.month}</p>
+                          </div>
+                          <div className="p-3 rounded-lg bg-background border border-border">
+                            <p className="text-xs text-muted-foreground mb-0.5">Total Revenue</p>
+                            <p className="font-semibold text-lg">
+                              ${stripeMetrics.reduce((s, m) => s + (m.revenue || 0), 0).toLocaleString()}
+                            </p>
+                            <p className="text-xs text-muted-foreground">{stripeMetrics.length} months</p>
+                          </div>
                         </>
-                      );
-                    })()}
+                      )}
+                      {latestGA4 && (
+                        <>
+                          <div className="p-3 rounded-lg bg-background border border-border">
+                            <p className="text-xs text-muted-foreground mb-0.5">Latest MAU</p>
+                            <p className="font-semibold text-lg">{latestGA4.mau!.toLocaleString()}</p>
+                            <p className="text-xs text-muted-foreground">{latestGA4.month}</p>
+                          </div>
+                          <div className="p-3 rounded-lg bg-background border border-border">
+                            <p className="text-xs text-muted-foreground mb-0.5">Avg MAU</p>
+                            <p className="font-semibold text-lg">
+                              {Math.round(ga4Metrics.reduce((s, m) => s + (m.mau || 0), 0) / ga4Metrics.length).toLocaleString()}
+                            </p>
+                            <p className="text-xs text-muted-foreground">{ga4Metrics.length} months</p>
+                          </div>
+                        </>
+                      )}
+                    </div>
+
+                    {/* Revenue Chart */}
+                    {stripeMetrics.length > 1 && (
+                      <div>
+                        <p className="text-sm font-medium mb-3">Revenue Trend</p>
+                        <div className="h-52">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={stripeMetrics.map((m) => ({ month: m.month, revenue: m.revenue }))} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+                              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                              <XAxis
+                                dataKey="month"
+                                tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                                axisLine={{ stroke: 'hsl(var(--border))' }}
+                                tickLine={false}
+                              />
+                              <YAxis
+                                tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                                axisLine={false}
+                                tickLine={false}
+                                tickFormatter={(v: number) => `$${v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}`}
+                              />
+                              <Tooltip
+                                contentStyle={{
+                                  backgroundColor: 'hsl(var(--card))',
+                                  border: '1px solid hsl(var(--border))',
+                                  borderRadius: '8px',
+                                  fontSize: '12px',
+                                }}
+                                formatter={(value) => [`$${Number(value).toLocaleString()}`, 'Revenue']}
+                              />
+                              <Bar dataKey="revenue" fill="#635BFF" radius={[4, 4, 0, 0]} />
+                            </BarChart>
+                          </ResponsiveContainer>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* MAU Chart */}
+                    {ga4Metrics.length > 1 && (
+                      <div>
+                        <p className="text-sm font-medium mb-3">Monthly Active Users</p>
+                        <div className="h-52">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <LineChart data={ga4Metrics.map((m) => ({ month: m.month, mau: m.mau }))} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+                              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                              <XAxis
+                                dataKey="month"
+                                tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                                axisLine={{ stroke: 'hsl(var(--border))' }}
+                                tickLine={false}
+                              />
+                              <YAxis
+                                tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                                axisLine={false}
+                                tickLine={false}
+                                tickFormatter={(v: number) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : `${v}`}
+                              />
+                              <Tooltip
+                                contentStyle={{
+                                  backgroundColor: 'hsl(var(--card))',
+                                  border: '1px solid hsl(var(--border))',
+                                  borderRadius: '8px',
+                                  fontSize: '12px',
+                                }}
+                                formatter={(value) => [Number(value).toLocaleString(), 'MAU']}
+                              />
+                              <Legend />
+                              <Line
+                                type="monotone"
+                                dataKey="mau"
+                                stroke="#F9AB00"
+                                strokeWidth={2}
+                                dot={{ fill: '#F9AB00', r: 3 }}
+                                activeDot={{ r: 5 }}
+                              />
+                            </LineChart>
+                          </ResponsiveContainer>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Resync buttons when data exists */}
+                    <div className="flex gap-2">
+                      {company.stripe_connected && (
+                        <Button type="button" variant="ghost" size="sm" onClick={() => initiateStripeConnect()} className="gap-1.5 text-muted-foreground">
+                          <RefreshCw className="w-3.5 h-3.5" /> Resync Stripe
+                        </Button>
+                      )}
+                      {company.ga4_connected && (
+                        <Button type="button" variant="ghost" size="sm" onClick={() => initiateGoogleOAuth()} className="gap-1.5 text-muted-foreground">
+                          <RefreshCw className="w-3.5 h-3.5" /> Resync GA4
+                        </Button>
+                      )}
+                    </div>
                   </div>
-                </div>
-              )}
+                );
+              })()}
             </CardContent>
           </Card>
 
