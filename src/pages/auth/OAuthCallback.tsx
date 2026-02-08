@@ -37,6 +37,7 @@ export function OAuthCallback() {
         let redirectPath = callbackResult.returnPath || '/company/register';
         const { data: { session } } = await supabase.auth.getSession();
 
+        let companyId: string | undefined;
         if (session) {
           const { data: companyRows } = await supabase
             .from('companies')
@@ -44,30 +45,35 @@ export function OAuthCallback() {
             .eq('user_id', session.user.id)
             .limit(1);
 
-          const companyId = companyRows?.[0]?.id;
-
-          // If company exists, always go to /company/edit
+          companyId = companyRows?.[0]?.id;
           if (companyId) {
             redirectPath = '/company/edit';
-
-            // Fire-and-forget: try to sync metrics (don't block redirect)
-            const baseUrl = import.meta.env.VITE_APP_URL || window.location.origin;
-            const redirectUri = `${baseUrl}/oauth/callback`;
-            supabase.functions
-              .invoke('sync-metrics', {
-                body: { companyId, provider: callbackResult.provider, code: callbackResult.code, redirectUri },
-              })
-              .then(({ data }) => {
-                if (data?.metrics) {
-                  const stored = JSON.parse(localStorage.getItem('pending_integrations') || '{}');
-                  if (stored[callbackResult.provider!]) {
-                    stored[callbackResult.provider!].metrics = data.metrics;
-                    localStorage.setItem('pending_integrations', JSON.stringify(stored));
-                  }
-                }
-              })
-              .catch(() => {});
           }
+        }
+
+        // Always call sync-metrics: with companyId (save mode) or without (preview mode)
+        setStatus('syncing');
+        const baseUrl = import.meta.env.VITE_APP_URL || window.location.origin;
+        const redirectUri = `${baseUrl}/oauth/callback`;
+        try {
+          const syncResult = await Promise.race([
+            supabase.functions.invoke('sync-metrics', {
+              body: {
+                ...(companyId ? { companyId } : {}),
+                provider: callbackResult.provider,
+                code: callbackResult.code,
+                redirectUri,
+              },
+            }),
+            new Promise<never>((_, reject) =>
+              setTimeout(() => reject(new Error('Sync timed out')), 15000)
+            ),
+          ]);
+          if (syncResult.data?.metrics) {
+            integrations[callbackResult.provider!].metrics = syncResult.data.metrics;
+          }
+        } catch (syncErr) {
+          console.warn('Metrics sync failed (non-blocking):', syncErr);
         }
 
         localStorage.setItem('pending_integrations', JSON.stringify(integrations));

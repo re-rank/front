@@ -661,14 +661,15 @@ export function CompanyEdit() {
                     control={control}
                     name="founded_at"
                     render={({ field }) => {
-                      const [y = '', m = ''] = (field.value || '').split('-');
-                      const setMonth = (v: string) => {
-                        const num = v.replace(/\D/g, '').slice(0, 2);
-                        field.onChange(y && num ? `${y}-${num.padStart(2, '0')}` : field.value);
-                      };
-                      const setYear = (v: string) => {
-                        const num = v.replace(/\D/g, '').slice(0, 4);
-                        field.onChange(num && m ? `${num}-${m}` : field.value);
+                      const parts = (field.value || '').split('-');
+                      const y = parts[0] || '';
+                      const m = parts[1] || '';
+                      const updateValue = (newY: string, newM: string) => {
+                        if (!newY && !newM) {
+                          field.onChange('');
+                        } else {
+                          field.onChange(`${newY}-${newM}`);
+                        }
                       };
                       return (
                         <div className="flex items-center gap-1 h-9 w-full rounded-md border border-input bg-secondary px-3 shadow-xs focus-within:border-ring focus-within:ring-ring/50 focus-within:ring-[3px]">
@@ -677,10 +678,15 @@ export function CompanyEdit() {
                             inputMode="numeric"
                             placeholder="MM"
                             value={m}
-                            onChange={(e) => setMonth(e.target.value)}
+                            onChange={(e) => {
+                              const num = e.target.value.replace(/\D/g, '').slice(0, 2);
+                              updateValue(y, num);
+                            }}
                             onBlur={() => {
                               if (m && parseInt(m) >= 1 && parseInt(m) <= 12) {
-                                field.onChange(`${y || '2024'}-${m.padStart(2, '0')}`);
+                                updateValue(y, m.padStart(2, '0'));
+                              } else if (m && (parseInt(m) < 1 || parseInt(m) > 12)) {
+                                updateValue(y, '');
                               }
                             }}
                             className="w-8 bg-transparent text-sm text-center outline-none"
@@ -693,7 +699,10 @@ export function CompanyEdit() {
                             inputMode="numeric"
                             placeholder="YYYY"
                             value={y}
-                            onChange={(e) => setYear(e.target.value)}
+                            onChange={(e) => {
+                              const num = e.target.value.replace(/\D/g, '').slice(0, 4);
+                              updateValue(num, m);
+                            }}
                             className="w-12 bg-transparent text-sm text-center outline-none"
                             maxLength={4}
                           />
