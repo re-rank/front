@@ -285,6 +285,10 @@ export function CompanyRegister() {
       const valid = await trigger('executives');
       if (!valid) return;
     }
+    if (step === 3) {
+      const valid = await trigger('intro_video_url');
+      if (!valid) return;
+    }
     setStep((s) => Math.min(s + 1, STEPS.length));
   };
 
@@ -387,6 +391,7 @@ export function CompanyRegister() {
           category: 'Category',
           stage: 'Company Stage',
           executives: 'Leadership Team',
+          intro_video_url: 'Introduction Video',
         };
         for (const issue of result.error.issues) {
           const key = String(issue.path[0] || '');
@@ -928,9 +933,10 @@ export function CompanyRegister() {
                     <p className="text-sm text-muted-foreground">Share your story, product demo, and vision.</p>
 
                     <div className="space-y-2">
-                      <Label>Video URL (YouTube, Vimeo, or Loom)</Label>
+                      <Label required>Video URL (YouTube, Vimeo, or Loom)</Label>
                       <Input
                         placeholder="https://youtube.com/watch?v=..."
+                        error={errors.intro_video_url?.message}
                         className="bg-background border-border"
                         {...register('intro_video_url')}
                       />

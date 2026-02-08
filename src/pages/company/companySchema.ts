@@ -85,7 +85,7 @@ export const companyRegisterSchema = z.object({
   // Step 2: Team
   executives: z.array(executiveSchema).min(1, 'At least one executive is required'),
   // Step 3: Media
-  intro_video_url: z.string().url('Please enter a valid URL').or(z.literal('')).optional(),
+  intro_video_url: z.string().min(1, 'Please enter a video URL').url('Please enter a valid URL'),
   // Step 5: Questions
   selected_questions: z.array(z.string()).optional(),
   question_answers: z.record(z.string(), z.string()).optional(),
