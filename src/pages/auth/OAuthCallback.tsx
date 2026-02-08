@@ -79,9 +79,11 @@ export function OAuthCallback() {
           const headers: Record<string, string> = {
             'Content-Type': 'application/json',
             'apikey': supabaseAnonKey,
-            // Supabase Functions gateway requires Authorization header;
-            // use valid access token if available, otherwise fall back to anon key
-            'Authorization': `Bearer ${accessToken || supabaseAnonKey}`,
+            // Always use anon key for Authorization — user tokens are often
+            // invalidated/rotated after cross-origin OAuth redirects, causing
+            // the Supabase gateway to reject them as "Invalid JWT".
+            // The Edge Function uses userId from the request body instead.
+            'Authorization': `Bearer ${supabaseAnonKey}`,
           };
 
           const res = await fetch(`${supabaseUrl}/functions/v1/sync-metrics`, {
