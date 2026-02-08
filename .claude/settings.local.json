@@ -61,7 +61,8 @@
       "Bash(do curl -s -X POST \"https://api.supabase.com/v1/projects/rswlulvyxoelrwespphm/database/query\" -H \"Authorization: Bearer sbp_v0_271914c76f608e62809bdacd49c800481b909616\" -H \"Content-Type: application/json\" -d \"{\"\"query\"\": \"\"ALTER TABLE $table ENABLE ROW LEVEL SECURITY\"\"}\")",
       "Bash(echo:*)",
       "Bash(done)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash(npx vercel:*)"
     ]
   }
 }
