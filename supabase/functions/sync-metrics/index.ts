@@ -244,18 +244,49 @@ async function syncGA4Metrics(
 
   const accessToken = tokenData.access_token;
 
+  // Try Analytics Admin API first, fall back to Analytics Data API discovery
+  let propertyId: string | null = null;
+
   const accountsRes = await fetch(
     'https://analyticsadmin.googleapis.com/v1beta/accountSummaries',
     { headers: { Authorization: `Bearer ${accessToken}` } }
   );
 
-  const accountsData = await accountsRes.json();
-  if (!accountsRes.ok) throw new Error('Failed to fetch GA4 accounts');
+  if (accountsRes.ok) {
+    const accountsData = await accountsRes.json();
+    const firstProperty = accountsData.accountSummaries?.[0]?.propertySummaries?.[0];
+    if (firstProperty) {
+      propertyId = firstProperty.property.replace('properties/', '');
+      console.log('Found GA4 property via Admin API:', propertyId);
+    }
+  } else {
+    const errBody = await accountsRes.text();
+    console.warn('GA4 Admin API failed (will try fallback):', accountsRes.status, errBody);
+  }
 
-  const firstProperty = accountsData.accountSummaries?.[0]?.propertySummaries?.[0];
-  if (!firstProperty) throw new Error('No GA4 property found');
+  // If Admin API failed or returned no properties, try listing accessible properties
+  if (!propertyId) {
+    const propsRes = await fetch(
+      'https://analyticsadmin.googleapis.com/v1beta/properties?filter=parent:accounts/-',
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    );
+    if (propsRes.ok) {
+      const propsData = await propsRes.json();
+      const firstProp = propsData.properties?.[0];
+      if (firstProp) {
+        propertyId = firstProp.name.replace('properties/', '');
+        console.log('Found GA4 property via properties list:', propertyId);
+      }
+    } else {
+      const errBody = await propsRes.text();
+      console.warn('GA4 properties list failed:', propsRes.status, errBody);
+    }
+  }
 
-  const propertyId = firstProperty.property.replace('properties/', '');
+  if (!propertyId) {
+    throw new Error('No GA4 property found. Make sure Google Analytics is set up for this account.');
+  }
+
   const now = new Date();
   const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
 
@@ -283,7 +314,10 @@ async function syncGA4Metrics(
   );
 
   const reportData = await reportRes.json();
-  if (!reportRes.ok) throw new Error('Failed to fetch GA4 report');
+  if (!reportRes.ok) {
+    console.error('GA4 report error:', JSON.stringify(reportData));
+    throw new Error(`Failed to fetch GA4 report: ${reportData.error?.message || reportRes.status}`);
+  }
 
   const metrics: MetricRow[] = [];
   for (const row of reportData.rows || []) {
