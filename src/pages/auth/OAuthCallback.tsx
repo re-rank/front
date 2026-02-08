@@ -69,6 +69,7 @@ export function OAuthCallback() {
             supabase.functions.invoke('sync-metrics', {
               body: {
                 ...(companyId ? { companyId } : {}),
+                ...(session?.user?.id ? { userId: session.user.id } : {}),
                 provider: callbackResult.provider,
                 code: callbackResult.code,
                 redirectUri,

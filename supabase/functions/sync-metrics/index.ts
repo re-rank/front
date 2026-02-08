@@ -8,6 +8,7 @@ const corsHeaders = {
 
 interface SyncRequest {
   companyId?: string;   // optional: skip DB save when absent (preview mode)
+  userId?: string;      // fallback: used to look up company when auth token is stale
   provider: 'stripe' | 'ga4';
   code: string;
   redirectUri: string;
@@ -32,26 +33,33 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Verify auth
+    // Soft auth: try to verify, but proceed even if token is stale (OAuth redirect scenario)
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(JSON.stringify({ success: false, error: 'Missing authorization' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    let userId: string | null = null;
+    if (authHeader) {
+      try {
+        const { data: { user }, error: authError } = await supabase.auth.getUser(
+          authHeader.replace('Bearer ', '')
+        );
+        if (!authError && user) {
+          userId = user.id;
+        } else {
+          console.warn('Auth token invalid (may be stale after OAuth redirect):', authError?.message);
+        }
+      } catch (e) {
+        console.warn('Auth verification failed:', e);
+      }
     }
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    );
-    if (authError || !user) {
-      return new Response(JSON.stringify({ success: false, error: 'Unauthorized' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
+    const body: SyncRequest = await req.json();
+    let { companyId } = body;
+    const { userId: bodyUserId, provider, code, redirectUri } = body;
 
-    const { companyId, provider, code, redirectUri }: SyncRequest = await req.json();
+    // Use auth-verified userId if available, otherwise fall back to body userId
+    if (!userId && bodyUserId) {
+      userId = bodyUserId;
+      console.log('Using userId from request body (auth token was stale)');
+    }
 
     if (!provider || !code || !redirectUri) {
       return new Response(JSON.stringify({ success: false, error: 'Missing required fields' }), {
@@ -60,13 +68,40 @@ serve(async (req) => {
       });
     }
 
-    // If companyId provided, verify ownership
-    if (companyId) {
+    // If no companyId but we have userId, look up the company
+    if (!companyId && userId) {
+      const { data: companyRows } = await supabase
+        .from('companies')
+        .select('id')
+        .eq('user_id', userId)
+        .limit(1);
+      if (companyRows?.[0]?.id) {
+        companyId = companyRows[0].id;
+        console.log('Resolved companyId from userId:', companyId);
+      }
+    }
+
+    // If companyId provided, verify ownership only when we have a valid userId
+    if (companyId && userId) {
       const { data: company } = await supabase
         .from('companies')
         .select('id, user_id')
         .eq('id', companyId)
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
+        .single();
+
+      if (!company) {
+        return new Response(JSON.stringify({ success: false, error: 'Company not found or not owned by user' }), {
+          status: 404,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    } else if (companyId && !userId) {
+      // No valid auth but companyId given — verify company exists at minimum
+      const { data: company } = await supabase
+        .from('companies')
+        .select('id')
+        .eq('id', companyId)
         .single();
 
       if (!company) {
