@@ -118,6 +118,30 @@ export function StartupDashboard() {
         if (cancelled) return;
         const data = rows?.[0] ?? null;
         if (data) {
+          // Process pending OAuth integrations
+          const pendingRaw = localStorage.getItem('pending_integrations');
+          if (pendingRaw) {
+            try {
+              const pending = JSON.parse(pendingRaw);
+              const updates: Record<string, boolean> = {};
+              if (pending.stripe?.status === 'connected' && !data.stripe_connected) {
+                updates.stripe_connected = true;
+              }
+              if (pending.ga4?.status === 'connected' && !data.ga4_connected) {
+                updates.ga4_connected = true;
+              }
+              if (Object.keys(updates).length > 0) {
+                const { error } = await withTimeout(
+                  supabase.from('companies').update(updates).eq('id', data.id)
+                );
+                if (!error) Object.assign(data, updates);
+              }
+              localStorage.removeItem('pending_integrations');
+            } catch (e) {
+              console.error('Failed to process pending integrations:', e);
+            }
+          }
+
           setCompany(data);
           const [execRes, videoRes, qnaRes, metricsRes] = await Promise.all([
             withTimeout(supabase.from('executives').select('*').eq('company_id', data.id).order('created_at'))

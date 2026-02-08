@@ -443,6 +443,13 @@ export function CompanyRegister() {
         return;
       }
 
+      // Check pending integrations for connection status
+      const pendingRaw = localStorage.getItem('pending_integrations');
+      let pendingIntegrations: Record<string, { code?: string; status?: string }> = {};
+      if (pendingRaw) {
+        try { pendingIntegrations = JSON.parse(pendingRaw); } catch { /* ignore */ }
+      }
+
       // Insert company
       const { data: company, error: companyError } = await withTimeout(
         supabase
@@ -464,6 +471,8 @@ export function CompanyRegister() {
             twitter_url: data.twitter_url || null,
             youtube_url: data.youtube_url || null,
             deck_url: companyDeck?.url || null,
+            stripe_connected: pendingIntegrations.stripe?.status === 'connected',
+            ga4_connected: pendingIntegrations.ga4?.status === 'connected',
           })
           .select('id')
           .single()
@@ -541,15 +550,13 @@ export function CompanyRegister() {
       }
 
       // Sync metrics for connected integrations (now that company exists)
-      const pendingRaw = localStorage.getItem('pending_integrations');
-      if (pendingRaw) {
+      if (Object.keys(pendingIntegrations).length > 0) {
         try {
-          const pending = JSON.parse(pendingRaw);
           const baseUrl = import.meta.env.VITE_APP_URL || window.location.origin;
           const redirectUri = `${baseUrl}/oauth/callback`;
 
           const syncProviders = (['stripe', 'ga4'] as const).filter(
-            (p) => pending[p]?.status === 'connected' && pending[p]?.code
+            (p) => pendingIntegrations[p]?.status === 'connected' && pendingIntegrations[p]?.code
           );
 
           await Promise.all(
@@ -559,7 +566,7 @@ export function CompanyRegister() {
                   body: {
                     companyId: company.id,
                     provider,
-                    code: pending[provider].code,
+                    code: pendingIntegrations[provider].code,
                     redirectUri,
                   },
                 })
